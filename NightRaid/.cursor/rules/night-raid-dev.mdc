@@ -1,0 +1,76 @@
+---
+description: Night Raid — GDD lock, tracker, starter-pack, code quality for all agents
+alwaysApply: true
+---
+
+# Night Raid Base — Dev Rules (always)
+
+You are coding in **Night Raid Base** (`C:\Projects\Roblox\NightRaid`). Product truth is the GDD, not improvisation.
+
+## Before any code change
+
+1. Read `docs/AGENT_BRIEF.md`
+2. Read `docs/DEV_TRACKER.md` — implement **only unchecked tasks in the current phase**
+3. Obey **tech stack** — `.cursor/rules/night-raid-stack.mdc` + `docs/TECH_STACK.md` + `AGENTS.md` (React-Lua from `roblox-starter`; **never** Fusion / raw Instance HUD)
+4. When in doubt on mechanics **or world layout** → `docs/GDD.md` (§4A–4D)
+5. If the task is not on the tracker / GDD → **stop** and ask the user (do not invent)
+
+## Product lock
+
+- GDD = `docs/GDD.md` in this repo (Obsidian copy is secondary notes).
+- Do **not** add systems, verbs, currencies, or modes absent from the GDD.
+- New feature requires: **explicit user request** + **GDD edit** (`docs/GDD.md` + Obsidian) + tracker update — in that order.
+- Plan: `docs/IMPLEMENTATION_PLAN.md`. Progress: `docs/DEV_TRACKER.md` (update checkboxes + date when you finish work).
+
+## Phase discipline (Idea Machine)
+
+| Phase | Status rule |
+|-------|-------------|
+| 3 PROVE | Current until Go/Kill recorded in tracker |
+| 4 BUILD | Blocked until PROVE Go |
+| 5 LAUNCH | After v0.3 DoD |
+
+Stay in the current phase until PROVE Go/Kill.
+
+**PROVE must include full session:** roll, build/lamps, place, steal/bat/lock, night shine, Fog.  
+**PROVE exclusions:** monetization, rebirth, offline, weekly ops, lore, multi-monster. See `night-raid-scope-lock.mdc`.
+
+### PROVE — no idle refactor
+
+While phase = **PROVE**:
+
+- **Forbidden:** drive-by refactors, renames for taste, cleanup PRs, rewriting working night graybox “the right way.”
+- **Allowed:** unchecked **PROVE §B** tasks in `DEV_TRACKER` (including new `RollService` / `StealService` / `LightService` / `BaseService` named by GDD), and bugfixes that block playtest.
+- If night code is ugly but playable → **leave it** while building day loop.
+
+## Starter-pack (design rules)
+
+Canonical path (note: `C:\Projects\Roblox\starter-pack` does **not** exist):
+
+`C:\Projects\Roblox\Mining\docs\starter-pack\`
+
+Must respect especially:
+
+- `08-anti-patterns.md` — no PvP steal day 1, no scope creep, no shelf clone without twist, no story retention, no real-24h-only cycle
+- `machine/pipeline.md` / `machine/01-pipeline.md` — gates before phase advance
+- `07-how-to-design-a-hit.md` — PROVE = verb feel, not progression stack
+
+Intake log: `Mining/docs/starter-pack/machine/logs/project-02-night-raid-intake.md`
+
+## Code quality
+
+Aligned with `C:\Projects\Roblox\roblox-starter` (канон стека) + `Mining/.cursor/rules/code-quality.mdc` где не конфликтует:
+
+- `--!strict` Luau; typed public APIs (`export type`)
+- Modules ~≤300 lines; split by responsibility when hard to read
+- DI via `Module.new(deps)`; no `_G`; no hidden singletons
+- Shared data tables only in `src/shared/data/` — no duplicated client/server balance
+- Explicit `:destroy()` / connection cleanup
+- **UI = React-Lua** (`jsdotlua/react` + `react-roblox`) + Flipper + `theme`/`useLayout` — см. `roblox-starter/.cursor/rules/ui-react.mdc`. Не писать HUD на raw `Instance.new`. Не Fusion.
+- Prefer extending existing modules; **new** `RollService` / `StealService` / `LightService` / `BaseService` are expected in PROVE (GDD §8). `RebirthService` only post-PROVE.
+
+## After finishing work
+
+1. Check off items in `docs/DEV_TRACKER.md` with today’s date
+2. Do not mark PROVE **Go** without playtest metrics filled in
+3. Do not expand the tracker with new feature rows unless the user asked and GDD was updated

@@ -1,0 +1,27 @@
+---
+description: UI delight — every detail for hit-grade feel (Breed & Raid)
+globs: src/client/ui/**
+alwaysApply: false
+---
+
+# UI Delight (Breed & Raid)
+
+Canon: `docs/ui/DELIGHT_SPEC.md`. Visual lock: **v3 Jade**.
+
+## Non-negotiables
+
+1. **Feedback &lt; 0ms perceived:** press scale + sound before server.
+2. **`1 in X` is hero text** — larger than name on cards/previews/hatch.
+3. **Motion only via** `MotionPresets` + Flipper hooks from starter patterns.
+4. **Idle Flipper motors ≤ 8.** No per-card idle springs in inventory.
+5. **Colors/spacing only from** `theme.luau` + `useLayout()`.
+6. Ornament banners = **PNG assets**, not Instance filigree.
+7. Every CTA uses hover/press spring (`useHoverPress` pattern).
+8. Cash/Buffer/MPS use spring display; logic uses authoritative values.
+9. Hatch / Buy / Steal alert are **scheduled juice moments** with sound.
+10. Mark checklist in `DELIGHT_SPEC.md` §7–§8 when shipping a screen.
+
+## Order
+
+P0 response (buttons+numbers+sound) → P1 panels → P2 hero moments → P3 ornaments.
+Never ship static pretty panels as “done”.

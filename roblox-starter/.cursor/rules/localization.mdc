@@ -1,0 +1,35 @@
+---
+description: Локализация — ключи, не хардкод
+globs: src/**/*.luau
+alwaysApply: false
+---
+
+# Локализация
+
+Если игра выходит глобально — закладывай с первого экрана. Один модуль `shared/loc/Localization.luau`.
+
+## Правила
+
+- **Никакого** пользовательского текста в компонентах. Только `L("hud.coins")` или `L("shop.buy", { price = 100 })`.
+- Ключи: `domain.element` — `hud.coins`, `modal.daily.title`, `server.error.noCoins`.
+- Строки в `shared/loc/strings/` по доменам (hud, modals, server…).
+- Английский — default locale. Другие языки добавляются в `Locales.luau`.
+- Серверные ошибки: `ServerMessage.fromResult()` — клиент показывает локализованный текст.
+
+## Структура
+
+```
+shared/loc/
+  Localization.luau    -- t(key, params?)
+  Locales.luau         -- registry
+  strings/
+    hud.luau
+    modals.luau
+    server.luau
+```
+
+## Антипаттерны
+
+- `Text = "Sell All"` в компоненте
+- Разные тексты ошибки на сервере и клиенте
+- Конкатенация строк (`"You earned " .. n .. " coins"`)

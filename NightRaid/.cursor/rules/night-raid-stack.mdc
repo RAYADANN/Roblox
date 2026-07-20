@@ -1,0 +1,61 @@
+---
+description: Night Raid — канонический tech stack (React-Lua). Читать КАЖДОМУ агенту.
+alwaysApply: true
+---
+
+# Night Raid — Tech Stack Lock (HARD)
+
+**Не спрашивай пользователя «какой UI фреймворк?».** Стек зафиксирован. Не угадывай и не тащи Fusion/raw Instance HUD.
+
+## Канон
+
+| Что | Где |
+|-----|-----|
+| **Стек и обоснование** | `C:\Projects\Roblox\roblox-starter\docs\TECH_STACK.md` |
+| **Правила React UI** | `C:\Projects\Roblox\roblox-starter\.cursor\rules\ui-react.mdc` |
+| **Адаптив** | `C:\Projects\Roblox\roblox-starter\docs\UI_ADAPTIVITY.md` |
+| **Индекс шаблона** | `C:\Projects\Roblox\roblox-starter\AGENTS.md` |
+| **Локальный снимок** | `docs/TECH_STACK.md` (этот репо) |
+| **Wally** | `wally.toml` → `Packages/` |
+
+Design/pipeline (Idea Machine) — отдельно: `C:\Projects\Roblox\Mining\docs\starter-pack\`  
+Код/UI/CI — **только** `roblox-starter`, не Mining Fusion.
+
+## Обязательный стек (сейчас в Night Raid)
+
+| Слой | Выбор | Пакет / путь |
+|------|-------|----------------|
+| Язык | Luau `--!strict` | весь `src/` |
+| UI | **React-Lua** | `Packages.React`, `Packages.ReactRoblox` |
+| UI motion | **Flipper** | `Packages.Flipper` + `useFlipperSpring` / `useHoverPress` |
+| Design tokens | `theme` + `useLayout()` | `src/client/ui/theme.luau`, `hooks/useLayout.luau` |
+| Sync | Rojo | `default.project.json` |
+| Packages | Wally | `wally.toml` |
+| DI | `Module.new(deps)` | server/client core |
+| Cleanup | `:destroy()` / Trove / React `useEffect` cleanup | — |
+
+## Запрещено (агент не пишет так)
+
+- HUD / ScreenGui на **raw** `Instance.new("TextLabel")` и т.п. как основной UI
+- **Fusion** (elttob) — отвергнут в starter; в Night Raid не использовать
+- Roact (legacy), произвольный UI-фреймворк «по вкусу»
+- Хардкод px без `useLayout()` / `layout.px()` / `layout.text()` в новых UI-компонентах
+- Бизнес-логика / remotes / economy внутри React-компонентов представления (только props + локальный UI state)
+
+## Как писать UI
+
+1. Function-компонент + хуки → `React.createElement(...)`
+2. Монтаж: `ReactRoblox.createRoot` в `init.client` (см. текущий клиент)
+3. Эталон в **этом** репо: `src/client/ui/App.luau`, `GameRoot.luau`, `components/*`
+4. Эталон паттернов: `roblox-starter/src/client/ui/` (`Button`, `ResourceChip`, `theme`)
+5. Перед нетривиальным UI — прочитай `ui-react.mdc` в roblox-starter
+
+## Ещё не подключено в Night Raid (не выдумывать день 1)
+
+Из starter **можно** подключать по мере нужды фазы (трекер/GDD), но **не** подменять React:
+
+- Zap (сеть) — пока Remotes.lua OK для PROVE
+- ProfileStore — когда персист
+- Lune/Jest CI — когда заведём CI
+
+Новый пакет в `wally.toml` — только если он есть в `roblox-starter` стеке или пользователь явно попросил + запись в `docs/TECH_STACK.md`.

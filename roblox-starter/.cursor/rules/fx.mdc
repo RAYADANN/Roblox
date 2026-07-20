@@ -1,0 +1,53 @@
+---
+description: World VFX Engine + UI FxKit — kinds, camera drivers, budgets
+globs: src/client/ui/fx/**,src/client/ui/**/*FX*,src/client/vfx/**,src/shared/vfx/**
+alwaysApply: false
+---
+
+# Визуальные эффекты
+
+1. **World VFX** — `client/vfx` + `docs/VFX_ENGINE.md`
+2. **UI FX** — `client/ui/fx` (hatch, coin rain)
+
+## Kinds
+
+`Burst` | `Loop` | `Attached` | `Projectile` | `Screen` | `Chain`
+
+- Loop/Attached → обязательно `handle:stop()` (или `lifetime`)
+- Projectile → `ctx.from` + `ctx.to`
+- Attached → `ctx.target` BasePart
+- Screen → не требует world cframe
+
+## Camera drivers (обязательно выбирать)
+
+| Mode | Use |
+|------|-----|
+| `HumanoidOffset` | default character camera |
+| `ShakeBus` | custom/scriptable/spectate — слушай `onShakeOffset` |
+| `Noop` | reduce motion / locked cam |
+| custom `CameraDriver` | свой адаптер |
+
+Не писать shake напрямую в `CurrentCamera.CFrame` внутри пресетов.
+
+## Declarative layers
+
+Effect = `EffectDef` с `layers[]`. Не копипастить ParticleEmitter.
+Свой type → `engine:registerLayer`.
+
+## Бюджет
+
+- Tier Low→Ultra (device + FPS)
+- Soft-LOD distance
+- Concurrent cap, priority, `minTier` на слое
+- Burst = `Emit(n)`, не бесконечный Rate
+
+## Layering (HIGH)
+
+Stagger 40–80ms: flash → shake → shockwave → emit/light → sound
+
+## Антипаттерны
+
+- Один camera path на все режимы
+- Серверный ParticleEmitter
+- Loop без stop
+- Fullscreen flash на routine mining

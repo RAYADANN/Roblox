@@ -1,0 +1,13 @@
+# Project files
+Packages/
+_*sourcemap*
+*.rbxl
+*.rbxlx
+*.rbxl.lock
+sourcemap.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json

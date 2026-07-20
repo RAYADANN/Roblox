@@ -1,0 +1,30 @@
+---
+description: Night Raid client UI — React-Lua only (mirrors roblox-starter ui-react)
+globs: src/client/**/*.luau,src/client/**/*.lua
+alwaysApply: false
+---
+
+# Night Raid UI — React-Lua
+
+При работе с `src/client/**` стек UI = **React-Lua**, канон:
+
+`C:\Projects\Roblox\roblox-starter\.cursor\rules\ui-react.mdc`
+
+## Must
+
+- Function components + hooks; `React.createElement`
+- Tokens: `src/client/ui/theme.luau`
+- Sizes: `useLayout()` → `layout.px` / `text` / `gap` / `touch`
+- Motion: Flipper hooks already in `src/client/ui/hooks/`
+- Wire remotes/attributes in `GameRoot` (или core), не в чистых presentational components
+
+## Must not
+
+- New HUD via raw `Instance.new` ScreenGui trees
+- Fusion / Roact
+- Business logic inside chip/button components
+
+## Copy patterns from
+
+- This repo: `App.luau`, `GameRoot.luau`, `components/Button.luau`, `ResourceChip.luau`
+- Starter: `C:\Projects\Roblox\roblox-starter\src\client\ui\`

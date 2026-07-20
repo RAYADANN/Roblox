@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rokit
+        uses: CompeyDev/setup-rokit@v1
+
+      - name: Setup Lune
+        uses: lune-org/setup-lune@v1
+        with:
+          version: "0.8.9"
+
+      - name: Install packages
+        run: wally install
+
+      - name: Generate network (Zap)
+        run: zap net.zap
+
+      - name: Verify Zap output is committed
+        run: git diff --exit-code src/server/net/NetServer.luau src/client/net/NetClient.luau
+
+      - name: Format check
+        run: stylua --check src tests
+
+      - name: Lint
+        run: selene src tests
+
+      - name: Unit tests
+        run: lune run tests
+
+      - name: Rojo build
+        run: rojo build --output build.rbxlx

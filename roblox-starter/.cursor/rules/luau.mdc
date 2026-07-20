@@ -1,0 +1,38 @@
+---
+description: Luau strict typing, naming, cleanup conventions
+globs: "**/*.luau,**/*.lua"
+alwaysApply: false
+---
+
+# Luau
+
+## Строгая типизация — по-настоящему, не косметика
+
+- `--!strict` в первой строке каждого файла.
+- **`any` запрещён на границах модулей**: параметры и возвращаемые значения публичных функций, DI-таблицы, payload'ы сети/данных — типизированы. `any` допустим только как локальный последний костыль с комментарием почему.
+- Публичный API модуля — через `export type`.
+
+```luau
+-- ❌ так было в прошлый проекте (весь DI-граф через any)
+local questManager: any = nil
+function buildHudPayload(player, playerData) ... end
+
+-- ✅
+export type Deps = { profileManager: ProfileManager, notify: (Player, Notification) -> () }
+function buildHudPayload(player: Player, data: PlayerData): HudPayload ... end
+```
+
+## Именование
+
+- Модули/типы — `PascalCase`. Функции/переменные — `camelCase`. Константы — `UPPER_SNAKE`.
+- Имена говорят о намерении: `secondsUntilNextDay`, не `t`.
+
+## Cleanup всегда явный
+
+- Модуль с подписками/инстансами имеет `:destroy()`, который рвёт все connections и уничтожает инстансы.
+- Используй `trove`/`maid`-паттерн или храни connections в таблице и чисти в `destroy`.
+
+## Комментарии
+
+- Комментарий объясняет **почему**, а не **что**. Не дублируй код словами.
+- Никаких комментариев-нарратива вида `-- увеличиваем счётчик`.

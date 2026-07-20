@@ -1,0 +1,6 @@
+﻿Mining.zip
+**/.git.bak-local/
+.DS_Store
+Thumbs.db
+**/build.rbxlx
+**/*.rbxl.lock

@@ -1,0 +1,36 @@
+{
+  "name": "night-raid-base",
+  "globIgnorePaths": ["**/*.test.luau", "**/__pycache__/**", "**/*.py"],
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "$ignoreUnknownInstances": true,
+      "Packages": {
+        "$className": "Folder",
+        "$path": "Packages",
+        "$ignoreUnknownInstances": true
+      },
+      "shared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "$ignoreUnknownInstances": true,
+      "server": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "$ignoreUnknownInstances": true,
+        "client": {
+          "$path": "src/client"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+---
+description: Breed & Raid — tech stack lock for agents
+alwaysApply: true
+---
+
+# Breed & Raid — stack
+
+- UI: **React-Lua + Flipper** only (from Wally Packages).
+- No Fusion. No Knit locator. No `_G`.
+- Luau `--!strict`. DI via `Module.new(deps)`.
+- Canon stack docs: `docs/TECH_STACK.md`, `C:\Projects\Roblox\roblox-starter`.
+- Product canon: `docs/GDD.md`. Read `docs/AGENT_BRIEF.md` before coding.

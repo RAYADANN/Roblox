@@ -1,0 +1,59 @@
+---
+description: Hard scope lock — cut list and PROVE exclusions; do not invent features
+alwaysApply: true
+---
+
+# Night Raid — Scope Lock (HARD)
+
+**Do not invent.** If it is not in the GDD / `docs/DEV_TRACKER.md` for the **current phase**, do not build it.
+
+## Current phase default: PROVE
+
+**PROVE = full core session** that playtesters can evaluate:
+
+`ROLL → BUILD → PLACE → STEAL/LOCK/BAT → NIGHT SHINE → Fog/Dawn`
+
+Allowed: plots (≥2), roll, build slots (walls/lamps), pets, steal+bat+lock, cycle, flashlight, 1 monster, Fog Cage, HUD/tutorial.
+
+### PROVE — no idle refactor / no new abstractions
+
+- Do **not** refactor for cleanliness, extract frameworks, or add services “for later.”
+- Do **not** rewrite working systems unless a tracker PROVE task requires it.
+- Prefer extending existing modules; new `RollService` / `StealService` / `LightService` / `BaseService` are **allowed** because GDD names them for PROVE.
+
+### PROVE — forbidden (even if “easy”)
+
+- Monetization / Robux / GamePasses
+- Rebirth / prestige / offline income
+- Weekly live-ops content pipeline (one hardcoded row OK only if needed for demo — prefer skip)
+- Multiple monster types, bosses, waves
+- Trading, guns, co-op roles, story/lore/Deep Bunker
+- Real-world 24h day/night clock
+- Pay-to-skip nights or PvE-immune pets
+- Fancy meshes (Parts OK)
+
+## Cut list (LOCKED for MVP unless user + GDD say otherwise)
+
+- 5+ monster types · bosses · waves  
+- Guns / weapon inventory  
+- Co-op class roles  
+- Trading  
+- Real 24h clock  
+- Story / journal / Deep Bunker lore  
+- Permanent pay-to-skip nights  
+- Unstealable pets vs PvE for Robux  
+
+## Phase unlocks (only when tracker advances)
+
+| When | May start |
+|------|-----------|
+| After PROVE **Go** | BUILD: rebirth, offline, weekly row, mobile soft-aim, art polish |
+| After BUILD DoD | LAUNCH checklist |
+
+## If tempted to add “just one more thing”
+
+1. Check cut list / PROVE exclusions above  
+2. Check `docs/DEV_TRACKER.md` LOCKED section  
+3. If still wanted → ask user; require GDD update before code  
+
+**Shelf risk:** 🔴 steal shelf. Twist = night+light. Playtest must see **day loop AND night** — not flashlight alone.

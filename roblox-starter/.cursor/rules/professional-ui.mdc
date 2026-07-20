@@ -1,0 +1,269 @@
+---
+description: Спецификация профессионального UI для React-Lua + Flipper. Используй при запросе «профессиональный UI», «polish», «адаптивный UI».
+globs: src/client/ui/**
+alwaysApply: false
+---
+
+# Professional UI Spec (React-Lua / roblox-starter)
+
+Когда пользователь просит **профессиональный UI** — следуй этому документу **полностью**.
+Стек: **React-Lua + Flipper + TweenService**. Не Fusion.
+
+**Канон теории (обязательно сверять):** `docs/ui-ux-canon/`  
+Старт: `docs/ui-ux-canon/00-priority-ladder.md` → `QUICK_REFERENCE.md` → тема из карты в `README.md` → DoD `18-checklists-dod.md`.
+Для Discover sim: ещё `20-roblox-sim-playbook.md`. Эталоны структуры: `references/`.
+
+Прочитай также: `docs/UI_ADAPTIVITY.md` — почему нельзя подгонять размеры под каждое устройство.
+
+---
+
+## Обязательный стек
+
+| Задача | Модуль |
+|--------|--------|
+| Design tokens | `src/client/ui/theme.luau` |
+| Адаптив (ВСЕ размеры) | `ViewportLayout` + хук `useLayout()` |
+| ScreenGui слои | `src/client/ui/util/UiScreen.luau` |
+| Моушен-пресеты | `src/client/ui/motion/MotionPresets.luau` |
+| Hover/press (spring) | `useHoverPress()` |
+| Анимация чисел | `useFlipperSpring()` + authoritative prop |
+| Простые fade/modal | `MotionPresets.tween()` + TweenService |
+
+**Запрещено:** хардкод `Color3`, литералы `TextSize`/`Size` без `layout.*`, `if tier == "phone" then size = X`, бизнес-логика в компонентах.
+
+---
+
+## Адаптивность (критично)
+
+### Правило одного масштаба
+
+```luau
+local useLayout = require(script.Parent.hooks.useLayout)
+local theme = require(script.Parent.theme)
+
+local function MyChip()
+    local layout = useLayout()
+    return React.createElement("Frame", {
+        Size = UDim2.fromOffset(layout.px(theme.Design.ROW_H), layout.px(40)),
+    }, {
+        Label = React.createElement("TextLabel", {
+            TextSize = layout.text(14),
+            TextColor3 = theme.Colors.textMain,
+        }),
+    })
+end
+```
+
+### Tier — только для структуры
+
+```luau
+-- ✅ Допустимо: что показать
+if layout.tier == "phone" then return nil end
+
+-- ❌ Запрещено: размеры
+local iconSize = if layout.isPhone then 24 else 40  -- НИКОГДА
+```
+
+### Модалки — design space + UIScale
+
+```luau
+local fitScale = layout.modalFitScale(theme.Design.MODAL_W, theme.Design.MODAL_H)
+-- Корень модалки: UIScale = fitScale
+-- Внутри: размеры в design px (theme.Design.*), НЕ пересчитывать под экран
+```
+
+---
+
+## Универсальные правила
+
+### Визуал
+- 4 уровня фона: `bg1`→`bg4`. Один акцент на секцию.
+- Padding: `theme.Design.PAD_SM/MD/LG` через `layout.gap()`.
+- Обводка: `UIStroke`, `BorderSizePixel = 0`. Толщины: `theme.Stroke.*`.
+- Радиусы: `theme.Radius.*`. Блик: `UIGradient` белый→серый, rotation 90.
+
+### Моушен (Flipper-first)
+| Действие | Как |
+|----------|-----|
+| Hover/press кнопки | `useHoverPress()` → `UIScale` |
+| Числа (монеты) | `useFlipperSpring(props.value, SPRING_NUMBER)` для display; логика по `props.value` |
+| Modal open | Tween backdrop fade + spring scale 0.88→1 (`SPRING_BOUNCY`) |
+| Modal close | Tween out быстрее входа (`MODAL_OUT`) |
+| Pop награды | spring peak 1.14→1 (`SPRING_BOUNCY`) |
+
+**Появление = spring/tween out. Исчезновение = быстрее.**
+
+### Отзывчивость
+1. **0ms** — press scale + звук (когда будет SoundManager)
+2. **До сервера** — disabled/spinner, не пустота
+3. **Успех** — pop + toast
+4. **Ошибка** — shake tween + toast красный
+
+### React-паттерны
+- Function component + `export type Props`
+- `useEffect` с cleanup (connections, motors, tweens)
+- Серверные данные — props/context, не fetch внутри
+- `useMemo`/`useCallback` для handlers в списках
+- Один файл = один компонент, ≤300 строк
+
+---
+
+## Спецификация по элементам
+
+### 1. Button
+
+**Структура:**
+```
+TextButton (bg transparent, Text="")
+├─ UIScale ← useHoverPress()
+└─ Face (Frame)
+   ├─ UICorner, UIStroke, UIGradient
+   ├─ Icon (ImageLabel)
+   └─ Label (TextLabel)
+```
+
+| State | Поведение |
+|-------|-----------|
+| Default | scale 1 |
+| Hover | scale 1.06 spring (desktop only) |
+| Press | scale 0.94 spring |
+| Disabled | transparency +0.3, `Active=false`, scale 1 |
+| Active | accent bar 3px / stroke gold |
+
+Размеры: `layout.touch(theme.Design.DOCK_BTN)` для кликабельных.
+CTA (sell/buy): gradient face + accent stroke. Hero: glow frame сзади + pulse stroke.
+
+### 2. Modal
+
+```
+ScreenGui (UiScreen "modal")
+├─ Backdrop (Active=true, bg1, Transparency 0.4)
+└─ Shell (AnchorPoint 0.5,0.5)
+   ├─ UIScale = layout.modalFitScale(MODAL_W, MODAL_H)
+   ├─ UICorner, UIStroke accent, UIGradient, AccentBar 3px
+   ├─ CloseBtn layout.touch(46)
+   └─ Content (design space)
+```
+
+Анимация: backdrop fade in; shell spring scale from 0.88.
+Close: `layout.touch(46)`, `AutoButtonColor=false`.
+
+### 3. Card (Shop / Pet / Upgrade)
+
+```
+Frame (bg3, layout.px height)
+├─ UICorner panel, UIStroke dockBorder
+├─ [optional] rarity accent bar 3px
+├─ Icon layout.px(ICON_MD)
+├─ Title layout.text(16), body layout.text(13)
+└─ Action (price / button)
+```
+
+Hover: spring scale 1.02. Locked: overlay + lock icon. Rarity: `theme.Rarity[id]`.
+
+### 4. Chip (Resource / Boost / Badge)
+
+- Resource: `bgChip`, gold accent bar, icon + `useFlipperSpring` для числа
+- Badge: круг `layout.px(11)`, появление spring pop
+- При изменении: spring pop chip scale
+
+### 5. Tab / Dock
+
+- Высота: `layout.px(theme.Design.DOCK_H)`
+- Фон: `dockBg`, border top `dockBorder`
+- Active: bar 3px + bg tint + icon alpha 0
+- Inactive: `Icon.inactiveAlpha`, `textMuted`
+- Переключение панелей: crossfade, не мгновенно
+
+### 6. List Row
+
+- Высота `layout.px(theme.Design.ROW_H)`
+- Icon слева, title+subtitle центр, value справа
+- Разделитель: stroke bottom transparency 0.7
+- `ScrollingFrame` + `AutomaticCanvasSize` + padding
+
+### 7. Progress Bar
+
+- Track: `bg3`, height `layout.px(10)`, UICorner pill
+- Fill: accent, tween Size 300–500ms при изменении
+- Не мгновенный скачок
+
+### 8. Typography
+
+| Роль | design px | Font | Color |
+|------|-----------|------|-------|
+| Modal title | 22 | Font.title | textMain |
+| Section | 18 | Font.title | textMain |
+| Body | 14 | Font.body | textMain |
+| Caption | 12 | Font.body | textSub |
+| Price | 16 | Font.title | gold |
+
+Всегда `layout.text(designPx)`. Числа: `Formatters.shortNumber` (когда будет).
+
+### 9. Tooltip
+
+- Profile `tooltip`, delay 300ms, spring fade+scale
+- `layout.text(12)`, max width `layout.px(200)`
+- Mobile: не показывать (нет hover)
+
+### 10. Toast
+
+- Profile `toast`, slide+fade in, stack top-center
+- Duration 2–3s, `Active=false`
+
+### 11. Input
+
+- Focus: stroke → `primary`. Error: shake + `Colors.error`
+- Padding `layout.gap(12)`
+
+### 12. Empty State
+
+- Icon `layout.px(ICON_LG)`, muted. Title + subtitle + CTA.
+
+### 13. FX-моменты
+
+| Момент | Блокирует? | Слои |
+|--------|------------|------|
+| Клик | Нет | sound + press |
+| Покупка | Нет | pop + toast |
+| Hatch/Legendary | Да (skip) | flash + shake + shockwave + sound |
+| Discovery | **Нет** | toast + subtle VFX |
+
+FX — imperative модули вне React-дерева, ScreenGui `fx`, Trove cleanup.
+
+---
+
+## Антипаттерны (reject)
+
+- [ ] `if layout.tier` для размеров
+- [ ] Хардкод Color3 / TextSize / UDim2 offset без layout
+- [ ] Кнопка без hover/press spring
+- [ ] Модалка без анимации входа
+- [ ] Число без spring display
+- [ ] Действие без мгновенного фидбека
+- [ ] `AutoButtonColor = true`
+- [ ] Компонент >300 строк
+- [ ] Flipper motor без destroy в useEffect cleanup
+- [ ] Resize subscribe в каждом компоненте (используй `useLayout`)
+
+---
+
+## Definition of Done
+
+1. `theme` tokens — цвета, радиусы, design constants
+2. `useLayout()` — все размеры
+3. `useHoverPress` / `useFlipperSpring` — интерактив и числа
+4. Все состояния: default/hover/press/disabled/active
+5. Мгновенный фидбек на действие
+6. Модалка: UiScreen + modalFitScale + spring in
+7. `useEffect` cleanup
+8. `--!strict`, `export type Props`, ≤300 строк
+9. Studio: phone + tablet + desktop без ручной подгонки
+
+---
+
+## Как вызывать в Cursor
+
+> «Сделай профессиональный [элемент]» / «Professional adaptive UI for [panel]»
+
+Агент: прочитать этот rule → `docs/UI_ADAPTIVITY.md` → найти референс в `src/client/ui/` → реализовать → пройти DoD.
