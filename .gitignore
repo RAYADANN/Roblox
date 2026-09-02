@@ -1,5 +1,11 @@
 ﻿Mining.zip
+Mining/
 **/.git.bak-local/
+**/__pycache__/
+**/*.pyc
+**/_sourcemap.json
+**/.env
+**/gen_locales_run.log
 .DS_Store
 Thumbs.db
 **/build.rbxlx
