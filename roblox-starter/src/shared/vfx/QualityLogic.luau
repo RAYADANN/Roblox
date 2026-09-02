@@ -135,6 +135,22 @@ function QualityLogic.adaptTier(base: QualityTier, averageFps: number?): Quality
 	return clampTier(base, "Low", base)
 end
 
+--- Thermal governor: при просадке FPS режем particleScale / lights / concurrent.
+function QualityLogic.thermalScale(averageFps: number?): number
+	if averageFps == nil then
+		return 1
+	end
+	local fps = averageFps
+	if fps < 24 then
+		return 0.45
+	elseif fps < 30 then
+		return 0.65
+	elseif fps < 40 then
+		return 0.82
+	end
+	return 1
+end
+
 function QualityLogic.resolveTier(hints: DeviceHints): QualityTier
 	return QualityLogic.adaptTier(QualityLogic.baseTier(hints), hints.averageFps)
 end
@@ -143,8 +159,32 @@ function QualityLogic.budgetFor(tier: QualityTier): QualityBudget
 	return BUDGETS[tier]
 end
 
+function QualityLogic.applyThermal(budget: QualityBudget, averageFps: number?): QualityBudget
+	local t = QualityLogic.thermalScale(averageFps)
+	if t >= 0.999 then
+		return budget
+	end
+	return {
+		tier = budget.tier,
+		particleScale = budget.particleScale * t,
+		maxEmitCount = math.max(4, math.floor(budget.maxEmitCount * t + 0.5)),
+		maxConcurrent = math.max(2, math.floor(budget.maxConcurrent * t + 0.5)),
+		enableLights = budget.enableLights and t >= 0.6,
+		enableBeams = budget.enableBeams and t >= 0.65,
+		enableScreenFX = budget.enableScreenFX and t >= 0.7,
+		enableCameraShake = budget.enableCameraShake and t >= 0.55,
+		enableShockwave = budget.enableShockwave,
+		enableTrails = budget.enableTrails and t >= 0.6,
+		enableLoops = budget.enableLoops and t >= 0.5,
+		maxDistance = budget.maxDistance * (0.7 + 0.3 * t),
+		lightBrightnessScale = budget.lightBrightnessScale * t,
+		layerMinPriority = budget.layerMinPriority,
+	}
+end
+
 function QualityLogic.resolveBudget(hints: DeviceHints): QualityBudget
-	return QualityLogic.budgetFor(QualityLogic.resolveTier(hints))
+	local budget = QualityLogic.budgetFor(QualityLogic.resolveTier(hints))
+	return QualityLogic.applyThermal(budget, hints.averageFps)
 end
 
 function QualityLogic.scaleEmit(count: number, budget: QualityBudget, distanceScale: number?): number

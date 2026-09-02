@@ -9,6 +9,7 @@ local EconomyManager = require(script.core.EconomyManager)
 local MonetizationManager = require(script.core.MonetizationManager)
 local DevCommands = require(script.core.DevCommands)
 local GameAnalytics = require(script.core.GameAnalytics)
+local VfxBroadcaster = require(script.core.VfxBroadcaster)
 local Zap = require(script.net.NetServer)
 local NetTypes = require(ReplicatedStorage.shared.net.NetTypes)
 local buildHudPayload = require(ReplicatedStorage.shared.util.buildHudPayload)
@@ -75,5 +76,22 @@ DevCommands.start({
 })
 
 profileManager:start()
+
+-- Studio / soft-launch demo: periodically fire networked cast→bolt→impact from VfxLab pads.
+if RunService:IsStudio() then
+	task.spawn(function()
+		while true do
+			task.wait(4.5)
+			local lab = workspace:FindFirstChild("VfxLab")
+			if lab then
+				local fromPart = lab:FindFirstChild("ProjectileStart")
+				local toPart = lab:FindFirstChild("ProjectileEnd")
+				if fromPart and fromPart:IsA("BasePart") and toPart and toPart:IsA("BasePart") then
+					VfxBroadcaster.castBoltImpact(fromPart.Position, toPart.Position, 1.1)
+				end
+			end
+		end
+	end)
+end
 
 Logger.info("server", "boot complete")

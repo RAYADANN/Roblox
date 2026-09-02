@@ -1,0 +1,8 @@
+[tools]
+rojo = "rojo-rbx/rojo@7.4.4"
+wally = "UpliftGames/wally@0.3.2"
+stylua = "JohnnyMorganz/StyLua@2.0.0"
+selene = "Kampfkarren/selene@0.27.1"
+zap = "red-blox/zap@0.6.29"
+# Pin = CI (.github/workflows/ci.yml). 0.10+ меняет require из init.luau (@self).
+lune = "lune-org/lune@0.8.9"

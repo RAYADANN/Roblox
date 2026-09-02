@@ -1,14 +1,19 @@
 --!strict
--- VfxLab Playground: UI buttons + camera modes + signature effects.
--- Start from LocalScript: require(...).start()
+-- VfxLab Playground: intensity/tier controls, replay, budget HUD, camera modes.
 
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 
 local VfxController = require(script.Parent.Parent.core.VfxController)
+local SettingsManager = require(script.Parent.Parent.core.SettingsManager)
+local FxKit = require(script.Parent.Parent.ui.fx.FxKit)
+local theme = require(script.Parent.Parent.ui.theme)
 
 local Playground = {}
+
+local TIERS = { "Auto", "Low", "Medium", "High", "Ultra" }
 
 local function ensureLab(): Folder
 	local existing = Workspace:FindFirstChild("VfxLab")
@@ -76,7 +81,6 @@ local function ensureLab(): Folder
 	floor.CFrame = CFrame.new(origin + Vector3.new(0, -2.5, 0))
 	floor.Parent = lab
 
-	-- Show uploaded flipbook atlases on pads (edit + play visibility)
 	local neonDecal = Instance.new("Decal")
 	neonDecal.Name = "AtlasPreview"
 	neonDecal.Face = Enum.NormalId.Front
@@ -143,7 +147,12 @@ function Playground.start()
 	})
 
 	local autoPlay = true
+	local stressMode = false
 	local cameraMode = "HumanoidOffset"
+	local intensity = 1.15
+	local tierIndex = 1 -- Auto
+	local lastReplay: (() -> ())? = nil
+	local chargeHandle: any = nil
 
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "VfxLabUI"
@@ -152,35 +161,62 @@ function Playground.start()
 	gui.DisplayOrder = 80
 	gui.Parent = playerGui
 
-	local panel = Instance.new("Frame")
+	local panel = Instance.new("ScrollingFrame")
 	panel.Name = "Panel"
 	panel.AnchorPoint = Vector2.new(1, 0)
 	panel.Position = UDim2.new(1, -16, 0, 72)
-	panel.Size = UDim2.fromOffset(220, 460)
+	panel.Size = UDim2.fromOffset(248, 520)
 	panel.BackgroundColor3 = Color3.fromRGB(12, 14, 20)
 	panel.BackgroundTransparency = 0.18
 	panel.BorderSizePixel = 0
+	panel.ScrollBarThickness = 4
+	panel.CanvasSize = UDim2.fromOffset(0, 1100)
 	panel.Parent = gui
 
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 10)
 	corner.Parent = panel
 
+	local pad = Instance.new("UIPadding")
+	pad.PaddingTop = UDim.new(0, 8)
+	pad.PaddingBottom = UDim.new(0, 8)
+	pad.PaddingLeft = UDim.new(0, 8)
+	pad.PaddingRight = UDim.new(0, 8)
+	pad.Parent = panel
+
+	local list = Instance.new("UIListLayout")
+	list.Padding = UDim.new(0, 6)
+	list.SortOrder = Enum.SortOrder.LayoutOrder
+	list.Parent = panel
+
 	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(1, -16, 0, 28)
-	title.Position = UDim2.fromOffset(8, 8)
+	title.Size = UDim2.new(1, 0, 0, 24)
 	title.BackgroundTransparency = 1
 	title.Font = Enum.Font.GothamBold
 	title.TextSize = 16
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.TextColor3 = Color3.fromRGB(240, 245, 255)
 	title.Text = "VFX LAB"
+	title.LayoutOrder = 0
 	title.Parent = panel
+
+	local budgetHud = Instance.new("TextLabel")
+	budgetHud.Name = "BudgetHud"
+	budgetHud.Size = UDim2.new(1, 0, 0, 48)
+	budgetHud.BackgroundTransparency = 1
+	budgetHud.Font = Enum.Font.Gotham
+	budgetHud.TextSize = 12
+	budgetHud.TextWrapped = true
+	budgetHud.TextXAlignment = Enum.TextXAlignment.Left
+	budgetHud.TextYAlignment = Enum.TextYAlignment.Top
+	budgetHud.TextColor3 = Color3.fromRGB(140, 210, 170)
+	budgetHud.Text = "Budget…"
+	budgetHud.LayoutOrder = 1
+	budgetHud.Parent = panel
 
 	local status = Instance.new("TextLabel")
 	status.Name = "Status"
-	status.Size = UDim2.new(1, -16, 0, 36)
-	status.Position = UDim2.fromOffset(8, 34)
+	status.Size = UDim2.new(1, 0, 0, 32)
 	status.BackgroundTransparency = 1
 	status.Font = Enum.Font.Gotham
 	status.TextSize = 12
@@ -188,27 +224,38 @@ function Playground.start()
 	status.TextXAlignment = Enum.TextXAlignment.Left
 	status.TextYAlignment = Enum.TextYAlignment.Top
 	status.TextColor3 = Color3.fromRGB(160, 190, 220)
-	status.Text = "Auto ON · Cam Humanoid · keys 1-4"
+	status.Text = "Auto ON · Cam Humanoid"
+	status.LayoutOrder = 2
 	status.Parent = panel
 
-	local list = Instance.new("UIListLayout")
-	list.Padding = UDim.new(0, 6)
-	list.SortOrder = Enum.SortOrder.LayoutOrder
-	list.Parent = panel
-
-	local spacer = Instance.new("Frame")
-	spacer.BackgroundTransparency = 1
-	spacer.Size = UDim2.new(1, 0, 0, 70)
-	spacer.LayoutOrder = 0
-	spacer.Parent = panel
+	local intensityLabel = Instance.new("TextLabel")
+	intensityLabel.Size = UDim2.new(1, 0, 0, 18)
+	intensityLabel.BackgroundTransparency = 1
+	intensityLabel.Font = Enum.Font.GothamMedium
+	intensityLabel.TextSize = 12
+	intensityLabel.TextXAlignment = Enum.TextXAlignment.Left
+	intensityLabel.TextColor3 = Color3.fromRGB(200, 210, 230)
+	intensityLabel.Text = `Intensity {string.format("%.2f", intensity)}`
+	intensityLabel.LayoutOrder = 3
+	intensityLabel.Parent = panel
 
 	local function setStatus(msg: string)
 		status.Text = msg
 	end
 
+	local function applyTier()
+		local name = TIERS[tierIndex]
+		if name == "Auto" then
+			VfxController.setTierOverride(nil)
+		else
+			VfxController.setTierOverride(name)
+		end
+		setStatus(`Tier {name} · intensity {string.format("%.2f", intensity)}`)
+	end
+
 	local function makeButton(label: string, order: number, onClick: () -> ())
 		local btn = Instance.new("TextButton")
-		btn.Size = UDim2.new(1, -16, 0, 30)
+		btn.Size = UDim2.new(1, 0, 0, 28)
 		btn.BackgroundColor3 = Color3.fromRGB(28, 36, 52)
 		btn.BorderSizePixel = 0
 		btn.Font = Enum.Font.GothamMedium
@@ -228,71 +275,293 @@ function Playground.start()
 				warn("[VfxLab]", err)
 			end
 		end)
+		return btn
 	end
 
-	makeButton("Neon Impact", 1, function()
-		VfxController.play("NeonImpact", {
-			cframe = flipbook.CFrame,
-			color = Color3.fromRGB(90, 230, 255),
-			intensity = 1.25,
+	local function playWithReplay(label: string, fn: () -> ())
+		lastReplay = fn
+		fn()
+		setStatus(label)
+	end
+
+	makeButton("Intensity −", 4, function()
+		intensity = math.clamp(intensity - 0.15, 0.25, 2.5)
+		intensityLabel.Text = `Intensity {string.format("%.2f", intensity)}`
+		setStatus(intensityLabel.Text)
+	end)
+	makeButton("Intensity +", 5, function()
+		intensity = math.clamp(intensity + 0.15, 0.25, 2.5)
+		intensityLabel.Text = `Intensity {string.format("%.2f", intensity)}`
+		setStatus(intensityLabel.Text)
+	end)
+	makeButton("Cycle Tier", 6, function()
+		tierIndex = tierIndex % #TIERS + 1
+		applyTier()
+	end)
+	makeButton("Replay Last", 7, function()
+		if lastReplay then
+			lastReplay()
+			setStatus("Replay")
+		else
+			setStatus("Nothing to replay")
+		end
+	end)
+
+	makeButton("★★★ CINEMA CATACLYSM", 8, function()
+		playWithReplay("CinemaCataclysm", function()
+			VfxController.play("CinemaCataclysm", {
+				cframe = center.CFrame,
+				color = Color3.fromRGB(255, 70, 30),
+				intensity = math.max(intensity, 1.4),
+			})
+		end)
+	end)
+	makeButton("★★ MEGUMIN BLAST", 9, function()
+		playWithReplay("MeguminBlast", function()
+			VfxController.play("MeguminBlast", {
+				cframe = center.CFrame,
+				color = Color3.fromRGB(255, 90, 20),
+				intensity = math.max(intensity, 1.35),
+			})
+		end)
+	end)
+	makeButton("★ METEOR STRIKE", 10, function()
+		playWithReplay("MeteorStrike", function()
+			VfxController.play("MeteorStrike", {
+				cframe = center.CFrame,
+				color = Color3.fromRGB(255, 120, 40),
+				intensity = math.max(intensity, 1.2),
+			})
+		end)
+	end)
+	makeButton("Ore Shatter", 91, function()
+		playWithReplay("OreShatter", function()
+			VfxController.play("OreShatter", {
+				cframe = center.CFrame,
+				color = Color3.fromRGB(180, 140, 90),
+				intensity = intensity,
+			})
+		end)
+	end)
+	makeButton("Pet Appear", 92, function()
+		playWithReplay("PetAppear", function()
+			VfxController.play("PetAppear", {
+				cframe = auraAnchor.CFrame,
+				target = auraAnchor,
+				color = Color3.fromRGB(255, 140, 220),
+				intensity = intensity,
+			})
+		end)
+	end)
+	makeButton("Egg Hatch", 93, function()
+		playWithReplay("EggHatch", function()
+			VfxController.play("EggHatch", {
+				cframe = hitDummy.CFrame,
+				target = hitDummy,
+				color = Color3.fromRGB(255, 210, 90),
+				intensity = math.max(intensity, 1.1),
+			})
+		end)
+	end)
+	makeButton("Neon Impact", 11, function()
+		playWithReplay("NeonImpact", function()
+			VfxController.play("NeonImpact", {
+				cframe = flipbook.CFrame,
+				color = Color3.fromRGB(90, 230, 255),
+				intensity = intensity,
+			})
+		end)
+	end)
+	makeButton("Smoke Dash", 11, function()
+		playWithReplay("SmokeDash", function()
+			VfxController.play("SmokeDash", {
+				cframe = cast.CFrame,
+				color = Color3.fromRGB(90, 95, 110),
+				intensity = intensity,
+			})
+		end)
+	end)
+	makeButton("Impact Burst", 12, function()
+		playWithReplay("ImpactBurst", function()
+			VfxController.play("ImpactBurst", {
+				cframe = center.CFrame,
+				color = center.Color,
+				intensity = intensity,
+			})
+		end)
+	end)
+	makeButton("Cast Burst", 13, function()
+		playWithReplay("CastBurst", function()
+			VfxController.play("CastBurst", {
+				cframe = cast.CFrame,
+				color = cast.Color,
+				intensity = intensity,
+			})
+		end)
+	end)
+	makeButton("Neon Bolt", 14, function()
+		playWithReplay("NeonBolt", function()
+			VfxController.play("NeonBolt", {
+				from = projectileStart.CFrame,
+				to = projectileEnd.CFrame,
+				color = Color3.fromRGB(120, 220, 255),
+				intensity = intensity,
+			})
+		end)
+	end)
+	makeButton("Hit Confirm", 15, function()
+		playWithReplay("HitConfirm", function()
+			VfxController.play("HitConfirm", {
+				cframe = hitDummy.CFrame,
+				target = hitDummy,
+				color = Color3.fromRGB(255, 255, 255),
+				intensity = intensity,
+			})
+		end)
+	end)
+	makeButton("Crit Impact", 16, function()
+		playWithReplay("CritImpact", function()
+			VfxController.play("CritImpact", {
+				cframe = flipbook.CFrame,
+				color = Color3.fromRGB(255, 70, 120),
+				intensity = intensity,
+			})
+		end)
+	end)
+	makeButton("Ground Slam", 17, function()
+		playWithReplay("GroundSlam", function()
+			VfxController.play("GroundSlam", {
+				cframe = center.CFrame,
+				color = Color3.fromRGB(255, 160, 80),
+				intensity = intensity,
+			})
+		end)
+	end)
+	makeButton("Heal Pulse", 18, function()
+		playWithReplay("HealPulse", function()
+			VfxController.play("HealPulse", {
+				cframe = handGlowAnchor.CFrame,
+				color = Color3.fromRGB(90, 255, 170),
+				intensity = intensity,
+			})
+		end)
+	end)
+	makeButton("Chain Strike", 19, function()
+		playWithReplay("ChainStrike", function()
+			VfxController.play("ChainStrike", {
+				from = projectileStart.CFrame,
+				to = projectileEnd.CFrame,
+				color = Color3.fromRGB(255, 230, 140),
+				intensity = intensity,
+			})
+		end)
+	end)
+	makeButton("Ultimate Charge", 20, function()
+		if chargeHandle and chargeHandle:isPlaying() then
+			chargeHandle:stop()
+			chargeHandle = nil
+			setStatus("Charge stopped")
+			return
+		end
+		chargeHandle = VfxController.play("UltimateCharge", {
+			cframe = auraAnchor.CFrame,
+			color = Color3.fromRGB(180, 100, 255),
+			intensity = intensity,
 		})
-		setStatus("NeonImpact")
+		setStatus("Charge ON · click again to stop")
 	end)
-	makeButton("Smoke Dash", 2, function()
-		VfxController.play("SmokeDash", {
-			cframe = cast.CFrame,
-			color = Color3.fromRGB(90, 95, 110),
-			intensity = 1.2,
+	makeButton("Damage Flash", 21, function()
+		playWithReplay("DamageFlash", function()
+			VfxController.play("DamageFlash", { intensity = intensity * 0.7 })
+		end)
+	end)
+	makeButton("UI FloatText", 211, function()
+		local FxKit = require(script.Parent.Parent.ui.fx.FxKit)
+		local cam = Workspace.CurrentCamera
+		local vp = if cam then cam.ViewportSize else Vector2.new(1280, 720)
+		FxKit.floatText.play({
+			text = "+1,250",
+			position = Vector2.new(vp.X * 0.5, vp.Y * 0.42),
+			color = Color3.fromRGB(255, 220, 80),
 		})
-		setStatus("SmokeDash")
+		setStatus("UI FloatText")
 	end)
-	makeButton("Impact Burst", 3, function()
-		VfxController.play("ImpactBurst", {
-			cframe = center.CFrame,
-			color = center.Color,
-			intensity = 1.2,
+	makeButton("UI CoinRain", 212, function()
+		local FxKit = require(script.Parent.Parent.ui.fx.FxKit)
+		local cam = Workspace.CurrentCamera
+		local vp = if cam then cam.ViewportSize else Vector2.new(1280, 720)
+		local from = Vector2.new(vp.X * 0.5, vp.Y * 0.55)
+		local to = Vector2.new(vp.X * 0.88, vp.Y * 0.08)
+		FxKit.coinRain.play({ from = from, to = to, count = 16 })
+		FxKit.floatText.play({
+			text = "loot!",
+			position = from,
+			color = Color3.fromRGB(255, 212, 38),
+			duration = 0.7,
 		})
-		setStatus("ImpactBurst")
+		setStatus("UI CoinRain → top-right (skin per game)")
 	end)
-	makeButton("Cast Burst", 4, function()
-		VfxController.play("CastBurst", {
-			cframe = cast.CFrame,
-			color = cast.Color,
-			intensity = 1.15,
+	makeButton("UI Shockwave", 213, function()
+		local FxKit = require(script.Parent.Parent.ui.fx.FxKit)
+		local layer = FxKit.overlay.getLayer()
+		local host = Instance.new("Frame")
+		host.BackgroundTransparency = 1
+		host.Size = UDim2.fromScale(1, 1)
+		host.Parent = layer
+		FxKit.shockwave(host, Color3.fromRGB(120, 200, 255), 220, 0.45)
+		task.delay(0.6, function()
+			host:Destroy()
+		end)
+		setStatus("UI Shockwave")
+	end)
+	makeButton("UI FloatText", 211, function()
+		local cam = Workspace.CurrentCamera
+		local vp = if cam then cam.ViewportSize else Vector2.new(1280, 720)
+		FxKit.FloatText.play({
+			text = "+1,250",
+			position = Vector2.new(vp.X * 0.5, vp.Y * 0.42),
+			color = theme.Colors.gold,
 		})
-		setStatus("CastBurst")
+		setStatus("UI FX · FloatText (skin text/color per game)")
 	end)
-	makeButton("Neon Bolt", 5, function()
-		VfxController.play("NeonBolt", {
-			from = projectileStart.CFrame,
-			to = projectileEnd.CFrame,
-			color = Color3.fromRGB(120, 220, 255),
-			intensity = 1.15,
+	makeButton("UI FlyBurst", 212, function()
+		local cam = Workspace.CurrentCamera
+		local vp = if cam then cam.ViewportSize else Vector2.new(1280, 720)
+		local from = Vector2.new(vp.X * 0.5, vp.Y * 0.55)
+		local to = Vector2.new(vp.X * 0.88, vp.Y * 0.12)
+		FxKit.FlyBurst.play({
+			from = from,
+			to = to,
+			count = math.floor(10 + intensity * 8),
+			color = theme.Colors.gold,
+			sizePx = 16,
 		})
-		setStatus("NeonBolt")
+		FxKit.shockwaveAt(to, theme.Colors.goldHi, 64, 0.35)
+		setStatus("UI FX · FlyBurst A→B (coins/gems = your texture)")
 	end)
-	makeButton("Hit Confirm", 6, function()
-		VfxController.play("HitConfirm", {
-			cframe = hitDummy.CFrame,
-			target = hitDummy,
-			color = Color3.fromRGB(255, 255, 255),
-		})
-		setStatus("HitConfirm")
-	end)
-	makeButton("Damage Flash", 7, function()
-		VfxController.play("DamageFlash", { intensity = 0.7 })
-		setStatus("DamageFlash")
-	end)
-	makeButton("Toggle Auto", 8, function()
+	makeButton("Toggle Auto", 22, function()
 		autoPlay = not autoPlay
 		setStatus(`Auto {if autoPlay then "ON" else "OFF"} · Cam {cameraMode}`)
 	end)
-	makeButton("Cam: Humanoid", 9, function()
+	makeButton("Stress Mode", 23, function()
+		stressMode = not stressMode
+		autoPlay = stressMode
+		if stressMode then
+			VfxController.setTierOverride("Low")
+			tierIndex = 2
+			setStatus("STRESS ON · forced Low tier flood")
+		else
+			VfxController.setTierOverride(nil)
+			tierIndex = 1
+			setStatus("Stress OFF · Auto tier")
+		end
+	end)
+	makeButton("Cam: Humanoid", 24, function()
 		cameraMode = "HumanoidOffset"
 		VfxController.setCameraMode("HumanoidOffset")
 		setStatus("Cam HumanoidOffset")
 	end)
-	makeButton("Cam: ShakeBus", 10, function()
+	makeButton("Cam: ShakeBus", 25, function()
 		cameraMode = "ShakeBus"
 		VfxController.setCameraMode("ShakeBus", function(offset)
 			local cam = Workspace.CurrentCamera
@@ -302,13 +571,18 @@ function Playground.start()
 		end)
 		setStatus("Cam ShakeBus")
 	end)
-	makeButton("Cam: Noop", 11, function()
+	makeButton("Cam: Noop", 26, function()
 		cameraMode = "Noop"
 		VfxController.setCameraMode("Noop")
 		setStatus("Cam Noop")
 	end)
-	makeButton("Stop All", 12, function()
+	makeButton("Toggle ReduceMotion", 27, function()
+		SettingsManager.setReduceMotion(not SettingsManager.isReduceMotion())
+		setStatus(`reduceMotion={SettingsManager.isReduceMotion()}`)
+	end)
+	makeButton("Stop All", 28, function()
 		VfxController.stopAll()
+		chargeHandle = nil
 		auraHandle = VfxController.play("PowerAura", {
 			cframe = auraAnchor.CFrame,
 			color = auraAnchor.Color,
@@ -331,23 +605,77 @@ function Playground.start()
 			VfxController.play("NeonImpact", {
 				cframe = flipbook.CFrame,
 				color = Color3.fromRGB(90, 230, 255),
-				intensity = 1.25,
+				intensity = intensity,
 			})
 		elseif input.KeyCode == Enum.KeyCode.Two then
 			VfxController.play("SmokeDash", {
 				cframe = cast.CFrame,
 				color = Color3.fromRGB(90, 95, 110),
-				intensity = 1.2,
+				intensity = intensity,
 			})
 		elseif input.KeyCode == Enum.KeyCode.Three then
 			VfxController.play("NeonBolt", {
 				from = projectileStart.CFrame,
 				to = projectileEnd.CFrame,
 				color = Color3.fromRGB(120, 220, 255),
+				intensity = intensity,
 			})
 		elseif input.KeyCode == Enum.KeyCode.Four then
 			autoPlay = not autoPlay
 			setStatus(`Auto {if autoPlay then "ON" else "OFF"} · Cam {cameraMode}`)
+		elseif input.KeyCode == Enum.KeyCode.Five then
+			VfxController.play("CinemaCataclysm", {
+				cframe = center.CFrame,
+				color = Color3.fromRGB(255, 70, 30),
+				intensity = math.max(intensity, 1.4),
+			})
+			setStatus("★★★ CinemaCataclysm")
+		elseif input.KeyCode == Enum.KeyCode.Nine then
+			VfxController.play("MeguminBlast", {
+				cframe = center.CFrame,
+				color = Color3.fromRGB(255, 90, 20),
+				intensity = math.max(intensity, 1.35),
+			})
+		elseif input.KeyCode == Enum.KeyCode.Zero then
+			VfxController.play("MeteorStrike", {
+				cframe = center.CFrame,
+				color = Color3.fromRGB(255, 120, 40),
+				intensity = math.max(intensity, 1.2),
+			})
+		elseif input.KeyCode == Enum.KeyCode.Six then
+			VfxController.play("OreShatter", {
+				cframe = center.CFrame,
+				color = Color3.fromRGB(180, 140, 90),
+				intensity = intensity,
+			})
+		elseif input.KeyCode == Enum.KeyCode.Seven then
+			VfxController.play("PetAppear", {
+				cframe = auraAnchor.CFrame,
+				target = auraAnchor,
+				color = Color3.fromRGB(255, 140, 220),
+				intensity = intensity,
+			})
+		elseif input.KeyCode == Enum.KeyCode.Eight then
+			VfxController.play("EggHatch", {
+				cframe = hitDummy.CFrame,
+				target = hitDummy,
+				color = Color3.fromRGB(255, 210, 90),
+				intensity = math.max(intensity, 1.1),
+			})
+		elseif input.KeyCode == Enum.KeyCode.R then
+			if lastReplay then
+				lastReplay()
+			end
+		end
+	end)
+
+	RunService.Heartbeat:Connect(function()
+		local ok, stats = pcall(function()
+			return VfxController.getStats()
+		end)
+		if ok and stats then
+			budgetHud.Text =
+				`Tier {stats.tier} · FPS {stats.fps}\nFX {stats.active} · Emit {stats.emitters} · Drop {stats.dropped} · Therm {string.format("%.2f", stats.thermal)}`
 		end
 	end)
 
@@ -362,45 +690,75 @@ function Playground.start()
 				if handHandle and handHandle:isPlaying() then
 					handHandle:setIntensity(0.7 + 0.2 * math.sin(os.clock() * 2.4))
 				end
-
-				if autoStep % 2 == 1 then
-					VfxController.play("NeonImpact", {
-						cframe = flipbook.CFrame,
-						color = Color3.fromRGB(90, 230, 255),
-						intensity = 1.15,
-					})
-				else
-					VfxController.play("SmokeDash", {
-						cframe = cast.CFrame,
-						color = Color3.fromRGB(70, 75, 90),
-						intensity = 1.1,
-					})
+				if chargeHandle and chargeHandle:isPlaying() then
+					chargeHandle:setIntensity(0.6 + 0.4 * (0.5 + 0.5 * math.sin(os.clock() * 3)))
 				end
 
-				task.wait(0.35)
+				local flood = if stressMode then 3 else 1
+				for _ = 1, flood do
+					if autoStep % 2 == 1 then
+						VfxController.play("NeonImpact", {
+							cframe = flipbook.CFrame,
+							color = Color3.fromRGB(90, 230, 255),
+							intensity = intensity,
+						})
+					else
+						VfxController.play("SmokeDash", {
+							cframe = cast.CFrame,
+							color = Color3.fromRGB(70, 75, 90),
+							intensity = intensity,
+						})
+					end
+					if stressMode then
+						VfxController.play("CritImpact", {
+							cframe = center.CFrame,
+							color = Color3.fromRGB(255, 70, 120),
+							intensity = intensity,
+						})
+						VfxController.play("GroundSlam", {
+							cframe = hitDummy.CFrame,
+							intensity = intensity,
+						})
+					end
+				end
+
+				task.wait(if stressMode then 0.12 else 0.35)
 				VfxController.play("NeonBolt", {
 					from = projectileStart.CFrame,
 					to = projectileEnd.CFrame,
 					color = Color3.fromRGB(120, 220, 255),
-					intensity = 1.05,
+					intensity = intensity * 0.95,
 				})
-				task.wait(0.25)
-				VfxController.play("ImpactBurst", {
-					cframe = center.CFrame,
-					color = center.Color,
-					intensity = 1.05,
-				})
-				task.wait(0.2)
-				VfxController.play("HitConfirm", {
-					cframe = hitDummy.CFrame,
-					target = hitDummy,
-				})
+				if not stressMode then
+					task.wait(0.25)
+					VfxController.play("ImpactBurst", {
+						cframe = center.CFrame,
+						color = center.Color,
+						intensity = intensity * 0.95,
+					})
+					task.wait(0.2)
+					VfxController.play("HitConfirm", {
+						cframe = hitDummy.CFrame,
+						target = hitDummy,
+						intensity = intensity,
+					})
+				end
 			end
-			task.wait(0.85)
+			task.wait(if stressMode then 0.2 else 0.85)
 		end
 	end)
 
-	print("[VfxLab] playground ready — panel right, keys 1-4")
+	-- Showcase CinemaCataclysm once on boot
+	task.delay(0.9, function()
+		VfxController.play("CinemaCataclysm", {
+			cframe = center.CFrame,
+			color = Color3.fromRGB(255, 70, 30),
+			intensity = 1.5,
+		})
+		setStatus("★★★ CinemaCataclysm showcase (~7s)")
+	end)
+
+	print("[VfxLab] CinemaCataclysm key 5 · Megumin 9 · Meteor 0 · Ore/Pet/Egg 6-8")
 end
 
 return Playground

@@ -9,6 +9,7 @@ local useLayout = require(script.Parent.Parent.hooks.useLayout)
 local useFlipperSpring = require(script.Parent.Parent.hooks.useFlipperSpring)
 local MotionPresets = require(script.Parent.Parent.motion.MotionPresets)
 local Formatters = require(script.Parent.Parent.util.Formatters)
+local Icon = require(script.Parent.Icon)
 
 export type Props = {
 	label: string,
@@ -17,6 +18,9 @@ export type Props = {
 	layoutOrder: number?,
 	pulseToken: number?,
 	emphasize: boolean?,
+	icon: string?,
+	width: number?,
+	position: UDim2?,
 }
 
 local function ResourceChip(props: Props): React.Node
@@ -27,7 +31,7 @@ local function ResourceChip(props: Props): React.Node
 	local scale, setScale = React.useState(1)
 	local motorRef = React.useRef(nil :: any)
 	local lastPulse = React.useRef(0)
-	local chipW = layout.px(if props.emphasize then theme.Design.CHIP_W + 8 else theme.Design.CHIP_W)
+	local chipW = layout.px(props.width or (if props.emphasize then theme.Design.CHIP_W + 8 else theme.Design.CHIP_W))
 	local chipH = layout.px(theme.Design.CHIP_H)
 
 	React.useEffect(function()
@@ -60,23 +64,23 @@ local function ResourceChip(props: Props): React.Node
 
 	return React.createElement("Frame", {
 		Size = UDim2.fromOffset(chipW, chipH),
-		BackgroundColor3 = C.bgChip,
+		Position = props.position,
+		BackgroundColor3 = theme.Surface.raised,
 		BorderSizePixel = 0,
 		LayoutOrder = props.layoutOrder,
 	}, {
 		Scale = React.createElement("UIScale", { Scale = scale }),
 		Corner = React.createElement("UICorner", { CornerRadius = theme.Radius.chip }),
 		Stroke = React.createElement("UIStroke", {
-			Color = C.outline,
-			Thickness = theme.Stroke.medium,
-			Transparency = 0.55,
+			Color = theme.Border.light,
+			Thickness = theme.Stroke.thick,
 		}),
 		Lip = React.createElement("Frame", {
 			Size = UDim2.new(1, 0, 0, layout.px(4)),
 			Position = UDim2.new(0, 0, 1, 0),
 			AnchorPoint = Vector2.new(0, 1),
-			BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-			BackgroundTransparency = 0.55,
+			BackgroundColor3 = theme.Action.neutralShadow,
+			BackgroundTransparency = 0.15,
 			BorderSizePixel = 0,
 			ZIndex = 1,
 		}, {
@@ -92,16 +96,25 @@ local function ResourceChip(props: Props): React.Node
 		}, {
 			Corner = React.createElement("UICorner", { CornerRadius = theme.Radius.xs }),
 		}),
-		Dot = React.createElement("Frame", {
-			Size = UDim2.fromOffset(layout.px(10), layout.px(10)),
-			Position = UDim2.new(0, layout.gap(14), 0.5, 0),
-			AnchorPoint = Vector2.new(0, 0.5),
-			BackgroundColor3 = accent,
-			BorderSizePixel = 0,
-			ZIndex = 2,
-		}, {
-			Corner = React.createElement("UICorner", { CornerRadius = theme.Radius.pill }),
-		}),
+		Icon = if props.icon
+			then React.createElement(Icon, {
+				name = props.icon,
+				size = 18,
+				color = accent,
+				position = UDim2.new(0, layout.gap(12), 0.5, 0),
+				anchorPoint = Vector2.new(0, 0.5),
+				zIndex = 2,
+			})
+			else React.createElement("Frame", {
+				Size = UDim2.fromOffset(layout.px(10), layout.px(10)),
+				Position = UDim2.new(0, layout.gap(14), 0.5, 0),
+				AnchorPoint = Vector2.new(0, 0.5),
+				BackgroundColor3 = accent,
+				BorderSizePixel = 0,
+				ZIndex = 2,
+			}, {
+				Corner = React.createElement("UICorner", { CornerRadius = theme.Radius.pill }),
+			}),
 		Label = React.createElement("TextLabel", {
 			Size = UDim2.new(1, -layout.px(32), 0, layout.px(14)),
 			Position = UDim2.fromOffset(layout.px(28), layout.gap(6)),
@@ -109,7 +122,7 @@ local function ResourceChip(props: Props): React.Node
 			Text = string.upper(props.label),
 			TextSize = layout.text(10),
 			Font = theme.Font.caption,
-			TextColor3 = C.textMuted,
+			TextColor3 = theme.Content.muted,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			ZIndex = 2,
 		}),
@@ -120,7 +133,7 @@ local function ResourceChip(props: Props): React.Node
 			Text = Formatters.shortNumber(math.floor(display + 0.5)),
 			TextSize = layout.text(if props.emphasize then 18 else 16),
 			Font = theme.Font.heavy,
-			TextColor3 = C.textMain,
+			TextColor3 = theme.Content.primary,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			ZIndex = 2,
 		}),

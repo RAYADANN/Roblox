@@ -1,0 +1,75 @@
+---
+description: Главный индекс шаблона — Cursor читает при старте любой задачи
+alwaysApply: true
+---
+
+# Roblox Starter Template
+
+Это **шаблон** для новых игр. Код пишет Cursor по правилам ниже.
+Полная карта: `AGENTS.md` и `README.md`.
+
+## Стек (не менять без обновления TECH_STACK.md)
+
+Luau `--!strict` | React-Lua + Flipper | Zap | ProfileStore | Lune CI
+
+## Перед любой задачей
+
+1. Прочитай `docs/GAME_ARCHITECTURE.md` — куда класть код
+2. Визуал / мир / «видят другие»? → `docs/CLIENT_SERVER.md` + `client-server-split.mdc`
+3. Фича в scope? Иначе → `docs/BACKLOG.md`
+4. Есть эталон в `src/`? Копируй паттерн, не изобретай
+5. Замысел неясен и не описан в проекте? → **спроси пользователя** (1–3 вопроса), не угадывай
+
+## Правила по темам
+
+| Тема | Rule |
+|------|------|
+| Архитектура, DI, папки | `architecture.mdc` |
+| Scope, MVP, DoD | `workflow.mdc` |
+| Без костылей | `no-hacks.mdc` |
+| React UI | `ui-react.mdc` |
+| Polish UI | `professional-ui.mdc` |
+| Адаптив | `docs/UI_ADAPTIVITY.md` |
+| Сеть Zap | `networking.mdc` |
+| Client vs Server (видимость) | `client-server-split.mdc` |
+| Профиль | `data-persistence.mdc` |
+| Безопасность | `security.mdc` |
+| Тесты | `testing.mdc` |
+| Типы | `luau.mdc` |
+| CI/Git | `git-ci.mdc` |
+| Доки | `docs.mdc` |
+| Аналитика | `analytics.mdc` |
+| Звук | `audio.mdc` |
+| Перф | `performance.mdc` |
+| Монетизация | `monetization.mdc` |
+| A11y | `accessibility.mdc` |
+| FX | `fx.mdc` + `docs/VFX_ENGINE.md` |
+| Локализация | `localization.mdc` |
+
+## Эталонный код (копируй паттерн)
+
+- `shared/util/RebirthLogic.luau` + `tests/` — pure logic
+- `shared/vfx/QualityLogic.luau` + `client/vfx/` — world VFX engine
+- `shared/types/PlayerData.luau` — схема профиля
+- `shared/util/UpgradeLogic.luau` + `EconomyManager.luau` — **end-to-end фича (HUD)**
+- `shared/util/PlayerAttributeSync.luau` + `WorldCosmeticPublisher` + `RemoteCosmeticVisual` — **косметика для других игроков**
+- `client/ui/GameRoot.luau` — React + Net wire
+- `client/ui/App.luau` — React root
+
+## Запрещено всегда
+
+- `_G`, синглтоны, Knit.GetService
+- Бизнес-логика в React / init.server / RemoteEvent handler
+- `any` на границах модулей
+- God-файлы 500+ строк
+- Хардкод цветов/размеров вне theme/layout
+- Client-trusted прогресс (coins, depth, inventory)
+- Фичи вне scope без записи в BACKLOG
+
+## Definition of Done (каждая задача)
+
+1. CI зелёный (stylua, selene, lune, rojo build)
+2. Типы на публичном API
+3. `*Logic` протестирован если есть формулы
+4. Playtest в Studio (человек)
+5. Доки обновлены если менялась архитектура

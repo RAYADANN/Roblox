@@ -4,10 +4,14 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage:WaitForChild("Packages").React)
 
 local SessionTypes = require(ReplicatedStorage.shared.types.Session)
+local Toast = require(script.Parent.Parent.components.Toast)
 
 export type HudContextValue = {
 	hud: SessionTypes.HudPayload,
 	toast: string?,
+	toastTone: Toast.Tone,
+	carryStatus: string?,
+	carryStartedAt: number?,
 	breedOpen: boolean,
 	setBreedOpen: (boolean) -> (),
 	selected: { string },
@@ -44,6 +48,9 @@ local emptyHud: SessionTypes.HudPayload = {
 local defaultValue: HudContextValue = {
 	hud = emptyHud,
 	toast = nil,
+	toastTone = "info",
+	carryStatus = nil,
+	carryStartedAt = nil,
 	breedOpen = false,
 	setBreedOpen = function() end,
 	selected = {},

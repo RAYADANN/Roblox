@@ -1,5 +1,5 @@
 --!strict
--- Reference sim HUD: top chips · left nav · bottom hammer/bat · center popups.
+-- Toybox Premium HUD: compact edge capsules, floating action dock, and center overlays.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -14,6 +14,12 @@ local PetsPanel = require(script.Parent.components.PetsPanel)
 local BreedModal = require(script.Parent.components.BreedModal)
 local HatchReveal = require(script.Parent.components.HatchReveal)
 local JuiceLayer = require(script.Parent.components.JuiceLayer)
+local BuildHint = require(script.Parent.components.BuildHint)
+local CarryStatus = require(script.Parent.components.CarryStatus)
+local LockStatus = require(script.Parent.components.LockStatus)
+local RollPreviewJuice = require(script.Parent.components.RollPreviewJuice)
+local StealAlertVignette = require(script.Parent.components.StealAlertVignette)
+local Toast = require(script.Parent.components.Toast)
 local useLayout = require(script.Parent.hooks.useLayout)
 local theme = require(script.Parent.theme)
 
@@ -23,6 +29,9 @@ export type JuiceState = {
 	collectAmount: number,
 	cashPulse: number,
 	hatch: HatchReveal.HatchPayload?,
+	rollPreviewToken: number,
+	stealAlertToken: number,
+	stealAlertMessage: string?,
 }
 
 export type AppProps = {
@@ -57,8 +66,8 @@ local function App(props: AppProps): React.Node
 	local ctx = React.useContext(HudContext)
 	local C = theme.Colors
 	local showBuildMats = ctx.buildMode
-	local bufferAmt = math.floor(ctx.hud.buffer)
 	local collectLabel = "Collect"
+	local chipWidth = if layout.isPhone then 102 else theme.Design.CHIP_W
 
 	local shopOpen, setShopOpen = React.useState(false)
 	local petsOpen, setPetsOpen = React.useState(false)
@@ -105,7 +114,12 @@ local function App(props: AppProps): React.Node
 		BorderSizePixel = 0,
 	}, {
 		Top = React.createElement("Frame", {
-			Size = UDim2.new(1, -layout.gap(24), 0, layout.px(theme.Design.CHIP_H)),
+			Size = UDim2.new(
+				1,
+				-(layout.safeLeft + layout.safeRight + layout.gap(20)),
+				0,
+				layout.px(theme.Design.CHIP_H)
+			),
 			Position = UDim2.fromOffset(layout.safeLeft + layout.gap(12), layout.safeTop + layout.gap(8)),
 			BackgroundTransparency = 1,
 		}, {
@@ -122,20 +136,26 @@ local function App(props: AppProps): React.Node
 				layoutOrder = 1,
 				pulseToken = props.juice.cashPulse,
 				emphasize = true,
+				icon = "cash",
+				width = chipWidth,
 			}),
 			Buffer = React.createElement(ResourceChip, {
 				label = "Buffer",
 				amount = ctx.hud.buffer,
 				accent = C.jade,
+				icon = "collect",
+				width = chipWidth,
 				layoutOrder = 2,
 			}),
 			Mps = React.createElement(ResourceChip, {
 				label = "$/s",
 				amount = ctx.hud.mps,
 				accent = C.primary,
+				icon = "forward",
+				width = chipWidth,
 				layoutOrder = 3,
 			}),
-			Dirt = if showBuildMats
+			Dirt = if showBuildMats and not layout.isPhone
 				then React.createElement(ResourceChip, {
 					label = "Dirt",
 					amount = ctx.hud.dirt,
@@ -143,7 +163,7 @@ local function App(props: AppProps): React.Node
 					layoutOrder = 4,
 				})
 				else nil,
-			Spikes = if showBuildMats
+			Spikes = if showBuildMats and not layout.isPhone
 				then React.createElement(ResourceChip, {
 					label = "Spikes",
 					amount = ctx.hud.spikes,
@@ -199,48 +219,46 @@ local function App(props: AppProps): React.Node
 			end,
 		}),
 
-		Hint = if ctx.buildMode
-			then React.createElement("TextLabel", {
-				Size = UDim2.fromOffset(layout.px(480), layout.px(28)),
-				Position = UDim2.new(0.5, 0, 1, -(layout.touch(theme.Design.HOTBAR_BTN) + layout.gap(70))),
-				AnchorPoint = Vector2.new(0.5, 0),
-				BackgroundColor3 = C.bgChip,
-				BackgroundTransparency = 0.05,
-				Text = "  Q = block · click place · Shift+click break  ",
-				TextSize = layout.text(12),
-				Font = theme.Font.body,
-				TextColor3 = C.textMain,
-				ZIndex = 16,
-			}, {
-				Corner = React.createElement("UICorner", { CornerRadius = theme.Radius.chip }),
-				Stroke = React.createElement("UIStroke", {
-					Color = C.outline,
-					Thickness = theme.Stroke.thin,
-					Transparency = 0.65,
-				}),
-			})
-			else nil,
-
-		Toast = if ctx.toast
-			then React.createElement("TextLabel", {
-				Size = UDim2.fromOffset(layout.px(340), layout.px(40)),
-				Position = UDim2.new(0.5, 0, 0, layout.safeTop + layout.px(64)),
-				AnchorPoint = Vector2.new(0.5, 0),
-				BackgroundColor3 = C.bgChip,
-				Text = ctx.toast,
-				TextSize = layout.text(14),
-				Font = theme.Font.title,
-				TextColor3 = C.textMain,
-				ZIndex = 30,
-			}, {
-				Corner = React.createElement("UICorner", { CornerRadius = theme.Radius.chip }),
-				Stroke = React.createElement("UIStroke", {
-					Color = C.outline,
-					Thickness = theme.Stroke.thin,
-					Transparency = 0.65,
-				}),
-			})
-			else nil,
+		Hint = React.createElement(BuildHint, {
+			blockName = ctx.buildBlock,
+			visible = ctx.buildMode,
+		}),
+		StatusArea = React.createElement("Frame", {
+			AutomaticSize = Enum.AutomaticSize.XY,
+			Size = UDim2.fromOffset(0, 0),
+			Position = UDim2.new(1, -(layout.safeRight + layout.gap(12)), 0, layout.safeTop + layout.gap(10)),
+			AnchorPoint = Vector2.new(1, 0),
+			BackgroundTransparency = 1,
+			ZIndex = 40,
+		}, {
+			List = React.createElement("UIListLayout", {
+				Padding = UDim.new(0, layout.gap(8)),
+				HorizontalAlignment = Enum.HorizontalAlignment.Right,
+				SortOrder = Enum.SortOrder.LayoutOrder,
+			}),
+			Lock = React.createElement(LockStatus, {
+				lockUntil = ctx.hud.lockUntil,
+			}),
+			Toast = if ctx.toast
+				then React.createElement(Toast, {
+					text = ctx.toast,
+					tone = ctx.toastTone,
+					icon = if ctx.toastTone == "danger" then "warning" else "info",
+					size = UDim2.fromOffset(layout.px(if layout.isPhone then 280 else 340), layout.px(64)),
+				})
+				else nil,
+		}),
+		Carry = React.createElement(CarryStatus, {
+			text = ctx.carryStatus,
+			startedAt = ctx.carryStartedAt,
+		}),
+		RollJuice = React.createElement(RollPreviewJuice, {
+			token = props.juice.rollPreviewToken,
+		}),
+		StealAlert = React.createElement(StealAlertVignette, {
+			token = props.juice.stealAlertToken,
+			message = props.juice.stealAlertMessage,
+		}),
 
 		Shop = React.createElement(RollRewardModal, {
 			open = shopOpen,
@@ -267,6 +285,10 @@ local function App(props: AppProps): React.Node
 		Hatch = React.createElement(HatchReveal, {
 			payload = props.juice.hatch,
 			onDone = props.clearHatch,
+			onFuseAgain = function()
+				props.clearHatch()
+				ctx.setBreedOpen(true)
+			end,
 		}),
 	})
 end

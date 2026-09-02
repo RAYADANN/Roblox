@@ -9,6 +9,8 @@ local BreedConfig = {
 	cancelFeeMin = 50,
 	softSpeedBase = 100,
 	softSpeedPerElapsed = 2,
+	-- First speed-up of a job is free so the chase loop doesn't die on a 120s dead wait (GDD soft-speed still exists).
+	firstSpeedFree = true,
 	incubatorSlotsDefault = 1,
 
 	mutate = {

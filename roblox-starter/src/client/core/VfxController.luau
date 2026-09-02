@@ -7,6 +7,7 @@ local Logger = require(ReplicatedStorage.shared.util.Logger)
 local VFX = require(script.Parent.Parent.vfx)
 local SettingsManager = require(script.Parent.SettingsManager)
 local SoundManager = require(script.Parent.SoundManager)
+local HapticsManager = require(script.Parent.HapticsManager)
 
 local VfxController = {}
 
@@ -23,7 +24,8 @@ function VfxController.start(config: StartConfig?)
 	end
 	_engine = VFX.create({
 		isReduceMotion = SettingsManager.isReduceMotion,
-		playSound = SoundManager.play,
+		playSound = SoundManager.playWithPitch,
+		playHaptic = HapticsManager.pulseProfile,
 		cameraMode = if config then config.cameraMode else "HumanoidOffset",
 		onShakeOffset = if config then config.onShakeOffset else nil,
 	})
@@ -47,11 +49,22 @@ end
 
 function VfxController.setCameraMode(mode: VFX.CameraMode, onShakeOffset: ((Vector3) -> ())?)
 	local engine = VfxController.get()
+	;(engine :: any)._preferredCameraMode = mode
+	;(engine :: any)._onShakeOffset = onShakeOffset
+	;(engine :: any)._reduceMotionCamera = false
 	local driver = VFX.Camera.resolve({
 		mode = mode,
 		onShakeOffset = onShakeOffset,
 	})
 	engine:setCameraDriver(driver)
+end
+
+function VfxController.setTierOverride(tier: string?)
+	VfxController.get():setTierOverride(tier :: any)
+end
+
+function VfxController.getStats()
+	return VfxController.get():getStats()
 end
 
 function VfxController.destroy()

@@ -48,6 +48,24 @@ function BreedService.new(deps: Deps): BreedService
 	}, BreedService)
 end
 
+function BreedService:_shakeEgg(player: Player, intensity: number)
+	local plot = self._deps.baseService:getPlotForPlayer(player)
+	if not plot then
+		return
+	end
+	local egg = plot.incubatorPart:FindFirstChild("Egg")
+	if not egg or not egg:IsA("BasePart") then
+		return
+	end
+	if intensity <= 0 then
+		egg.CFrame = CFrame.new(plot.incubatorPart.Position + Vector3.new(0, 2, 0))
+		return
+	end
+	local base = CFrame.new(plot.incubatorPart.Position + Vector3.new(0, 2, 0))
+	local wobble = math.rad(intensity * 8 * math.sin(os.clock() * (4 + intensity * 6)))
+	egg.CFrame = base * CFrame.Angles(0, 0, wobble)
+end
+
 function BreedService:_setTimer(player: Player, text: string)
 	local plot = self._deps.baseService:getPlotForPlayer(player)
 	if not plot then
@@ -143,17 +161,19 @@ function BreedService:softSpeed(player: Player): boolean
 	end
 	local job = data.incubateJob
 	local now = os.time()
-	local cost = BreedLogic.softSpeedCost(job.startedAt, now)
-	if data.cash < cost then
+	local cost = BreedLogic.softSpeedCost(job.startedAt, now, BreedConfig.firstSpeedFree and not job.spedUp)
+	if cost > 0 and data.cash < cost then
 		self._deps.notify(player, "error", `Need ${cost}`)
 		return false
 	end
-	data.cash -= cost
+	if cost > 0 then
+		data.cash -= cost
+	end
 	local remaining = math.max(0, job.endsAt - now)
 	job.endsAt = now + math.ceil(remaining / 2)
 	job.spedUp = true
 	self._deps.syncHud(player)
-	self._deps.notify(player, "breed", "Sped up!")
+	self._deps.notify(player, "breed", if cost == 0 then "Free speed! ×2 faster" else "Sped up!")
 	return true
 end
 
@@ -174,7 +194,7 @@ function BreedService:_resolve(player: Player)
 
 	local outcome = BreedLogic.rollOutcome(data.luckBreed)
 	if outcome == "success" then
-		local childOneIn = BreedLogic.rollChildOneIn(a, b, data.luckBreed)
+		local childOneIn, mult = BreedLogic.rollChildOneIn(a, b, data.luckBreed)
 		local hybrid = BreedLogic.buildHybrid(a, b, childOneIn)
 		data.creatures[a.id] = nil
 		data.creatures[b.id] = nil
@@ -182,22 +202,24 @@ function BreedService:_resolve(player: Player)
 		data.creatures[hybrid.id] = hybrid
 		self._deps.creatureService:refreshPlayer(player)
 		self:_setTimer(player, `HATched!\n{FormatOneIn(hybrid.oneIn)}`)
+		-- Name · display · rarity · oneIn · expected · mult
 		self._deps.notify(
 			player,
 			"hatch",
-			`{hybrid.displayName} · {FormatOneIn(hybrid.oneIn)} · {hybrid.rarity} · {hybrid.oneIn}`
+			`{hybrid.displayName} · {FormatOneIn(hybrid.oneIn)} · {hybrid.rarity} · {hybrid.oneIn} · {job.expectedOneIn} · {mult}`
 		)
-		Logger.info("BreedService", `{player.Name} hatched {FormatOneIn(hybrid.oneIn)}`)
+		Logger.info("BreedService", `{player.Name} hatched {FormatOneIn(hybrid.oneIn)} mult={mult}`)
 	elseif outcome == "fail" then
 		self:_setTimer(player, "Failed")
-		self._deps.notify(player, "breed", "Breed failed")
+		self._deps.notify(player, "hatch_bust", `fail · {job.expectedOneIn}`)
 	else
 		data.creatures[a.id] = nil
 		data.creatures[b.id] = nil
 		self._deps.creatureService:refreshPlayer(player)
 		self:_setTimer(player, "Burned!")
-		self._deps.notify(player, "breed", "Burned!")
+		self._deps.notify(player, "hatch_bust", `burn · {job.expectedOneIn}`)
 	end
+	self:_shakeEgg(player, 0)
 	self._deps.syncHud(player)
 	task.delay(3, function()
 		local d = self._deps.sessionService:get(player)
@@ -217,7 +239,12 @@ function BreedService:_tick()
 			if left <= 0 then
 				self:_resolve(player)
 			else
-				self:_setTimer(player, `{left}s · ~{FormatOneIn(data.incubateJob.expectedOneIn)}`)
+				local expected = data.incubateJob.expectedOneIn
+				if left <= 10 then
+					self:_setTimer(player, `ROULETTE {left}s · ~{FormatOneIn(expected)}`)
+				else
+					self:_setTimer(player, `{left}s · roulette`)
+				end
 			end
 		end
 	end
@@ -226,6 +253,23 @@ end
 function BreedService:start()
 	local accum = 0
 	self._conn = RunService.Heartbeat:Connect(function(dt)
+		-- Smooth egg wobble every frame while incubating
+		local Players = game:GetService("Players")
+		local now = os.time()
+		for _, player in Players:GetPlayers() do
+			local data = self._deps.sessionService:get(player)
+			if data and data.incubateJob then
+				local left = data.incubateJob.endsAt - now
+				if left > 0 then
+					local expected = data.incubateJob.expectedOneIn
+					local intensity = math.clamp(math.log10(math.max(2, expected)) / 3, 0.35, 1.4)
+					local total = math.max(1, data.incubateJob.endsAt - data.incubateJob.startedAt)
+					local progress = 1 - (left / total)
+					self:_shakeEgg(player, intensity * (0.4 + progress * 1.2))
+				end
+			end
+		end
+
 		accum += dt
 		if accum < 0.5 then
 			return

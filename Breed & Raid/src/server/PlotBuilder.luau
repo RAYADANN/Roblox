@@ -215,7 +215,7 @@ function PlotBuilder.buildPlot(id: number, origin: Vector3, parent: Instance): P
 		offset = Vector3.new(0, 4.2, 0),
 		labelName = "TimerLabel",
 		defaultText = "Ready",
-		accent = Color3.fromRGB(150, 120, 180),
+		accent = WorldUi.Colors.breed,
 	})
 
 	WorldUi.attachStatusBillboard(collectPart, "BufferBillboard", {

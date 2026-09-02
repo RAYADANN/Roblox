@@ -1,5 +1,5 @@
 --!strict
--- Hero "1 in X" — primary flex (GDD). Dark surface, rarity stroke.
+-- Hero "1 in X" — primary flex (GDD), on a warm toy surface.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage:WaitForChild("Packages").React)
@@ -24,14 +24,14 @@ local function OneInBadge(props: Props): React.Node
 
 	return React.createElement("Frame", {
 		Size = UDim2.new(1, 0, 0, h),
-		BackgroundColor3 = theme.Colors.bg4,
+		BackgroundColor3 = theme.Surface.raised,
 		BorderSizePixel = 0,
 		LayoutOrder = props.layoutOrder,
 	}, {
-		Corner = React.createElement("UICorner", { CornerRadius = theme.Radius.sm }),
+		Corner = React.createElement("UICorner", { CornerRadius = theme.Radius.badge }),
 		Stroke = React.createElement("UIStroke", {
 			Color = accent,
-			Thickness = theme.Stroke.medium,
+			Thickness = theme.Stroke.thick,
 		}),
 		Bar = React.createElement("Frame", {
 			Size = UDim2.new(0, theme.Stroke.accentBar, 1, -layout.gap(8)),
@@ -50,6 +50,8 @@ local function OneInBadge(props: Props): React.Node
 			TextSize = layout.text(if compact then 16 else 22),
 			Font = theme.Font.display,
 			TextColor3 = accent,
+			TextStrokeColor3 = theme.Border.light,
+			TextStrokeTransparency = 0.45,
 			TextXAlignment = Enum.TextXAlignment.Left,
 		}),
 	})

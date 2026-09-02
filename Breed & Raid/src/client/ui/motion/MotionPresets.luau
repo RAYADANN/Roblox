@@ -5,29 +5,63 @@ local TweenService = game:GetService("TweenService")
 
 local MotionPresets = {}
 
-MotionPresets.SPRING_SNAPPY = { frequency = 6, dampingRatio = 0.85 }
-MotionPresets.SPRING_BOUNCY = { frequency = 4.5, dampingRatio = 0.62 }
-MotionPresets.SPRING_GENTLE = { frequency = 3, dampingRatio = 1 }
-MotionPresets.SPRING_NUMBER = { frequency = 4, dampingRatio = 1 }
+local Spring = {
+	snappy = { frequency = 6, dampingRatio = 0.85 },
+	bouncy = { frequency = 4.5, dampingRatio = 0.62 },
+	gentle = { frequency = 3, dampingRatio = 1 },
+	number = { frequency = 4, dampingRatio = 1 },
+	modal = { frequency = 5, dampingRatio = 0.78 },
+}
 
-MotionPresets.HOVER = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-MotionPresets.PRESS = TweenInfo.new(0.08, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-MotionPresets.FADE = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-MotionPresets.MODAL_IN = TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-MotionPresets.MODAL_OUT = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-MotionPresets.POP = TweenInfo.new(0.32, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-MotionPresets.SLIDE = TweenInfo.new(0.22, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-MotionPresets.FLASH = TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-MotionPresets.RING = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local Tween = {
+	hover = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	press = TweenInfo.new(0.08, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+	fade = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	modalIn = TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+	modalOut = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+	pop = TweenInfo.new(0.32, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+	slide = TweenInfo.new(0.22, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+	flash = TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	ring = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+}
 
-MotionPresets.HOVER_SCALE = 1.06
-MotionPresets.PRESS_SCALE = 0.94
-MotionPresets.POP_PEAK = 1.14
+local Scale = {
+	hover = 1.06,
+	press = 0.94,
+	popPeak = 1.14,
+	enter = 0.88,
+}
+
+MotionPresets.Spring = Spring
+MotionPresets.Tween = Tween
+MotionPresets.Scale = Scale
+
+-- Compatibility aliases for current consumers.
+MotionPresets.SPRING_SNAPPY = Spring.snappy
+MotionPresets.SPRING_BOUNCY = Spring.bouncy
+MotionPresets.SPRING_GENTLE = Spring.gentle
+MotionPresets.SPRING_NUMBER = Spring.number
+MotionPresets.HOVER = Tween.hover
+MotionPresets.PRESS = Tween.press
+MotionPresets.FADE = Tween.fade
+MotionPresets.MODAL_IN = Tween.modalIn
+MotionPresets.MODAL_OUT = Tween.modalOut
+MotionPresets.POP = Tween.pop
+MotionPresets.SLIDE = Tween.slide
+MotionPresets.FLASH = Tween.flash
+MotionPresets.RING = Tween.ring
+MotionPresets.HOVER_SCALE = Scale.hover
+MotionPresets.PRESS_SCALE = Scale.press
+MotionPresets.POP_PEAK = Scale.popPeak
 
 function MotionPresets.tween(instance: Instance, props: { [string]: any }, info: TweenInfo): Tween
 	local tween = TweenService:Create(instance, info, props)
 	tween:Play()
 	return tween
+end
+
+function MotionPresets.fade(gui: GuiObject, target: number, info: TweenInfo?): Tween
+	return MotionPresets.tween(gui, { BackgroundTransparency = target }, info or Tween.fade)
 end
 
 return MotionPresets

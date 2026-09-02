@@ -1,0 +1,19 @@
+# Rojo build output
+*.rbxl
+*.rbxlx
+*.rbxm
+*.rbxmx
+sourcemap.json
+serve.log
+
+# Wally packages (restore via `wally install`)
+/Packages
+/ServerPackages
+/DevPackages
+# wally.lock is committed for reproducible installs
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo

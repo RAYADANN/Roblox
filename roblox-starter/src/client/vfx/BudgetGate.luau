@@ -11,6 +11,8 @@ export type BudgetGate = {
 	tryAcquire: (self: BudgetGate, priority: FxPriority, budget: QualityBudget) -> boolean,
 	release: (self: BudgetGate) -> (),
 	activeCount: (self: BudgetGate) -> number,
+	droppedCount: (self: BudgetGate) -> number,
+	resetDropped: (self: BudgetGate) -> (),
 	shouldCull: (
 		self: BudgetGate,
 		worldPos: Vector3,
@@ -26,6 +28,7 @@ BudgetGate.__index = BudgetGate
 function BudgetGate.new(): BudgetGate
 	local self = setmetatable({
 		_active = 0,
+		_dropped = 0,
 		_destroyed = false,
 	}, BudgetGate)
 	return (self :: any) :: BudgetGate
@@ -36,11 +39,12 @@ function BudgetGate:tryAcquire(priority: FxPriority, budget: QualityBudget): boo
 		return false
 	end
 	if not QualityLogic.allowsPriority(priority, budget) then
+		self._dropped += 1
 		return false
 	end
 	if self._active >= budget.maxConcurrent then
-		-- Critical пробивает soft-cap, остальное дропаем
 		if priority ~= "Critical" then
+			self._dropped += 1
 			return false
 		end
 	end
@@ -56,6 +60,14 @@ end
 
 function BudgetGate:activeCount(): number
 	return self._active
+end
+
+function BudgetGate:droppedCount(): number
+	return self._dropped
+end
+
+function BudgetGate:resetDropped()
+	self._dropped = 0
 end
 
 function BudgetGate:shouldCull(worldPos: Vector3, cameraPos: Vector3, budget: QualityBudget): boolean

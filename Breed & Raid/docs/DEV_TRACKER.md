@@ -36,10 +36,21 @@
 - [x] Buy gold flash + burst
 - [x] Collect shockwave + `+$` float
 - [x] Hatch hero overlay (slam `1 in X`)
+- [x] Breed chase feel: jackpot banner, Expected vs actual, FREE first Speed, egg shake, Fuse Again
+- [x] Hatch roulette: rarity reel → jackpot reel → slam `1 in X` (+ fail/burn bust spin)
 - [x] UiSound bus (placeholder asset ids)
-- [ ] Roll preview juice
-- [ ] Steal alert vignette
+- [x] Roll preview juice
+- [x] Steal alert vignette
 - [ ] Replace placeholder SoundIds with final SFX
+
+### Professional UI Kit
+
+- [x] Toybox Premium foundations: semantic colors, spacing, radii, elevation, typography
+- [x] Reusable React-Lua primitives, controls, cards, modal, toast and status components
+- [x] Responsive HUD and Roll / Pets / Breed / Hatch screens
+- [x] Desktop / tablet / phone modal fit and safe-area layouts
+- [x] World billboards and custom prompts use the same visual language
+- [x] Studio-only UI catalog for component states
 
 ### Cut (не трогать в PROVE)
 
@@ -79,3 +90,7 @@
 | 2026-07-19 | Build = Minecraft voxels (4³ cubes, face place, stack, Shift+break) |
 | 2026-07-19 | Spikes trap: slow ×0.5 enemies; starter spikes×25; Q cycle blocks |
 | 2026-07-19 | UI visual pass: v3 cream/jade theme on HUD, Summon, Breed, Hatch |
+| 2026-07-21 | Breed chase: hatch jackpot reveal + Fuse Again, incubate progress/shake, free first Speed |
+| 2026-07-21 | Hatch roulette WOW: rarity + jackpot reels, bust spin on fail/burn, incubate tease |
+| 2026-07-21 | Professional React-Lua UI Kit: Toybox Premium tokens/components, responsive HUD/screens, world UI parity, roll and steal feedback |
+| 2026-07-21 | Professional UI runtime review: safe-area/modal fit, prompt touch hierarchy, modal input blocking, timer cleanup, carry status, and Flipper state fixes |

@@ -1,0 +1,48 @@
+{
+    "name": "scripter-test",
+    "globIgnorePaths": ["**/*.test.luau", "**/__pycache__/**", "**/*.py"],
+    "tree": {
+        "$className": "DataModel",
+        "ReplicatedStorage": {
+            "$className": "ReplicatedStorage",
+            "$ignoreUnknownInstances": true,
+            "Packages": {
+                "$path": "Packages"
+            },
+            "shared": {
+                "$path": "src/shared"
+            },
+            "UI": {
+                "$path": "src/client/ui"
+            }
+        },
+        "ServerScriptService": {
+            "$className": "ServerScriptService",
+            "$ignoreUnknownInstances": true,
+            "server": {
+                "$path": "src/server"
+            },
+            "ServerPackages": {
+                "$path": "ServerPackages"
+            }
+        },
+        "StarterPlayer": {
+            "$className": "StarterPlayer",
+            "$ignoreUnknownInstances": true,
+            "StarterPlayerScripts": {
+                "$className": "StarterPlayerScripts",
+                "client": {
+                    "$path": "src/client"
+                }
+            }
+        },
+        "Workspace": {
+            "$className": "Workspace",
+            "$ignoreUnknownInstances": true,
+            "$properties": {
+                "FilteringEnabled": true,
+                "StreamingEnabled": true
+            }
+        }
+    }
+}

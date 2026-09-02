@@ -127,6 +127,9 @@ function StealService:_returnToVictim(thief: Player, state: CarryState)
 	setWalk(thief, DEFAULT_WALK, 1)
 	self._deps.creatureService:refreshPlayer(thief)
 	self._deps.syncHud(thief)
+	if thief.Parent == Players then
+		self._deps.notify(thief, "steal", "Carry lost")
+	end
 end
 
 function StealService:startSteal(thief: Player, victim: Player, nestId: string): boolean

@@ -49,7 +49,7 @@ local function JuiceLayer(props: Props): React.Node
 			setFloatText(nil)
 		end)
 		return function()
-			task.cancel(t)
+			pcall(task.cancel, t)
 		end
 	end, { props.collectToken })
 

@@ -5,11 +5,15 @@ local React = require(ReplicatedStorage:WaitForChild("Packages").React)
 
 local HudContext = require(script.Parent.HudContext)
 local SessionTypes = require(ReplicatedStorage.shared.types.Session)
+local Toast = require(script.Parent.Parent.components.Toast)
 
 export type Props = {
 	children: any,
 	hud: SessionTypes.HudPayload,
 	toast: string?,
+	toastTone: Toast.Tone,
+	carryStatus: string?,
+	carryStartedAt: number?,
 	breedOpen: boolean,
 	setBreedOpen: (boolean) -> (),
 	selected: { string },
@@ -31,6 +35,9 @@ local function HudProvider(props: Props): React.Node
 	local value: HudContext.HudContextValue = {
 		hud = props.hud,
 		toast = props.toast,
+		toastTone = props.toastTone,
+		carryStatus = props.carryStatus,
+		carryStartedAt = props.carryStartedAt,
 		breedOpen = props.breedOpen,
 		setBreedOpen = props.setBreedOpen,
 		selected = props.selected,

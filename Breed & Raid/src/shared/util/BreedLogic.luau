@@ -39,11 +39,28 @@ local function pickMutateMult(luckBreed: number): number
 	return 1
 end
 
-function BreedLogic.rollChildOneIn(parentA: CreatureInstance, parentB: CreatureInstance, luckBreed: number): number
+function BreedLogic.rollChildOneIn(parentA: CreatureInstance, parentB: CreatureInstance, luckBreed: number): (number, number)
 	local base = parentA.oneIn * parentB.oneIn
 	local mult = pickMutateMult(luckBreed)
 	local child = if mult < 1 then math.max(2, math.floor(base * mult)) else math.floor(base * mult)
-	return math.max(2, child)
+	return math.max(2, child), mult
+end
+
+function BreedLogic.mutateLabel(mult: number): string
+	if mult >= 10 then
+		return "JACKPOT ×10"
+	elseif mult >= 5 then
+		return "JACKPOT ×5"
+	elseif mult >= 2 then
+		return "JACKPOT ×2"
+	elseif mult < 1 then
+		return "WHIFF ×0.5"
+	end
+	return "NORMAL"
+end
+
+function BreedLogic.jackpotCeiling(expectedOneIn: number): number
+	return math.max(2, math.floor(expectedOneIn * 10))
 end
 
 function BreedLogic.rollOutcome(luckBreed: number): string
@@ -130,7 +147,10 @@ function BreedLogic.cancelFee(parentA: CreatureInstance, parentB: CreatureInstan
 	return math.max(BreedConfig.cancelFeeMin, math.floor(sum * BreedConfig.cancelFeeFraction))
 end
 
-function BreedLogic.softSpeedCost(startedAt: number, now: number): number
+function BreedLogic.softSpeedCost(startedAt: number, now: number, firstFree: boolean?): number
+	if firstFree then
+		return 0
+	end
 	local elapsed = math.max(0, now - startedAt)
 	return math.floor(BreedConfig.softSpeedBase + elapsed * BreedConfig.softSpeedPerElapsed)
 end

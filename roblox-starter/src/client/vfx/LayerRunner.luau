@@ -4,6 +4,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LayerDef = require(ReplicatedStorage.shared.vfx.LayerDef)
 local QualityLogic = require(ReplicatedStorage.shared.vfx.QualityLogic)
+local ShakeProfiles = require(ReplicatedStorage.shared.vfx.ShakeProfiles)
 
 local EmitterLayer = require(script.Parent.layers.EmitterLayer)
 local LightLayer = require(script.Parent.layers.LightLayer)
@@ -30,6 +31,8 @@ export type RunContext = {
 	cameraShake: (amplitude: number, duration: number, roughness: number?) -> (),
 	cameraRumble: (amplitude: number, roughness: number?) -> (),
 	screenFlash: (color: Color3, brightness: number, duration: number, blurSize: number?) -> (),
+	playSound: ((soundId: string, pitch: number?) -> ())?,
+	playHaptic: ((profile: string?, strength: number?) -> ())?,
 	--- Сборщик stop-коллбеков для Loop/Attached/Projectile
 	trackStop: (stopFn: () -> ()) -> (),
 	trackIntensity: (fn: (number) -> ()) -> (),
@@ -58,16 +61,158 @@ function LayerRunner.runStep(ctx: RunContext, step: LayerStep)
 end
 
 -- Built-ins
+local function stylePack(style: string?, base: Color3, sizeScale: number): {
+	color: ColorSequence,
+	size: NumberSequence,
+	transparency: NumberSequence,
+	lightEmission: number,
+}
+	local s = style or "soft"
+	local scale = sizeScale
+	if s == "fire" then
+		return {
+			color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 220)),
+				ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 160, 40)),
+				ColorSequenceKeypoint.new(0.65, Color3.fromRGB(255, 60, 10)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 10, 5)),
+			}),
+			size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.4 * scale),
+				NumberSequenceKeypoint.new(0.2, 1.4 * scale),
+				NumberSequenceKeypoint.new(0.7, 1.1 * scale),
+				NumberSequenceKeypoint.new(1, 0),
+			}),
+			transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.05),
+				NumberSequenceKeypoint.new(0.5, 0.25),
+				NumberSequenceKeypoint.new(1, 1),
+			}),
+			lightEmission = 0.85,
+		}
+	elseif s == "plasma" then
+		return {
+			color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+				ColorSequenceKeypoint.new(0.35, Color3.fromRGB(140, 220, 255)),
+				ColorSequenceKeypoint.new(0.7, Color3.fromRGB(180, 80, 255)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 10, 40)),
+			}),
+			size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.5 * scale),
+				NumberSequenceKeypoint.new(0.3, 1.6 * scale),
+				NumberSequenceKeypoint.new(1, 0),
+			}),
+			transparency = NumberSequence.new(0.0, 1),
+			lightEmission = 0.95,
+		}
+	elseif s == "smoke" then
+		return {
+			color = ColorSequence.new(Color3.fromRGB(45, 48, 55), Color3.fromRGB(20, 22, 28)),
+			size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.6 * scale),
+				NumberSequenceKeypoint.new(0.4, 1.8 * scale),
+				NumberSequenceKeypoint.new(1, 2.4 * scale),
+			}),
+			transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.35),
+				NumberSequenceKeypoint.new(0.5, 0.55),
+				NumberSequenceKeypoint.new(1, 1),
+			}),
+			lightEmission = 0.05,
+		}
+	elseif s == "debris" then
+		return {
+			color = ColorSequence.new(Color3.fromRGB(120, 90, 60), Color3.fromRGB(50, 40, 30)),
+			size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.7 * scale),
+				NumberSequenceKeypoint.new(0.5, 0.55 * scale),
+				NumberSequenceKeypoint.new(1, 0.2 * scale),
+			}),
+			transparency = NumberSequence.new(0.1, 1),
+			lightEmission = 0.1,
+		}
+	elseif s == "ember" then
+		return {
+			color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 220, 120)),
+				ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 100, 30)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(80, 20, 5)),
+			}),
+			size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.35 * scale),
+				NumberSequenceKeypoint.new(0.4, 0.55 * scale),
+				NumberSequenceKeypoint.new(1, 0),
+			}),
+			transparency = NumberSequence.new(0.05, 1),
+			lightEmission = 0.8,
+		}
+	elseif s == "spark" then
+		return {
+			color = ColorSequence.new(Color3.fromRGB(255, 240, 180), Color3.fromRGB(255, 120, 40)),
+			size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.25 * scale),
+				NumberSequenceKeypoint.new(0.3, 0.45 * scale),
+				NumberSequenceKeypoint.new(1, 0),
+			}),
+			transparency = NumberSequence.new(0, 1),
+			lightEmission = 0.9,
+		}
+	end
+	-- soft default
+	return {
+		color = ColorSequence.new(base, Color3.new(1, 1, 1)),
+		size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1.15 * scale),
+			NumberSequenceKeypoint.new(0.4, 0.8 * scale),
+			NumberSequenceKeypoint.new(1, 0),
+		}),
+		transparency = NumberSequence.new(0.1, 1),
+		lightEmission = 0.6,
+	}
+end
+
 LayerRunner.register("Emit", function(ctx, step)
-	local count = QualityLogic.scaleEmit(step.count or 20, ctx.budget, ctx.distanceScale * ctx.intensity)
+	local speed = if step.speedMin and step.speedMax
+		then NumberRange.new(step.speedMin, step.speedMax)
+		else nil
+	local life = if step.lifetimeMin and step.lifetimeMax
+		then NumberRange.new(step.lifetimeMin, step.lifetimeMax)
+		else nil
+	local scale = step.sizeScale or 1
+	if step.sizeStart then
+		scale = step.sizeStart
+	end
+	local pack = stylePack(step.emitStyle, ctx.color, scale)
+	if step.sizeStart and step.sizeMid and step.sizeEnd then
+		pack = table.clone(pack)
+		pack.size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, step.sizeStart),
+			NumberSequenceKeypoint.new(0.4, step.sizeMid),
+			NumberSequenceKeypoint.new(1, step.sizeEnd),
+		})
+	end
+	local spread = step.spread or 180
 	EmitterLayer.burst(ctx.folder, ctx.cframe, ctx.color, {
-		count = count,
+		count = step.count or 20,
 		texture = step.texture,
 		flipbookLayout = step.flipbookLayout,
 		flipbookMode = step.flipbookMode,
 		flipbookStartRandom = step.flipbookStartRandom,
 		flipbookFpsMin = step.flipbookFpsMin,
 		flipbookFpsMax = step.flipbookFpsMax,
+		sizeScale = scale,
+		speed = speed,
+		lifetime = life,
+		color = pack.color,
+		size = pack.size,
+		transparency = pack.transparency,
+		lightEmission = step.lightEmission or pack.lightEmission,
+		drag = step.drag,
+		spreadAngle = Vector2.new(spread, spread),
+		emitDuration = step.emitDuration or 1.6,
+		distanceScale = ctx.distanceScale,
+		intensity = ctx.intensity,
 	}, ctx.budget)
 end)
 
@@ -84,6 +229,7 @@ LayerRunner.register("Shockwave", function(ctx, step)
 		return
 	end
 	ShockwaveLayer.ring(ctx.folder, ctx.cframe, ctx.color, {
+		startSize = step.startSize,
 		endSize = (step.endSize or 10) * ctx.intensity,
 		duration = step.duration or 0.35,
 	})
@@ -102,11 +248,13 @@ LayerRunner.register("CameraShake", function(ctx, step)
 	if not ctx.budget.enableCameraShake then
 		return
 	end
-	ctx.cameraShake(
-		(step.amplitude or 0.2) * ctx.intensity * ctx.distanceScale,
-		step.duration or 0.16,
-		step.roughness
-	)
+	local profile = ShakeProfiles.resolve(step.shakeProfile)
+	local amp = (if profile then profile.amplitude else step.amplitude or 0.2)
+		* ctx.intensity
+		* ctx.distanceScale
+	local dur = if profile then profile.duration else step.duration or 0.16
+	local rough = if profile then profile.roughness else step.roughness
+	ctx.cameraShake(amp, dur, rough)
 end)
 
 LayerRunner.register("CameraRumble", function(ctx, step)
@@ -133,6 +281,68 @@ LayerRunner.register("ScreenFlash", function(ctx, step)
 		step.duration or 0.12,
 		step.blurSize
 	)
+end)
+
+LayerRunner.register("Sound", function(ctx, step)
+	if not ctx.playSound or not step.soundId then
+		return
+	end
+	ctx.playSound(step.soundId, step.pitch)
+end)
+
+LayerRunner.register("Haptic", function(ctx, step)
+	if not ctx.playHaptic then
+		return
+	end
+	ctx.playHaptic(step.hapticProfile, step.hapticStrength or ctx.intensity)
+end)
+
+LayerRunner.register("ChainEmit", function(ctx, step)
+	local from = ctx.from or ctx.cframe
+	local to = ctx.to
+	if not to then
+		EmitterLayer.burst(ctx.folder, ctx.cframe, ctx.color, {
+			count = QualityLogic.scaleEmit(step.count or 12, ctx.budget, ctx.distanceScale * ctx.intensity),
+			texture = step.texture,
+			flipbookLayout = step.flipbookLayout,
+			flipbookMode = step.flipbookMode,
+			flipbookStartRandom = step.flipbookStartRandom,
+			flipbookFpsMin = step.flipbookFpsMin,
+			flipbookFpsMax = step.flipbookFpsMax,
+			sizeScale = step.sizeScale,
+		}, ctx.budget)
+		return
+	end
+	local segments = 4
+	if ctx.budget.tier == "Low" then
+		segments = 2
+	elseif ctx.budget.tier == "Ultra" then
+		segments = 5
+	end
+	local countEach = QualityLogic.scaleEmit(
+		math.max(4, math.floor((step.count or 12) / segments + 0.5)),
+		ctx.budget,
+		ctx.distanceScale * ctx.intensity
+	)
+	for i = 0, segments do
+		local alpha = i / segments
+		local cf = from:Lerp(to, alpha)
+		task.delay(i * 0.04, function()
+			EmitterLayer.burst(ctx.folder, cf, ctx.color, {
+				count = countEach,
+				texture = step.texture,
+				flipbookLayout = step.flipbookLayout,
+				flipbookMode = step.flipbookMode,
+				flipbookStartRandom = step.flipbookStartRandom,
+				flipbookFpsMin = step.flipbookFpsMin,
+				flipbookFpsMax = step.flipbookFpsMax,
+				sizeScale = step.sizeScale or 0.55,
+				speed = if step.speedMin and step.speedMax
+					then NumberRange.new(step.speedMin, step.speedMax)
+					else nil,
+			}, ctx.budget)
+		end)
+	end
 end)
 
 LayerRunner.register("Trail", function(ctx, step)

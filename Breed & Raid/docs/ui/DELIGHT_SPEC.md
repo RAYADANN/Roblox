@@ -3,7 +3,7 @@
 > **Цель:** UI, на который приятно смотреть и с которым приятно *взаимодействовать*.  
 > Хит = loop + feel. UI не заменяет verb, но **убирает трение и даёт дофамин в мелочах**.  
 > Стек: React-Lua + Flipper + MotionPresets + theme + useLayout (`roblox-starter`).  
-> Визуальный lock: **v3 Jade / Xianxia** (cream · jade banners · bronze).
+> Визуальный lock: **Toybox Premium** (warm raised cards · saturated actions · light rims · deep shadows).
 
 **Канон для агентов:** читай до правок HUD. Definition of Done — в конце.
 
@@ -32,27 +32,29 @@
 | 1 | Главное действие / flex | `1 in X`, Hatch reveal, Buy |
 | 2 | Ресурсы | Cash, Buffer, $/s |
 | 3 | Навигация | Breed, Shop, Inventory |
-| 4 | Хром | орнамент-баннер, stroke |
+| 4 | Хром | светлая обводка, тень, surface |
 
 **Запрет:** два равноярких CTA на одном экране.  
 **Запрет:** весь UI пульсирует всегда — пульс только на событии или 1 статус (Lock).
 
 ---
 
-## 3. Визуальный язык (v3)
+## 3. Визуальный язык (Toybox Premium)
 
 | Token | Значение |
 |---|---|
-| Panel fill | cream parchment `#F5EDE0` → `#EBE2D2` |
-| Stroke | bronze `#A8895C` / deep `#8A6D42` |
-| Accent jade | `#6FA88A` (Collect, success) |
-| Accent gold | `#D4B56A` (flex, Buy premium feel, titles) |
-| Accent sky | `#6A9FC2` (secondary / info) |
-| Text | ink `#4A4035` · soft `#7A6E60` |
-| Rarity borders | Common grey · Uncommon jade · Rare sky · Epic lilac · Mythic gold |
+| Surface base | warm `#FFFbee`; raised `#FFFFFA`; tinted `#FFebC2` |
+| Stroke | light rim `#FFFFF9`, 3–4 px |
+| Shadow | deep semantic shadow, offset 4–14 px |
+| Collect | saturated green `#2BBE70` |
+| Buy / reward | bright gold `#FFC42D` |
+| Info / lock | clear blue `#487EFF` |
+| Breed | saturated purple `#B15DEE` |
+| Danger / steal | coral red `#EE4C5C` |
+| Text | warm ink `#3F2D36` · secondary `#715453` |
+| Rarity borders | Common grey · Uncommon green · Rare blue · Epic purple · Mythic gold · Secret coral |
 
-Орнамент-баннеры = **PNG** (не рисовать Instance-filigree).  
-9-slice для сложных баннеров — **не использовать**; фиксированный размер или отдельные left/center/right куски.
+Не использовать glassmorphism, parchment ornaments, тонкие тёмные рамки или один нейтральный цвет для всех действий. Иконки централизованы в `IconRegistry`; временный glyph можно заменить asset id без изменения экранов.
 
 Типографика:
 
@@ -60,7 +62,7 @@
 - Body: GothamMedium  
 - **Hero odds:** heavy + крупнее имени (`1 in X` &gt; name)
 
-Воздух: padding **8 / 12 / 16** only (через `layout.gap` / `theme.Design`).
+Воздух: padding **4 / 8 / 12 / 16 / 24 / 32** (через `layout.gap` / `theme.Space`).
 
 ---
 
@@ -95,7 +97,7 @@
 - Ререндер всего App на каждый MPS tick → обновляй только chip через контекст/мемо  
 - Бесконечный particle emitter на ScreenGui  
 - &gt; **12** активных Flipper motors одновременно (цель &lt; 8)  
-- Анимация орнамент-PNG (только appear fade)
+- Постоянная анимация декоративного chrome
 
 Пресеты: только `MotionPresets` + Flipper configs из starter. Не изобретать TweenInfo в компонентах.
 
@@ -197,13 +199,13 @@ Empty states: одна строка + CTA («Roll your first creature»), не �
 
 | Фаза | Что |
 |---|---|
-| P0 | theme v3 tokens · Button/Chip с hover-press · spring Cash/Buffer/MPS · звук click/buy/fail |
+| P0 | Toybox tokens · Button/Chip с hover-press · spring Cash/Buffer/MPS · звук click/buy/fail |
 | P1 | Modal motion · Roll/Buy juice · Collect · Toast system |
 | P1.5 | **World UI** — pet billboards · pad previews · custom ProximityPrompt · nest/pad materials (`shared/ui/WorldUi`) |
 | P2 | Hatch hero · Steal alert · Breed select feel |
-| P3 | Ornament PNG banners · Inventory polish · Shop tabs · LB |
+| P3 | Final icon atlas · Inventory polish · Shop tabs · LB |
 
-**Не начинать с орнаментов.** Сначала отклик рук, потом «картинка». HUD без world UI = дешёвый разрыв.
+Сначала отклик рук, потом декоративные assets. HUD без world UI = дешёвый разрыв.
 
 ---
 

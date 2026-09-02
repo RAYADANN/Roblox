@@ -1,12 +1,21 @@
 --!strict
--- Примитивы FX. Копируй в момент-эффекты. См. fx.mdc.
+-- UI FX primitives. Copy/skin per game — not a second VfxEngine.
+-- See docs/VFX_ENGINE.md «UI FX» and .cursor/rules/fx.mdc.
+
+local FxOverlay = require(script.FxOverlay)
+local FloatText = require(script.FloatText)
+local FlyBurst = require(script.FlyBurst)
+local CoinRain = require(script.CoinRain)
 
 local TweenService = game:GetService("TweenService")
 local Debris = game:GetService("Debris")
 
-local MotionPresets = require(script.Parent.Parent.motion.MotionPresets)
-
 local FxKit = {}
+
+FxKit.overlay = FxOverlay
+FxKit.floatText = FloatText
+FxKit.flyBurst = FlyBurst
+FxKit.coinRain = CoinRain
 
 function FxKit.shockwave(parent: Instance, color: Color3, size: number, duration: number?)
 	local dur = duration or 0.4

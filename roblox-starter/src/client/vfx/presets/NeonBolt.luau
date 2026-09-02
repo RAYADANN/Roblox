@@ -11,8 +11,10 @@ local NeonBolt: EffectDef = {
 	priority = "High",
 	lifetime = 3,
 	layers = {
+		{ at = 0, type = "Sound", soundId = "vfx_whoosh", pitch = 1.25 },
 		{ at = 0, type = "Projectile", count = 28, endSize = 7, speed = 110 },
-		{ at = 0, type = "CameraShake", amplitude = 0.08, duration = 0.1, minTier = "High" },
+		{ at = 0, type = "CameraShake", shakeProfile = "Light", minTier = "High" },
+		{ at = 0.02, type = "Haptic", hapticProfile = "Light", hapticStrength = 0.35 },
 	},
 }
 

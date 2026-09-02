@@ -1,0 +1,27 @@
+--!strict
+
+local Constants = {
+	COIN_MAX_PER_AREA = 100,
+	COIN_POINTS = 1,
+	COIN_SPAWN_INTERVAL = 0.35,
+	COIN_HEIGHT = 2.5,
+	COIN_RADIUS = 1.1,
+	COIN_THICKNESS = 0.45,
+	COIN_HITBOX = 5,
+	COIN_ROTATE_SPEED = 120, -- deg/sec (client)
+	COIN_BOB_AMPLITUDE = 0.45, -- studs
+	COIN_BOB_SPEED = 2.4, -- Hz-ish via 2π later
+	COIN_SPAWN_MARGIN = 3,
+
+	SHOP_PAD_COUNT = 5,
+	AREA2_PRICE_MULT = 2,
+	SHOP_BOUGHT_COLOR = { 80, 220, 120 },
+	SHOP_DEFAULT_COLOR = { 100, 100, 100 },
+
+	FALL_Y_THRESHOLD = -50,
+	JUMPS_FOR_ACHIEVEMENT = 5,
+
+	TELEPORT_OFFSET = { 0, 5, 0 },
+}
+
+return Constants

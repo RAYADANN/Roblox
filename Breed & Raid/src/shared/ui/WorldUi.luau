@@ -1,5 +1,5 @@
 --!strict
--- Shared world-space UI chrome. Card = surface + optional accent; content NEVER shares UIListLayout with chrome.
+-- Toybox Premium world-space chrome. Layouts belong in Content, never beside shell decoration.
 
 local FormatOneIn = require(script.Parent.Parent.util.FormatOneIn)
 local RarityLogic = require(script.Parent.Parent.util.RarityLogic)
@@ -9,6 +9,14 @@ export type Rarity = RarityLogic.Rarity
 
 local C = ThemeColors.Colors
 local RarityPal = ThemeColors.Rarity
+local Surface = ThemeColors.Surface
+local Content = ThemeColors.Content
+local Action = ThemeColors.Action
+local Border = ThemeColors.Border
+local Semantic = ThemeColors.Semantic
+
+local CARD_RADIUS = 22
+local CARD_SHADOW_DEPTH = 7
 
 local WorldUi = {}
 WorldUi.Colors = C
@@ -22,6 +30,7 @@ function WorldUi.stylePrompt(prompt: ProximityPrompt, kind: string?)
 	prompt.Style = Enum.ProximityPromptStyle.Custom
 	prompt.RequiresLineOfSight = false
 	prompt.Exclusivity = Enum.ProximityPromptExclusivity.OnePerButton
+	prompt.ClickablePrompt = true
 	prompt.UIOffset = Vector2.new(0, 0)
 	if kind then
 		prompt:SetAttribute("UiKind", kind)
@@ -45,41 +54,51 @@ end
 
 --- Card shell + Content frame (list/layout goes in Content only).
 function WorldUi.makeCardFrame(parent: Instance, size: UDim2, accent: Color3?): (Frame, Frame)
+	local shadow = Instance.new("Frame")
+	shadow.Name = "CardShadow"
+	shadow.Size = size
+	shadow.Position = UDim2.fromOffset(0, CARD_SHADOW_DEPTH)
+	shadow.BackgroundColor3 = Action.neutralShadow
+	shadow.BackgroundTransparency = 0.16
+	shadow.BorderSizePixel = 0
+	shadow.ZIndex = 1
+	shadow.Parent = parent
+	corner(shadow, CARD_RADIUS)
+
 	local frame = Instance.new("Frame")
 	frame.Name = "Card"
 	frame.Size = size
-	frame.BackgroundColor3 = C.bgChip
+	frame.BackgroundColor3 = Surface.raised
 	frame.BorderSizePixel = 0
+	frame.ZIndex = 2
 	frame.Parent = parent
-	corner(frame, 12)
-	stroke(frame, accent or C.bronze, 2)
+	corner(frame, CARD_RADIUS)
+	stroke(frame, Border.light, 3)
 
-	if accent then
-		local bar = Instance.new("Frame")
-		bar.Name = "AccentBar"
-		bar.Size = UDim2.new(0, 3, 1, -12)
-		bar.Position = UDim2.new(0, 5, 0.5, 0)
-		bar.AnchorPoint = Vector2.new(0, 0.5)
-		bar.BackgroundColor3 = accent
-		bar.BorderSizePixel = 0
-		bar.ZIndex = 2
-		bar.Parent = frame
-		corner(bar, 2)
-	end
+	local bar = Instance.new("Frame")
+	bar.Name = "AccentBar"
+	bar.Size = UDim2.new(0, 7, 1, -20)
+	bar.Position = UDim2.new(0, 7, 0.5, 0)
+	bar.AnchorPoint = Vector2.new(0, 0.5)
+	bar.BackgroundColor3 = accent or Action.neutral
+	bar.BorderSizePixel = 0
+	bar.ZIndex = 3
+	bar.Parent = frame
+	corner(bar, 4)
 
 	local content = Instance.new("Frame")
 	content.Name = "Content"
-	content.Size = UDim2.new(1, -14, 1, -4)
-	content.Position = UDim2.fromOffset(10, 2)
+	content.Size = UDim2.new(1, -28, 1, -12)
+	content.Position = UDim2.fromOffset(20, 6)
 	content.BackgroundTransparency = 1
-	content.ZIndex = 2
+	content.ZIndex = 3
 	content.Parent = frame
 
 	local pad = Instance.new("UIPadding")
-	pad.PaddingTop = UDim.new(0, 4)
-	pad.PaddingBottom = UDim.new(0, 4)
-	pad.PaddingLeft = UDim.new(0, 4)
-	pad.PaddingRight = UDim.new(0, 6)
+	pad.PaddingTop = UDim.new(0, 5)
+	pad.PaddingBottom = UDim.new(0, 5)
+	pad.PaddingLeft = UDim.new(0, 5)
+	pad.PaddingRight = UDim.new(0, 5)
 	pad.Parent = content
 
 	return frame, content
@@ -111,6 +130,38 @@ function WorldUi.makeText(parent: Instance, props: {
 	return label
 end
 
+local function makeChip(parent: Instance, name: string, text: string, accent: Color3, order: number): Frame
+	local chip = Instance.new("Frame")
+	chip.Name = name
+	chip.AutomaticSize = Enum.AutomaticSize.X
+	chip.Size = UDim2.fromOffset(0, 20)
+	chip.BackgroundColor3 = Surface.base
+	chip.BorderSizePixel = 0
+	chip.LayoutOrder = order
+	chip.ZIndex = 4
+	chip.Parent = parent
+	corner(chip, 10)
+	stroke(chip, accent, 2)
+
+	local padding = Instance.new("UIPadding")
+	padding.PaddingLeft = UDim.new(0, 9)
+	padding.PaddingRight = UDim.new(0, 9)
+	padding.Parent = chip
+
+	local label = Instance.new("TextLabel")
+	label.Name = "Label"
+	label.AutomaticSize = Enum.AutomaticSize.X
+	label.Size = UDim2.new(0, 0, 1, 0)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.GothamBold
+	label.Text = string.upper(text)
+	label.TextColor3 = accent
+	label.TextSize = 10
+	label.ZIndex = 5
+	label.Parent = chip
+	return chip
+end
+
 function WorldUi.attachCreatureBillboard(parent: Instance, props: {
 	displayName: string,
 	oneIn: number,
@@ -126,10 +177,10 @@ function WorldUi.attachCreatureBillboard(parent: Instance, props: {
 	local accent = WorldUi.bandColor(props.rarity)
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "NestBillboard"
-	gui.Size = UDim2.fromOffset(176, 86)
-	gui.StudsOffset = Vector3.new(0, 2.7, 0)
-	gui.MaxDistance = 120
-	gui.AlwaysOnTop = false
+	gui.Size = UDim2.fromOffset(224, 132)
+	gui.StudsOffset = Vector3.new(0, 3.1, 0)
+	gui.MaxDistance = 150
+	gui.AlwaysOnTop = true
 	gui.LightInfluence = 0
 	gui.Parent = parent
 
@@ -139,40 +190,57 @@ function WorldUi.attachCreatureBillboard(parent: Instance, props: {
 	list.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	list.VerticalAlignment = Enum.VerticalAlignment.Center
 	list.SortOrder = Enum.SortOrder.LayoutOrder
-	list.Padding = UDim.new(0, 0)
+	list.Padding = UDim.new(0, 1)
 	list.Parent = content
 
 	WorldUi.makeText(content, {
+		name = "Name",
+		text = props.displayName,
+		size = 15,
+		color = Content.primary,
+		order = 1,
+		height = 20,
+		font = Enum.Font.GothamBold,
+	})
+	WorldUi.makeText(content, {
 		name = "Odds",
 		text = FormatOneIn(props.oneIn),
-		size = 22,
+		size = 28,
 		color = accent,
-		order = 1,
-		height = 28,
-		font = Enum.Font.GothamBlack,
-	})
-	local title = props.displayName
-	if props.isHybrid then
-		title = `✦ {title}`
-	end
-	WorldUi.makeText(content, {
-		name = "Name",
-		text = title,
-		size = 11,
-		color = C.inkSoft,
 		order = 2,
-		height = 15,
-		font = Enum.Font.GothamMedium,
+		height = 34,
+		font = Enum.Font.GothamBlack,
 	})
 	WorldUi.makeText(content, {
 		name = "Mps",
-		text = `${props.mps}/s`,
-		size = 12,
-		color = C.jade,
+		text = string.format("$%g/s", props.mps),
+		size = 15,
+		color = Action.collect,
 		order = 3,
-		height = 16,
+		height = 20,
 		font = Enum.Font.GothamBold,
 	})
+
+	local chips = Instance.new("Frame")
+	chips.Name = "Chips"
+	chips.Size = UDim2.new(1, 0, 0, 22)
+	chips.BackgroundTransparency = 1
+	chips.LayoutOrder = 4
+	chips.ZIndex = 4
+	chips.Parent = content
+
+	local chipList = Instance.new("UIListLayout")
+	chipList.FillDirection = Enum.FillDirection.Horizontal
+	chipList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	chipList.VerticalAlignment = Enum.VerticalAlignment.Center
+	chipList.SortOrder = Enum.SortOrder.LayoutOrder
+	chipList.Padding = UDim.new(0, 5)
+	chipList.Parent = chips
+
+	makeChip(chips, "RarityChip", props.rarity, accent, 1)
+	if props.isHybrid then
+		makeChip(chips, "HybridChip", "HYBRID", Action.breed, 2)
+	end
 	return gui
 end
 
@@ -184,14 +252,15 @@ function WorldUi.attachPadPreview(parent: Instance, name: string, header: string
 
 	local gui = Instance.new("BillboardGui")
 	gui.Name = name
-	gui.Size = UDim2.fromOffset(210, 118)
+	gui.Size = UDim2.fromOffset(224, 126)
 	gui.StudsOffset = Vector3.new(0, 4.4, 0)
-	gui.MaxDistance = 80
+	gui.MaxDistance = 100
 	gui.AlwaysOnTop = true
 	gui.LightInfluence = 0
 	gui.Parent = parent
 
-	local card, content = WorldUi.makeCardFrame(gui, UDim2.fromScale(1, 1), C.bronze)
+	local actionAccent = if string.find(header, "BLOCK") then Action.reward else Action.danger
+	local card, content = WorldUi.makeCardFrame(gui, UDim2.fromScale(1, 1), actionAccent)
 	card.Name = "Card"
 
 	local list = Instance.new("UIListLayout")
@@ -206,35 +275,34 @@ function WorldUi.attachPadPreview(parent: Instance, name: string, header: string
 		name = "Header",
 		text = header,
 		size = 10,
-		color = C.gold,
+		color = actionAccent,
 		order = 1,
 		height = 14,
-		font = Enum.Font.GothamMedium,
+		font = Enum.Font.GothamBold,
 	})
-	-- Pad titles idle: ink for AA on cream (was soft)
 	WorldUi.makeText(content, {
 		name = "Title",
 		text = "Ready",
-		size = 13,
-		color = C.ink,
+		size = 14,
+		color = Content.primary,
 		order = 2,
-		height = 16,
-		font = Enum.Font.GothamMedium,
+		height = 18,
+		font = Enum.Font.GothamBold,
 	})
 	WorldUi.makeText(content, {
 		name = "Odds",
 		text = "Press Roll",
-		size = 20,
-		color = C.gold,
+		size = 22,
+		color = actionAccent,
 		order = 3,
-		height = 26,
+		height = 28,
 		font = Enum.Font.GothamBlack,
 	})
 	WorldUi.makeText(content, {
 		name = "Meta",
 		text = "",
 		size = 11,
-		color = C.inkSoft,
+		color = Content.secondary,
 		order = 4,
 		height = 16,
 	})
@@ -266,7 +334,6 @@ function WorldUi.setPadPreview(part: BasePart, billboardName: string, props: {
 	local title = content:FindFirstChild("Title")
 	local odds = content:FindFirstChild("Odds")
 	local meta = content:FindFirstChild("Meta")
-	local strokeInst = card:FindFirstChildOfClass("UIStroke")
 	if title and title:IsA("TextLabel") then
 		title.Text = props.title
 	end
@@ -278,9 +345,6 @@ function WorldUi.setPadPreview(part: BasePart, billboardName: string, props: {
 	end
 	if meta and meta:IsA("TextLabel") then
 		meta.Text = props.meta
-	end
-	if strokeInst and props.accent then
-		strokeInst.Color = props.accent
 	end
 	local accentBar = card:FindFirstChild("AccentBar")
 	if accentBar and accentBar:IsA("Frame") and props.accent then
@@ -309,9 +373,10 @@ function WorldUi.attachStatusBillboard(parent: Instance, name: string, props: {
 	gui.StudsOffset = props.offset or Vector3.new(0, 3.5, 0)
 	gui.AlwaysOnTop = true
 	gui.LightInfluence = 0
-	gui.MaxDistance = 90
+	gui.MaxDistance = 110
 	gui.Parent = parent
-	local _card, content = WorldUi.makeCardFrame(gui, UDim2.fromScale(1, 1), props.accent or C.jade)
+	local statusAccent = props.accent or Action.collect
+	local _card, content = WorldUi.makeCardFrame(gui, UDim2.fromScale(1, 1), statusAccent)
 	local list = Instance.new("UIListLayout")
 	list.FillDirection = Enum.FillDirection.Vertical
 	list.HorizontalAlignment = Enum.HorizontalAlignment.Center
@@ -321,7 +386,7 @@ function WorldUi.attachStatusBillboard(parent: Instance, name: string, props: {
 		name = props.labelName,
 		text = props.defaultText,
 		size = 18,
-		color = props.accent or C.jade,
+		color = statusAccent,
 		order = 1,
 		height = 32,
 		font = Enum.Font.GothamBlack,
@@ -332,19 +397,18 @@ end
 function WorldUi.styleHubPad(pad: BasePart, kind: "creature" | "block" | "collect" | "lock" | "incubator" | "spawn")
 	pad.Material = Enum.Material.SmoothPlastic
 	pad.TopSurface = Enum.SurfaceType.Smooth
-	-- Loud mat colors (Discover station language) on dark UI family.
 	if kind == "creature" then
-		pad.Color = Color3.fromRGB(220, 70, 80)
+		pad.Color = Action.danger
 	elseif kind == "block" then
-		pad.Color = Color3.fromRGB(255, 190, 40)
+		pad.Color = Action.reward
 	elseif kind == "collect" then
-		pad.Color = C.jadeHi
+		pad.Color = Action.collectHighlight
 	elseif kind == "lock" then
-		pad.Color = C.primaryHi
+		pad.Color = Action.primaryHighlight
 	elseif kind == "incubator" then
-		pad.Color = C.breed
+		pad.Color = Action.breed
 	else
-		pad.Color = Color3.fromRGB(70, 110, 180)
+		pad.Color = Action.primary
 	end
 	local light = pad:FindFirstChild("PadLight")
 	if not light then
@@ -360,13 +424,13 @@ end
 function WorldUi.styleNest(pedestal: BasePart, unlocked: boolean, occupied: boolean?)
 	pedestal.Material = Enum.Material.SmoothPlastic
 	if not unlocked then
-		pedestal.Color = Color3.fromRGB(90, 88, 82)
+		pedestal.Color = Semantic.locked
 		pedestal.Transparency = 0.4
 	elseif occupied then
-		pedestal.Color = Color3.fromRGB(196, 175, 120)
+		pedestal.Color = Surface.tinted
 		pedestal.Transparency = 0
 	else
-		pedestal.Color = Color3.fromRGB(210, 198, 175)
+		pedestal.Color = Surface.sunken
 		pedestal.Transparency = 0
 	end
 end
@@ -381,19 +445,19 @@ end
 
 function WorldUi.promptAccent(kind: string?): Color3
 	if kind == "collect" then
-		return C.jade
+		return Action.collect
 	elseif kind == "buy" or kind == "roll" then
-		return C.gold
+		return Action.reward
 	elseif kind == "lock" then
-		return C.sky
+		return Action.primary
 	elseif kind == "steal" then
-		return C.danger
+		return Action.danger
 	elseif kind == "breed" then
-		return C.breed
+		return Action.breed
 	elseif kind == "take" or kind == "deposit" then
-		return C.inkSoft
+		return Action.neutral
 	end
-	return C.bronze
+	return Action.neutral
 end
 
 return WorldUi

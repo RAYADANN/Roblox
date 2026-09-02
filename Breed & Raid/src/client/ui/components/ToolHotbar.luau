@@ -1,5 +1,5 @@
 --!strict
--- Bottom tool hotbar — Hammer (build) + Bat (combat). Inventory tools only.
+-- Minimal edge tool dock — build and defense only.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage:WaitForChild("Packages").React)
@@ -17,26 +17,26 @@ export type Props = {
 
 local function ToolHotbar(props: Props): React.Node
 	local layout = useLayout()
-	local slot = layout.touch(theme.Design.HOTBAR_BTN)
-	local gap = layout.gap(12)
-	local pad = layout.gap(14)
+	local buttonSize = if layout.isPhone then 58 else 66
+	local slot = layout.touch(buttonSize)
+	local gap = layout.gap(10)
+	local pad = layout.gap(10)
 	local w = slot * 2 + gap + pad * 2
-	local h = slot + pad * 2 + layout.px(8)
+	local h = slot + pad * 2
 
 	return React.createElement("Frame", {
 		Size = UDim2.fromOffset(w, h),
-		Position = UDim2.new(0.5, 0, 1, -(h + layout.gap(14))),
+		Position = UDim2.new(0.5, 0, 1, -(h + layout.gap(if layout.isPhone then 22 else 14))),
 		AnchorPoint = Vector2.new(0.5, 0),
-		BackgroundColor3 = Color3.fromRGB(25, 28, 40),
-		BackgroundTransparency = 0.15,
+		BackgroundColor3 = theme.Surface.base,
+		BackgroundTransparency = 0.1,
 		BorderSizePixel = 0,
 		ZIndex = 15,
 	}, {
 		Corner = React.createElement("UICorner", { CornerRadius = theme.Radius.lg }),
 		Stroke = React.createElement("UIStroke", {
-			Color = Color3.fromRGB(255, 255, 255),
-			Thickness = 2,
-			Transparency = 0.75,
+			Color = theme.Border.light,
+			Thickness = theme.Stroke.medium,
 		}),
 		Pad = React.createElement("UIPadding", {
 			PaddingTop = UDim.new(0, pad),
@@ -53,19 +53,23 @@ local function ToolHotbar(props: Props): React.Node
 		}),
 		Hammer = React.createElement(SimIconButton, {
 			label = "Build",
-			icon = "🔨",
+			icon = "",
+			iconName = "build",
 			tone = "cyan",
 			active = props.buildActive,
-			size = theme.Design.HOTBAR_BTN,
+			size = buttonSize,
+			showLabel = false,
 			layoutOrder = 1,
 			onClick = props.onHammer,
 		}),
 		Bat = React.createElement(SimIconButton, {
 			label = "Bat",
-			icon = "🏏",
-			tone = "wood",
+			icon = "",
+			iconName = "bat",
+			tone = "red",
 			active = props.batActive,
-			size = theme.Design.HOTBAR_BTN,
+			size = buttonSize,
+			showLabel = false,
 			layoutOrder = 2,
 			onClick = props.onBat,
 		}),

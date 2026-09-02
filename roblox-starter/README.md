@@ -1,7 +1,10 @@
 # roblox-starter
 
-**Шаблон** для новых Roblox-игр (mining/incremental-sim).
-Копируй → переименуй → `wally install` → пиши игру. Cursor следует правилам в `.cursor/rules/`.
+**Стартовый набор систем и правил** для новых Roblox-игр — не готовая игра и не эталон жанра.
+
+Копируй → переименуй → `wally install` → собирай **свою** петлю. Cursor следует `.cursor/rules/`.
+
+Эталон кода — модули в `src/` этого репо (BuyUpgrade, ProfileStore, Zap, VFX core). Не тяни контент/геймдизайн чужих игр.
 
 > Инструкции для AI: [`AGENTS.md`](AGENTS.md)
 
@@ -40,14 +43,14 @@
 | [`docs/TECH_STACK.md`](docs/TECH_STACK.md) | Стек и обоснование |
 | [`docs/GAME_ARCHITECTURE.md`](docs/GAME_ARCHITECTURE.md) | Архитектура игры |
 | [`docs/CLIENT_SERVER.md`](docs/CLIENT_SERVER.md) | Client vs Server, репликация косметики |
-| [`docs/VFX_ENGINE.md`](docs/VFX_ENGINE.md) | **World VFX engine** — тиры, бюджеты, пресеты |
+| [`docs/VFX_ENGINE.md`](docs/VFX_ENGINE.md) | World VFX — ядро + демо-пресеты (см. doc) |
 | [`docs/UI_ADAPTIVITY.md`](docs/UI_ADAPTIVITY.md) | Адаптив без подгонки |
 | [`docs/ui-ux-canon/README.md`](docs/ui-ux-canon/README.md) | **Проф. UI/UX канон** — цвет, тип, chrome, HUD, attention, DoD |
 | [`docs/NEW_PROJECT.md`](docs/NEW_PROJECT.md) | Пошаговый чеклист копирования шаблона |
 | [`docs/BACKLOG.md`](docs/BACKLOG.md) | Идеи вне scope |
 | [`docs/PLAYTEST_CHECKLIST.md`](docs/PLAYTEST_CHECKLIST.md) | Перед релизом |
 | [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md) | Soft launch gate |
-| [`docs/brand-and-social/README.md`](docs/brand-and-social/README.md) | **Zeon Studio** — группы, Discord, YouTube, тон, тексты, визуал |
+| [`docs/brand-and-social/README.md`](docs/brand-and-social/README.md) | Архив промо (заменить под свою игру) |
 
 ### Эталонная фича end-to-end: BuyUpgrade
 

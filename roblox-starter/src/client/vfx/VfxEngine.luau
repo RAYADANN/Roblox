@@ -19,6 +19,7 @@ local EffectHandleMod = require(script.Parent.EffectHandle)
 local LayerRunner = require(script.Parent.LayerRunner)
 local PlaySupport = require(script.Parent.PlaySupport)
 local Camera = require(script.Parent.camera)
+local EmitterLayer = require(script.Parent.layers.EmitterLayer)
 
 export type FxPriority = Types.FxPriority
 export type EffectKind = Types.EffectKind
@@ -43,7 +44,8 @@ export type PlayContext = {
 
 export type Deps = {
 	isReduceMotion: (() -> boolean)?,
-	playSound: ((soundId: string) -> ())?,
+	playSound: ((soundId: string, pitch: number?) -> ())?,
+	playHaptic: ((profile: string?, strength: number?) -> ())?,
 	worldFolder: Folder?,
 	cameraMode: CameraMode?,
 	cameraDriver: CameraDriver?,
@@ -56,8 +58,18 @@ export type VfxEngine = {
 	play: (self: VfxEngine, effectId: string, ctx: PlayContext) -> EffectHandle?,
 	stopAll: (self: VfxEngine) -> (),
 	getBudget: (self: VfxEngine) -> QualityBudget,
+	getStats: (self: VfxEngine) -> {
+		active: number,
+		tier: string,
+		fps: number,
+		emitters: number,
+		thermal: number,
+		dropped: number,
+	},
+	setTierOverride: (self: VfxEngine, tier: Types.QualityTier?) -> (),
 	getCameraDriver: (self: VfxEngine) -> CameraDriver,
 	setCameraDriver: (self: VfxEngine, driver: CameraDriver) -> (),
+	getPreferredCameraMode: (self: VfxEngine) -> CameraMode,
 	getWorldFolder: (self: VfxEngine) -> Folder,
 	destroy: (self: VfxEngine) -> (),
 }
@@ -83,8 +95,9 @@ function VfxEngine.new(deps: Deps?): VfxEngine
 		gate:destroy()
 	end)
 
+	local preferredMode: CameraMode = if deps and deps.cameraMode then deps.cameraMode else "HumanoidOffset"
 	local cameraDriver = Camera.resolve({
-		mode = if deps then deps.cameraMode else nil,
+		mode = preferredMode,
 		driver = if deps then deps.cameraDriver else nil,
 		onShakeOffset = if deps then deps.onShakeOffset else nil,
 	})
@@ -103,10 +116,15 @@ function VfxEngine.new(deps: Deps?): VfxEngine
 		_probe = probe,
 		_gate = gate,
 		_camera = cameraDriver,
+		_preferredCameraMode = preferredMode,
+		_onShakeOffset = if deps then deps.onShakeOffset else nil,
+		_isReduceMotion = if deps then deps.isReduceMotion else nil,
+		_reduceMotionCamera = false,
 		_screenFX = screenFX,
 		_defs = {} :: { [string]: EffectDef },
 		_active = {} :: { EffectHandle },
 		_playSound = if deps then deps.playSound else nil,
+		_playHaptic = if deps then deps.playHaptic else nil,
 		_destroyed = false,
 	}, VfxEngine)
 
@@ -125,6 +143,27 @@ function VfxEngine:getBudget(): QualityBudget
 	return self._probe:getBudget()
 end
 
+function VfxEngine:setTierOverride(tier: Types.QualityTier?)
+	self._probe:setTierOverride(tier)
+end
+
+function VfxEngine:getStats()
+	local budget = self:getBudget()
+	local fps = self._probe:getFps()
+	return {
+		active = self._gate:activeCount(),
+		tier = budget.tier,
+		fps = math.floor(fps + 0.5),
+		emitters = EmitterLayer.activeCount(),
+		thermal = QualityLogic.thermalScale(fps),
+		dropped = self._gate:droppedCount(),
+	}
+end
+
+function VfxEngine:getPreferredCameraMode(): CameraMode
+	return self._preferredCameraMode
+end
+
 function VfxEngine:getWorldFolder(): Folder
 	return self._folder
 end
@@ -138,6 +177,25 @@ function VfxEngine:setCameraDriver(driver: CameraDriver)
 	self._camera = driver
 end
 
+local function syncReduceMotionCamera(self: any)
+	local reduce = false
+	if self._isReduceMotion then
+		reduce = self._isReduceMotion()
+	end
+	if reduce and not self._reduceMotionCamera then
+		self._reduceMotionCamera = true
+		self._camera:destroy()
+		self._camera = Camera.resolve({ mode = "Noop" })
+	elseif not reduce and self._reduceMotionCamera then
+		self._reduceMotionCamera = false
+		self._camera:destroy()
+		self._camera = Camera.resolve({
+			mode = self._preferredCameraMode,
+			onShakeOffset = self._onShakeOffset,
+		})
+	end
+end
+
 function VfxEngine:stopAll()
 	for _, handle in table.clone(self._active) do
 		handle:stop()
@@ -148,6 +206,8 @@ function VfxEngine:play(effectId: string, ctx: PlayContext): EffectHandle?
 	if self._destroyed then
 		return nil
 	end
+
+	syncReduceMotionCamera(self)
 
 	local def = self._defs[effectId]
 	if not def then
@@ -251,6 +311,8 @@ function VfxEngine:play(effectId: string, ctx: PlayContext): EffectHandle?
 		screenFlash = function(c, b, d, blur)
 			self._screenFX:flash(c, b, d, blur)
 		end,
+		playSound = self._playSound,
+		playHaptic = self._playHaptic,
 		trackStop = function(fn)
 			table.insert(stopFns, fn)
 		end,

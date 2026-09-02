@@ -7,6 +7,8 @@ local theme = require(script.Parent.Parent.theme)
 local useLayout = require(script.Parent.Parent.hooks.useLayout)
 local useHoverPress = require(script.Parent.Parent.hooks.useHoverPress)
 local UiSound = require(script.Parent.Parent.juice.UiSound)
+local Icon = require(script.Parent.Icon)
+local Shadow = require(script.Parent.Shadow)
 
 export type Variant = "gold" | "jade" | "sky" | "danger" | "ghost" | "primary"
 
@@ -20,21 +22,20 @@ export type Props = {
 	disabled: boolean?,
 	position: UDim2?,
 	anchorPoint: Vector2?,
+	icon: string?,
 }
 
 local function colors(variant: Variant): (Color3, Color3, Color3)
-	local C = theme.Colors
-	-- Gold is bright → dark label; jade/primary/danger are deep → white label (AA).
 	if variant == "gold" then
-		return C.btnGold, C.textDark, C.goldDeep
+		return theme.Action.reward, theme.Content.primary, theme.Action.rewardShadow
 	elseif variant == "jade" then
-		return C.btnJade, C.white, C.success
+		return theme.Action.collect, theme.Content.inverse, theme.Action.collectShadow
 	elseif variant == "sky" or variant == "primary" then
-		return C.primary, C.white, C.primaryPressed
+		return theme.Action.primary, theme.Content.inverse, theme.Action.primaryShadow
 	elseif variant == "danger" then
-		return C.btnDanger, C.white, C.danger
+		return theme.Action.danger, theme.Content.inverse, theme.Action.dangerShadow
 	end
-	return C.btnGhost, C.textMain, C.outlineSoft
+	return theme.Surface.tinted, theme.Content.primary, theme.Action.neutralShadow
 end
 
 local function OrnateButton(props: Props): React.Node
@@ -73,20 +74,35 @@ local function OrnateButton(props: Props): React.Node
 		[React.Event.MouseButton1Up] = handlers.onMouseUp,
 	}, {
 		Scale = React.createElement("UIScale", { Scale = scale }),
+		Shadow = React.createElement(Shadow, {
+			color = stroke,
+			depth = theme.Elevation.low,
+			radius = theme.Radius.btn,
+		}),
 		Face = React.createElement("Frame", {
 			Size = UDim2.fromScale(1, 1),
 			BackgroundColor3 = bg,
 			BackgroundTransparency = if disabled then 0.4 else 0,
 			BorderSizePixel = 0,
+			ZIndex = 2,
 		}, {
 			Corner = React.createElement("UICorner", { CornerRadius = theme.Radius.btn }),
 			Stroke = React.createElement("UIStroke", {
-				Color = stroke,
-				Thickness = theme.Stroke.medium,
-				Transparency = 0.1,
+				Color = theme.Border.light,
+				Thickness = theme.Stroke.thick,
 			}),
+			Icon = if props.icon
+				then React.createElement(Icon, {
+					name = props.icon,
+					size = 22,
+					color = fg,
+					position = UDim2.new(0, layout.gap(14), 0.5, 0),
+					anchorPoint = Vector2.new(0, 0.5),
+				})
+				else nil,
 			Label = React.createElement("TextLabel", {
-				Size = UDim2.fromScale(1, 1),
+				Size = UDim2.new(1, if props.icon then -layout.px(42) else 0, 1, 0),
+				Position = if props.icon then UDim2.fromOffset(layout.px(38), 0) else nil,
 				BackgroundTransparency = 1,
 				Text = props.text,
 				TextSize = layout.text(14),

@@ -33,15 +33,36 @@ function SafeArea.subscribe(listener: () -> ()): Cleanup
 	end
 end
 
+function SafeArea.insets(): (number, number, number, number)
+	-- ScreenGui uses ScreenInsets.None so overlays can cover the whole display.
+	-- Derive the Core UI safe rectangle relative to that full-screen space.
+	local noneRect = GuiService:GetInsetArea(Enum.ScreenInsets.None)
+	local coreRect = GuiService:GetInsetArea(Enum.ScreenInsets.CoreUISafeInsets)
+	local left = math.max(0, coreRect.Min.X - noneRect.Min.X)
+	local top = math.max(0, coreRect.Min.Y - noneRect.Min.Y)
+	local right = math.max(0, noneRect.Max.X - coreRect.Max.X)
+	local bottom = math.max(0, noneRect.Max.Y - coreRect.Max.Y)
+	return left, top, right, bottom
+end
+
 function SafeArea.topInset(): number
-	-- IgnoreGuiInset HUDs must clear CoreGui topbar + translation banner
-	local topbar = GuiService.TopbarInset.Height
-	local guiY = GuiService:GetGuiInset().Y
-	return math.max(topbar, guiY, 36) + 8
+	local _, top = SafeArea.insets()
+	return top
 end
 
 function SafeArea.leftInset(): number
-	return math.max(GuiService:GetGuiInset().X, GuiService.TopbarInset.Min.X)
+	local left = SafeArea.insets()
+	return left
+end
+
+function SafeArea.rightInset(): number
+	local _, _, right = SafeArea.insets()
+	return right
+end
+
+function SafeArea.bottomInset(): number
+	local _, _, _, bottom = SafeArea.insets()
+	return bottom
 end
 
 return SafeArea

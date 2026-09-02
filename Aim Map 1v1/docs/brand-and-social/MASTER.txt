@@ -1,0 +1,204 @@
+================================================================================
+ZEON STUDIO — BRAND & SOCIAL STARTER PACK (MASTER)
+================================================================================
+Updated: 2026-07-13
+Canonical: C:\Projects\Roblox\roblox-starter\docs\brand-and-social\
+Copy also in: Mining/assets/marketing/starter_pack/
+Rule: Before any post — check this file or the numbered docs in the same folder.
+
+================================================================================
+QUICK LINKS
+================================================================================
+
+Roblox Group:  https://www.roblox.com/communities/1066009408  (ID: 1066009408)
+Deep Digger:   https://www.roblox.com/games/77149464720360     (Place: 77149464720360)
+Discord:       [TODO: permanent invite URL]
+YouTube:       [TODO: channel URL]
+
+Social Reward (in-game): Join group + Favorite = 7,500 coins + 15 gems + 2x boost 15min
+Source: src/shared/constants.lua → Constants.SOCIAL_REWARD
+
+================================================================================
+BRAND LEVELS (don't mix!)
+================================================================================
+
+ZEON STUDIO    = studio brand (Roblox group, YouTube) — direct, friendly
+ZEON NETWORK   = Discord community — lore: Wanderer, signals, portals
+DEEP DIGGER    = game promo — bright sim GFX, numbers, progression
+
+Taglines:
+  EN: "Different worlds. One network."  (Discord, YouTube, community)
+  EN: "Different worlds. One studio."    (Group cover photo variant)
+  RU: "Разные миры. Одна сеть."
+
+Colors: Purple #7C4DFF (Discord) · Cyan→Purple gradient (logo Z) · Gold edge highlights
+
+================================================================================
+VOICE MODEL — ONE BRAND, THREE REGISTERS
+================================================================================
+
+CORE: Solo indie. Multiverse. Honest updates. Free rewards for support.
+
+Roblox Group  → Core + simple language + emoji + play/group/favorite CTA
+Discord       → Core + lore wrapper (Transmission, Wanderer, Portal)
+YouTube       → Core + dev transparency + timestamps + subscribe
+Game Page     → Core + EN SEO feature list (no lore)
+
+ALWAYS: thank players, concrete numbers, respond to bugs/ideas
+NEVER:  fake robux, full ALL CAPS posts, lore in Roblox group, broken promises on thumbnails
+
+================================================================================
+ROBLOX GROUP POST FORMULA
+================================================================================
+
+[Emoji] HEADLINE
+
+2-3 sentences — what it means for the player.
+
+✨ Feature list (3-6 bullets)
+
+🎁 Bonus / promo (if any)
+
+👉 Game link
+👍 Like & Favorite
+
+💬 Feedback call
+— Zeon Studio
+
+Shout = 2-4 lines max.
+
+================================================================================
+DISCORD POST FORMULA (#signals)
+================================================================================
+
+📡 **TRANSMISSION #XXX — TITLE**
+
+1-2 sentences.
+
+• Change bullet
+• Change bullet
+
+▶ Portal: [game link]
+✦ Stay tuned, Wanderer.
+
+Promo codes → #drops only. Bugs → #glitches template. Ideas → #beacons.
+
+================================================================================
+ASSETS CHEAT SHEET
+================================================================================
+
+Group icon:     assets/zeon_studio_group_cover_universal.png (512×512)
+Group cover:    assets/zeon_studio_cover_photo_1440x456.png
+Game icon:      assets/marketing/deep_digger_icon_512x512.png
+Discord banner: assets/marketing/discord/zeon_discord_banner.png
+YouTube banner: assets/marketing/youtube/zeon_youtube_banner_2560x1440.png
+YouTube avatar: assets/marketing/youtube/zeon_youtube_profile_800x800.png
+
+Thumbnails (recommended):
+  assets/marketing/thumbnails_no_text/   ← no text, add in Canva
+  assets/marketing/thumbnails_gfx/       ← AI text (check crop!)
+  DO NOT USE: thumbnails_roblox/         ← Python overlay, looks bad
+
+Visual rules:
+  ✅ Bright Discover GFX, no-text AI + Canva text, center crop no blur
+  ❌ Dark cinematic, blur letterboxing, Python text overlay
+
+================================================================================
+ROBLOX GROUP — DESCRIPTION (RU)
+================================================================================
+
+🎮 Zeon Studio — инди-студия Roblox от одного разработчика.
+
+Создаём игры разных жанров: симуляторы, экшн, прогрессия, казуальные проекты и эксперименты с новыми форматами. Каждая игра — отдельный мир со своей механикой и атмосферой.
+
+📢 Вступай в группу, чтобы:
+• первыми узнавать о новых играх и обновлениях
+• получать промокоды и бонусы
+• следить за разработкой в реальном времени
+
+Спасибо, что играешь с нами!
+
+================================================================================
+ROBLOX GROUP — FIRST POST (DEEP DIGGER LAUNCH, RU)
+================================================================================
+
+🌌 Добро пожаловать в Zeon Studio!
+
+Мы официально запускаем нашу первую игру — ⛏️ DEEP DIGGER!
+
+Копай бесконечную шахту, продавай редкую руду, улучшай кирку, открывай питомцев из яиц и делай ребёрт ради огромных множителей. Как глубоко ты сможешь зайти?
+
+✨ Что внутри:
+• 7 уникальных слоёв — от Grassland до Void
+• 50+ видов руды — от угля до мифических кристаллов
+• 30+ питомцев с яйцами и редкостями
+• Ребёрт за постоянный множитель дохода
+• Ежедневные награды, квесты, достижения и промокоды
+• Глобальные лидерборды по монетам и глубине
+
+🎁 БОНУС ЗА ПОДДЕРЖКУ
+Вступи в эту группу + добавь игру в избранное → забери награду в меню:
+💰 7 500 монет · 💎 15 гемов · ⚡ x2 к доходу на 15 мин
+
+👉 Играть: https://www.roblox.com/games/77149464720360
+
+👍 Поставь лайк и добавь в избранное — так ты не пропустишь обновления, ивенты и новые промокоды.
+
+💬 Нашёл баг или есть идея? Пиши в комментариях — читаем всё.
+
+Сделано с ❤️ одним разработчиком. Спасибо, что вы с нами с первого дня!
+— Zeon Studio
+
+================================================================================
+SHOUT TEMPLATE
+================================================================================
+
+🆕 DEEP DIGGER is LIVE!
+⛏️ Dig · Sell · Upgrade · Rebirth · Collect Pets
+🎁 Join group + Favorite = 7.5K coins + 15 gems + 2x boost!
+👉 https://www.roblox.com/games/77149464720360
+
+================================================================================
+DISCORD SETUP
+================================================================================
+
+Server: Zeon Network
+Manual pack: tools/discord_setup/discord_manual_pack.txt
+Accent: #7C4DFF
+
+Categories: THE GATE | THE NEXUS | THE CORE | VOICE
+Roles (10): Zeon, Mod, Explorer, Collector, Grinder, Social, Creator, Updates, Codes, Wanderer
+
+Lore terms (Discord ONLY): Wanderer, Signal, Transmission, Portal, Beacon, Supply Drop
+
+================================================================================
+YOUTUBE
+================================================================================
+
+Channel: Zeon Studio
+Full pack: assets/marketing/youtube/youtube_channel_pack.txt
+Tags: Roblox, Zeon Studio, Deep Digger, Roblox dev, mining simulator, devlog
+
+Hashtags: #Roblox #DeepDigger #ZeonStudio #RobloxDev #MiningSimulator
+
+================================================================================
+TODO — FILL WHEN READY
+================================================================================
+
+[ ] Discord permanent invite URL → update 02_platforms_registry.md
+[ ] YouTube channel URL
+[ ] TikTok / X / Telegram if created
+[ ] Business email for YouTube
+
+================================================================================
+RELATED DOCS IN THIS FOLDER
+================================================================================
+
+README.md                  — index & checklist
+01_brand_identity.md       — slogans, colors, lore words
+02_platforms_registry.md   — all IDs, assets, links
+03_voice_and_behavior.md   — HOW to write on each platform ★ MAIN
+04_copy_templates.md       — full copy-paste texts
+05_visual_styles.md        — thumbnails, what works / what doesn't
+
+================================================================================

@@ -1,0 +1,3 @@
+--!strict
+-- Occupies StarterPlayerScripts.RbxCharacterSounds so Roblox does not inject
+-- the default Running/Jumping/Landing body sounds. Walk SFX: FootstepController.

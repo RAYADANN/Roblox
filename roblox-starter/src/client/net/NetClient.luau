@@ -138,6 +138,9 @@ if not RunService:IsRunning() then
 		Notify = table.freeze({
 			On = noop
 		}),
+		PlayVfx = table.freeze({
+			On = noop
+		}),
 		BuyUpgrade = table.freeze({
 			Call = noop
 		}),
@@ -165,13 +168,15 @@ end
 
 RunService.Heartbeat:Connect(SendEvents)
 
-local reliable_events = table.create(3)
-local reliable_event_queue: { [number]: { any } } = table.create(3)
+local reliable_events = table.create(4)
+local reliable_event_queue: { [number]: { any } } = table.create(4)
 local function_call_id = 0
 reliable_events[0] = {}
 reliable_event_queue[0] = {}
 reliable_events[1] = {}
 reliable_event_queue[1] = {}
+reliable_events[3] = {}
+reliable_event_queue[3] = {}
 reliable_event_queue[2] = table.create(255)
 reliable.OnClientEvent:Connect(function(buff, inst)
 	incoming_buff = buff
@@ -236,11 +241,52 @@ reliable.OnClientEvent:Connect(function(buff, inst)
 				value["coins"] = nil
 			end
 			local thread = reliable_event_queue[2][call_id]
-			-- When using actors it's possible for multiple Zap clients to exist, but only one called the Zap remote function.
 			if thread then
 				task.spawn(thread, value)
 			end
 			reliable_event_queue[2][call_id] = nil
+		elseif id == 3 then -- PlayVfx
+			local value
+			value = {  }
+			local len_e = buffer.readu16(incoming_buff, read(2))
+			value["effectId"] = buffer.readstring(incoming_buff, read(len_e), len_e)
+			assert(utf8.len(value["effectId"]) ~= nil, "value is not valid utf-8")
+			value["intensity"] = buffer.readf32(incoming_buff, read(4))
+			local flags = buffer.readu8(incoming_buff, read(1))
+			if bit32.btest(flags, 0b00000001) then
+				local x = buffer.readf32(incoming_buff, read(4))
+				local y = buffer.readf32(incoming_buff, read(4))
+				local z = buffer.readf32(incoming_buff, read(4))
+				value["pos"] = Vector3.new(x, y, z)
+			else
+				value["pos"] = nil
+			end
+			if bit32.btest(flags, 0b00000010) then
+				local x = buffer.readf32(incoming_buff, read(4))
+				local y = buffer.readf32(incoming_buff, read(4))
+				local z = buffer.readf32(incoming_buff, read(4))
+				value["from"] = Vector3.new(x, y, z)
+			else
+				value["from"] = nil
+			end
+			if bit32.btest(flags, 0b00000100) then
+				local x = buffer.readf32(incoming_buff, read(4))
+				local y = buffer.readf32(incoming_buff, read(4))
+				local z = buffer.readf32(incoming_buff, read(4))
+				value["to"] = Vector3.new(x, y, z)
+			else
+				value["to"] = nil
+			end
+			if reliable_events[3][1] then
+				for _, cb in reliable_events[3] do
+					task.spawn(cb, value)
+				end
+			else
+				table.insert(reliable_event_queue[3], value)
+				if #reliable_event_queue[3] > 64 then
+					warn(`[ZAP] {#reliable_event_queue[3]} events in queue for PlayVfx. Did you forget to attach a listener?`)
+				end
+			end
 		else
 			error("Unknown event id")
 		end
@@ -280,6 +326,24 @@ local returns = {
 			reliable_event_queue[1] = {}
 			return function()
 				table.remove(reliable_events[1], table.find(reliable_events[1], Callback))
+			end
+		end,
+	},
+	PlayVfx = {
+		On = function(Callback: (Value: ({
+			["effectId"]: (string),
+			["intensity"]: (number),
+			["pos"]: ((Vector3)?),
+			["from"]: ((Vector3)?),
+			["to"]: ((Vector3)?),
+		})) -> ())
+			table.insert(reliable_events[3], Callback)
+			for _, value in reliable_event_queue[3] do
+				task.spawn(Callback, value)
+			end
+			reliable_event_queue[3] = {}
+			return function()
+				table.remove(reliable_events[3], table.find(reliable_events[3], Callback))
 			end
 		end,
 	},

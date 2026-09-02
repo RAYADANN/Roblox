@@ -1,0 +1,37 @@
+{
+    "name": "ui-templates",
+    "globIgnorePaths": ["**/*.test.luau"],
+    "tree": {
+        "$className": "DataModel",
+        "ReplicatedStorage": {
+            "$className": "ReplicatedStorage",
+            "$ignoreUnknownInstances": true,
+            "Packages": {
+                "$path": "Packages"
+            },
+            "shared": {
+                "$path": "src/shared"
+            },
+            "UI": {
+                "$path": "src/ui"
+            }
+        },
+        "StarterPlayer": {
+            "$className": "StarterPlayer",
+            "$ignoreUnknownInstances": true,
+            "StarterPlayerScripts": {
+                "$className": "StarterPlayerScripts",
+                "client": {
+                    "$path": "src/client"
+                }
+            }
+        },
+        "Workspace": {
+            "$className": "Workspace",
+            "$ignoreUnknownInstances": true,
+            "$properties": {
+                "FilteringEnabled": true
+            }
+        }
+    }
+}

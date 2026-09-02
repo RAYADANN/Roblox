@@ -1,0 +1,51 @@
+{
+    "name": "aim-map-1v1",
+    "globIgnorePaths": ["**/*_test.luau", "**/*.test.luau", "**/__pycache__/**", "**/*.py"],
+    "tree": {
+        "$className": "DataModel",
+        "ReplicatedStorage": {
+            "$className": "ReplicatedStorage",
+            "$ignoreUnknownInstances": true,
+            "Packages": {
+                "$path": "Packages"
+            },
+            "shared": {
+                "$path": "src/shared"
+            },
+            "UI": {
+                "$path": "src/client/ui",
+                "$ignoreUnknownInstances": true
+            }
+        },
+        "ServerScriptService": {
+            "$className": "ServerScriptService",
+            "$ignoreUnknownInstances": true,
+            "server": {
+                "$path": "src/server"
+            },
+            "ServerPackages": {
+                "$path": "ServerPackages"
+            }
+        },
+        "StarterPlayer": {
+            "$className": "StarterPlayer",
+            "$ignoreUnknownInstances": true,
+            "StarterPlayerScripts": {
+                "$className": "StarterPlayerScripts",
+                "client": {
+                    "$path": "src/client"
+                },
+                "RbxCharacterSounds": {
+                    "$path": "src/starter/RbxCharacterSounds.client.luau"
+                }
+            }
+        },
+        "Workspace": {
+            "$className": "Workspace",
+            "$ignoreUnknownInstances": true,
+            "$properties": {
+                "FilteringEnabled": true
+            }
+        }
+    }
+}

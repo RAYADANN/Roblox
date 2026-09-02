@@ -8,6 +8,7 @@ local theme = require(script.Parent.Parent.theme)
 local useLayout = require(script.Parent.Parent.hooks.useLayout)
 local useHoverPress = require(script.Parent.Parent.hooks.useHoverPress)
 local UiSound = require(script.Parent.Parent.juice.UiSound)
+local Icon = require(script.Parent.Icon)
 
 export type Tone = "blue" | "orange" | "cyan" | "red" | "green" | "purple" | "yellow" | "wood"
 
@@ -15,6 +16,7 @@ export type Props = {
 	label: string,
 	icon: string, -- emoji / glyph fallback
 	image: string?, -- rbxassetid:// optional
+	iconName: string?, -- centralized registry name; icon remains fallback
 	tone: Tone?,
 	active: boolean?,
 	layoutOrder: number?,
@@ -25,39 +27,39 @@ export type Props = {
 
 local TONES: { [Tone]: { top: Color3, bot: Color3, lip: Color3 } } = {
 	blue = {
-		top = Color3.fromRGB(90, 170, 255),
-		bot = Color3.fromRGB(40, 110, 220),
-		lip = Color3.fromRGB(20, 60, 140),
+		top = theme.Action.primaryHighlight,
+		bot = theme.Action.primary,
+		lip = theme.Action.primaryShadow,
 	},
 	orange = {
-		top = Color3.fromRGB(255, 180, 70),
-		bot = Color3.fromRGB(230, 120, 30),
-		lip = Color3.fromRGB(150, 70, 10),
+		top = theme.Action.rewardHighlight,
+		bot = theme.Semantic.warning,
+		lip = theme.Action.rewardShadow,
 	},
 	cyan = {
-		top = Color3.fromRGB(90, 230, 240),
-		bot = Color3.fromRGB(30, 180, 200),
-		lip = Color3.fromRGB(10, 110, 130),
+		top = Color3.fromRGB(102, 226, 239),
+		bot = Color3.fromRGB(39, 180, 207),
+		lip = Color3.fromRGB(22, 112, 145),
 	},
 	red = {
-		top = Color3.fromRGB(255, 100, 110),
-		bot = Color3.fromRGB(210, 40, 55),
-		lip = Color3.fromRGB(120, 15, 25),
+		top = theme.Action.dangerHighlight,
+		bot = theme.Action.danger,
+		lip = theme.Action.dangerShadow,
 	},
 	green = {
-		top = Color3.fromRGB(90, 230, 130),
-		bot = Color3.fromRGB(30, 170, 80),
-		lip = Color3.fromRGB(10, 100, 45),
+		top = theme.Action.collectHighlight,
+		bot = theme.Action.collect,
+		lip = theme.Action.collectShadow,
 	},
 	purple = {
-		top = Color3.fromRGB(190, 120, 255),
-		bot = Color3.fromRGB(130, 60, 220),
-		lip = Color3.fromRGB(70, 25, 140),
+		top = theme.Action.breedHighlight,
+		bot = theme.Action.breed,
+		lip = theme.Action.breedShadow,
 	},
 	yellow = {
-		top = Color3.fromRGB(255, 230, 90),
-		bot = Color3.fromRGB(240, 180, 30),
-		lip = Color3.fromRGB(160, 110, 10),
+		top = theme.Action.rewardHighlight,
+		bot = theme.Action.reward,
+		lip = theme.Action.rewardShadow,
 	},
 	wood = {
 		top = Color3.fromRGB(210, 160, 100),
@@ -116,14 +118,14 @@ local function SimIconButton(props: Props): React.Node
 				Rotation = 90,
 			}),
 			Stroke = React.createElement("UIStroke", {
-				Color = if active then Color3.fromRGB(255, 255, 255) else colors.lip,
+				Color = if active then theme.Border.light else colors.lip,
 				Thickness = if active then 3 else 2,
 				Transparency = if active then 0 else 0.25,
 			}),
 			Shine = React.createElement("Frame", {
 				Size = UDim2.new(1, -layout.px(10), 0, layout.px(8)),
 				Position = UDim2.fromOffset(layout.px(5), layout.px(5)),
-				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+				BackgroundColor3 = theme.Border.light,
 				BackgroundTransparency = 0.55,
 				BorderSizePixel = 0,
 				ZIndex = 3,
@@ -140,13 +142,22 @@ local function SimIconButton(props: Props): React.Node
 					ScaleType = Enum.ScaleType.Fit,
 					ZIndex = 4,
 				})
+				elseif props.iconName
+				then React.createElement(Icon, {
+					name = props.iconName,
+					size = 40,
+					color = theme.Content.inverse,
+					position = UDim2.new(0.5, 0, 0.5, -layout.px(2)),
+					anchorPoint = Vector2.new(0.5, 0.5),
+					zIndex = 4,
+				})
 				else React.createElement("TextLabel", {
 					Size = UDim2.fromScale(1, 1),
 					BackgroundTransparency = 1,
 					Text = props.icon,
 					TextSize = layout.text(28),
 					Font = theme.Font.heavy,
-					TextColor3 = Color3.fromRGB(255, 255, 255),
+					TextColor3 = theme.Content.inverse,
 					ZIndex = 4,
 				}),
 		}),
@@ -158,9 +169,9 @@ local function SimIconButton(props: Props): React.Node
 				Text = props.label,
 				TextSize = layout.text(11),
 				Font = theme.Font.heavy,
-				TextColor3 = Color3.fromRGB(255, 255, 255),
+				TextColor3 = theme.Content.inverse,
 				TextStrokeTransparency = 0.4,
-				TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
+				TextStrokeColor3 = theme.Action.neutralShadow,
 				ZIndex = 5,
 			})
 			else nil,

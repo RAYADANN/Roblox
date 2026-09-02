@@ -21,12 +21,27 @@ export type LayerStep = {
 	flipbookStartRandom: boolean?,
 	flipbookFpsMin: number?,
 	flipbookFpsMax: number?,
+	sizeScale: number?,
+	speedMin: number?,
+	speedMax: number?,
+	lifetimeMin: number?,
+	lifetimeMax: number?,
+	--- Emit style: fire | smoke | plasma | debris | ember | spark | soft
+	emitStyle: string?,
+	lightEmission: number?,
+	sizeStart: number?,
+	sizeMid: number?,
+	sizeEnd: number?,
+	drag: number?,
+	spread: number?,
+	emitDuration: number?,
 	-- Light
 	range: number?,
 	brightness: number?,
 	duration: number?,
 	-- Shockwave
 	endSize: number?,
+	startSize: number?,
 	-- Beam / Trail / Projectile
 	length: number?,
 	width0: number?,
@@ -35,6 +50,7 @@ export type LayerStep = {
 	amplitude: number?,
 	roughness: number?,
 	rumble: number?,
+	shakeProfile: string?, -- Light | Medium | Heavy
 	-- Screen
 	-- brightness/duration reused
 	blurSize: number?,
@@ -42,6 +58,11 @@ export type LayerStep = {
 	-- Highlight
 	fillTransparency: number?,
 	outlineTransparency: number?,
+	-- Sound / Haptic
+	soundId: string?,
+	pitch: number?,
+	hapticProfile: string?, -- Light | Medium | Heavy
+	hapticStrength: number?,
 }
 
 export type EffectDef = {

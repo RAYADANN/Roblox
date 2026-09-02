@@ -1,21 +1,22 @@
 # UI Design Brief — Breed & Raid
 
-**Status:** Family **A Arcade Dark** locked for paint · structure from prior briefs  
-**Paint:** `arcade_dark` · clean · high-contrast · accent-led  
+**Status:** **Toybox Premium** locked for paint · structure from GDD
+**Paint:** `toybox_premium` · warm · chunky · icon-first · playful
 **Evidence:** `docs/ui/research/08_ROBLOX_UI_STYLES.md` · canon `23-roblox-visual-styles.md`
 
 ---
 
 ## 0. Visual family
 
-| Choice | Family | Meaning |
-|--------|--------|---------|
-| ☑ A | Arcade dark | Mainstream Discover sim chrome (**current**) |
-| ☐ B | Stud classic | Retro Roblox / 2026 stud trend |
-| ☐ D | World-first (+ A or B paint) | BaBaS-like: pads shout, HUD minimal |
-| ☐ F | Parchment | Unique brand; low “Robloxness” |
+**Toybox Premium** combines a world-first HUD structure with current Roblox simulator DNA:
 
-Structure (skeleton, odds hero, parity) stays; skin = navy panels + loud Collect green + gold Buy.
+- warm raised cards instead of dark app panels or parchment;
+- saturated action colors, with a different color for each primary verb;
+- thick light outlines and deep colored drop shadows;
+- 18–28 px radii, large icon-first controls and generous spacing;
+- compact HUD at screen edges; large panels appear only on demand.
+
+This is not glassmorphism, flat mobile-app chrome, ornate fantasy parchment, or a retro stud skin.
 
 ---
 
@@ -27,7 +28,7 @@ Player must, in ≤0.5s outdoors or on phone:
 2. See **1 in X** as the creature flex  
 3. Find **one primary verb** (Collect idle; Roll/Buy at station; Start in Fuse)
 
-World stations and ScreenGui speak the **same navy + gold + green** language.
+World stations and ScreenGui use the same warm surfaces, light rims, deep shadows and semantic action colors.
 
 ---
 
@@ -58,12 +59,13 @@ Hatch = full-screen mythic celebration (tap to continue).
 
 | Rule | Spec |
 |------|------|
-| Surfaces | navy bg1–4 / bgChip; soft white stroke |
-| CTA fills | deep green Collect; bright gold Buy; blue info/lock |
-| Label on deep CTA | **white**; on gold → **textDark** |
-| Muted captions | textMuted ≥ ~120,130,165 on navy |
-| Elevation | thin white stroke @ high transparency |
-| Spacing | 8 / 12 / 16 via layout |
+| Surfaces | warm base / raised / tinted; no glass |
+| CTA fills | green Collect; gold Buy; blue info/lock; purple Breed; red danger |
+| Label on saturated CTA | **white**; on gold or light fill → **textDark** |
+| Muted captions | warm brown-grey with readable contrast |
+| Elevation | 3–4 px light rim + 4–14 px colored drop shadow |
+| Spacing | 4 / 8 / 12 / 16 / 24 / 32 via layout |
+| Radius | cards 18–24; panels 24; hero pills up to 28/full |
 | Odds | GothamBlack > name always |
 | Rarity | color + accent bar / stroke |
 | Pads | Loud mat colors (red creature / gold block / green collect) |
@@ -87,11 +89,13 @@ Custom prompts only. Card+Content pattern (no layout on chrome siblings).
 
 ## 5. Component contracts
 
-- **ResourceChip** — label + spring number; Cash may emphasize  
-- **OrnateButton** — variants gold/jade/sky/danger/ghost/primary; AA labels  
-- **PanelChrome** — cream + gold title + jade header bar  
-- **OneInBadge** — hero flex  
-- **WorldUi** — makeCardFrame, creature/pad/status billboards, stylePrompt  
+- **ResourceChip** — independent resource capsule, icon + spring number
+- **OrnateButton** — gold/jade/sky/danger/ghost/primary variants on shared Button behavior
+- **PanelChrome / WindowShell / Modal** — raised toy surface, light rim, deep shadow, responsive fit
+- **ItemCard** — large creature/block cell with rarity accent and selected state
+- **Toast / StatusChip** — one short message or contextual status, never permanent clutter
+- **OneInBadge** — hero flex, always larger than rarity/name metadata
+- **WorldUi** — makeCardFrame, creature/pad/status billboards, stylePrompt
 - **ProximityUi** — absolute layout; key + Action + Object
 
 ---
@@ -104,17 +108,16 @@ See `research/05_FEEDBACK_VOCABULARY.md`. Press ≤100ms; hatch ≤1.6s; no idle
 
 ## 7. Reject list (non-negotiable)
 
-See `research/06_REJECT_GALLERY.md`. Especially: default prompts, bare outdoor ink, white-on-jade, dual primary CTAs, odds < name.
+See `research/06_REJECT_GALLERY.md`. Especially: default prompts, bare outdoor ink, glass panels, thin dark outlines, one grey color for every action, dual primary CTAs, odds < name.
 
 ---
 
 ## 8. Polish backlog (from research — execute next)
 
-1. Fix textMuted + button label contrast in ThemeColors / OrnateButton  
-2. Soft Speed CTA shows cost  
-3. Optional: Cancel incubate wired to `cancelBreed`  
-4. Harden WorldUi/ProximityUi AA (key glyph textDark on accent if needed)  
-5. Playtest scorecard L1–L5  
+1. Replace temporary icon glyphs with the final uploaded icon atlas without changing component APIs
+2. Replace placeholder SoundIds with final SFX
+3. Validate phone/tablet safe areas and modal fit in Device Emulator
+4. Playtest scorecard L1–L5
 
 ---
 

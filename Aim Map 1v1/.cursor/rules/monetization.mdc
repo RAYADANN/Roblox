@@ -1,0 +1,34 @@
+---
+description: Монетизация — Gamepass, DevProduct, ProcessReceipt
+globs: src/server/**/*.luau
+alwaysApply: false
+---
+
+# Монетизация
+
+Монетизация не готова с `id = 0`. Реальные id из Creator Hub **до** soft launch.
+
+## Правила
+
+- ID в `shared/data/ProductIds.luau` — единственный источник.
+- `MarketplaceService:ProcessReceipt` — идемпотентен: логируй `purchaseId`, не начисляй дважды.
+- Gamepass ownership: `UserOwnsGamePassAsync` — не только кэш в профиле.
+- Начисление только на сервере после receipt validation.
+- Клиент: `PromptGamePassPurchase` / `PromptProductPurchase` — UI только инициирует.
+- DevProduct: `ProcessReceipt` return `PurchaseGranted` только после записи в профиль.
+
+## Flow
+
+```
+Client: PromptPurchase
+  → Roblox receipt
+  → Server ProcessReceipt (idempotent)
+  → profile mutate + save
+  → notify client (RobuxPurchaseFX + sync)
+```
+
+## Антипаттерны
+
+- `id = 0` в production build
+- Начисление на клиенте «оптимистично» без receipt
+- Дублирование ProductIds в UI и server

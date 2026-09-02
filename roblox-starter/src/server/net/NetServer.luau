@@ -148,6 +148,13 @@ if not RunService:IsRunning() then
 			FireList = noop,
 			FireSet = noop
 		}),
+		PlayVfx = table.freeze({
+			Fire = noop,
+			FireAll = noop,
+			FireExcept = noop,
+			FireList = noop,
+			FireSet = noop
+		}),
 		BuyUpgrade = table.freeze({
 			SetCallback = noop
 		}),
@@ -253,6 +260,60 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 end)
 table.freeze(polling_queues_reliable)
 table.freeze(polling_queues_unreliable)
+
+type PlayVfxValue = {
+	["effectId"]: (string),
+	["intensity"]: (number),
+	["pos"]: ((Vector3)?),
+	["from"]: ((Vector3)?),
+	["to"]: ((Vector3)?),
+}
+
+local function writePlayVfxPacket(Value: PlayVfxValue)
+	alloc(1)
+	buffer.writeu8(outgoing_buff, outgoing_apos, 3)
+	local len_e = #Value["effectId"]
+	assert(utf8.len(Value["effectId"]) ~= nil, "value is not valid utf-8")
+	alloc(2)
+	buffer.writeu16(outgoing_buff, outgoing_apos, len_e)
+	alloc(len_e)
+	buffer.writestring(outgoing_buff, outgoing_apos, Value["effectId"], len_e)
+	alloc(4)
+	buffer.writef32(outgoing_buff, outgoing_apos, Value["intensity"])
+	local flags = 0
+	local flags_pos = alloc(1)
+	if Value["pos"] ~= nil then
+		flags = bit32.bor(flags, 0b00000001)
+		local v = Value["pos"] :: Vector3
+		alloc(4)
+		buffer.writef32(outgoing_buff, outgoing_apos, v.X)
+		alloc(4)
+		buffer.writef32(outgoing_buff, outgoing_apos, v.Y)
+		alloc(4)
+		buffer.writef32(outgoing_buff, outgoing_apos, v.Z)
+	end
+	if Value["from"] ~= nil then
+		flags = bit32.bor(flags, 0b00000010)
+		local v = Value["from"] :: Vector3
+		alloc(4)
+		buffer.writef32(outgoing_buff, outgoing_apos, v.X)
+		alloc(4)
+		buffer.writef32(outgoing_buff, outgoing_apos, v.Y)
+		alloc(4)
+		buffer.writef32(outgoing_buff, outgoing_apos, v.Z)
+	end
+	if Value["to"] ~= nil then
+		flags = bit32.bor(flags, 0b00000100)
+		local v = Value["to"] :: Vector3
+		alloc(4)
+		buffer.writef32(outgoing_buff, outgoing_apos, v.X)
+		alloc(4)
+		buffer.writef32(outgoing_buff, outgoing_apos, v.Y)
+		alloc(4)
+		buffer.writef32(outgoing_buff, outgoing_apos, v.Z)
+	end
+	buffer.writeu8(outgoing_buff, flags_pos, flags)
+end
 
 local returns = {
 	SendEvents = SendEvents,
@@ -516,6 +577,53 @@ local returns = {
 				alloc(used)
 				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
 				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+	},
+	PlayVfx = {
+		Fire = function(Player: Player, Value: PlayVfxValue)
+			load_player(Player)
+			writePlayVfxPacket(Value)
+			player_map[Player] = save()
+		end,
+		FireAll = function(Value: PlayVfxValue)
+			load_empty()
+			writePlayVfxPacket(Value)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireExcept = function(Except: Player, Value: PlayVfxValue)
+			load_empty()
+			writePlayVfxPacket(Value)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
+				end
+			end
+		end,
+		FireList = function(List: { [unknown]: Player }, Value: PlayVfxValue)
+			for _, player in List do
+				load_player(player)
+				writePlayVfxPacket(Value)
+				player_map[player] = save()
+			end
+		end,
+		FireSet = function(Set: { [Player]: any }, Value: PlayVfxValue)
+			for player in Set do
+				load_player(player)
+				writePlayVfxPacket(Value)
 				player_map[player] = save()
 			end
 		end,

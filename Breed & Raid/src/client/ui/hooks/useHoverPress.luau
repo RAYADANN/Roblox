@@ -37,8 +37,19 @@ local function useHoverPress(opts: Options?): (number, {
 		return function()
 			conn:disconnect()
 			motor:destroy()
+			motorRef.current = nil
 		end
 	end, {})
+
+	React.useEffect(function()
+		if disabled then
+			hovering.current = false
+			local motor = motorRef.current
+			if motor then
+				motor:setGoal(Flipper.Spring.new(1, MotionPresets.SPRING_SNAPPY))
+			end
+		end
+	end, { disabled })
 
 	local function setTarget(target: number)
 		if disabled then

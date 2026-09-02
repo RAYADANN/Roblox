@@ -6,10 +6,12 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local UserSettings = UserSettings
 
+local Types = require(game:GetService("ReplicatedStorage").shared.vfx.Types)
 local QualityLogic = require(game:GetService("ReplicatedStorage").shared.vfx.QualityLogic)
 
 export type DeviceHints = QualityLogic.DeviceHints
 export type QualityBudget = QualityLogic.QualityBudget
+export type QualityTier = Types.QualityTier
 
 export type QualityProbeDeps = {
 	isReduceMotion: (() -> boolean)?,
@@ -18,6 +20,9 @@ export type QualityProbeDeps = {
 export type QualityProbe = {
 	getHints: (self: QualityProbe) -> DeviceHints,
 	getBudget: (self: QualityProbe) -> QualityBudget,
+	getFps: (self: QualityProbe) -> number,
+	setTierOverride: (self: QualityProbe, tier: QualityTier?) -> (),
+	getTierOverride: (self: QualityProbe) -> QualityTier?,
 	destroy: (self: QualityProbe) -> (),
 }
 
@@ -38,6 +43,7 @@ function QualityProbe.new(deps: QualityProbeDeps?): QualityProbe
 	local self = setmetatable({
 		_isReduceMotion = if deps then deps.isReduceMotion else nil,
 		_fpsEma = 60,
+		_tierOverride = nil :: QualityTier?,
 		_conn = nil :: RBXScriptConnection?,
 		_destroyed = false,
 	}, QualityProbe)
@@ -52,7 +58,6 @@ function QualityProbe.new(deps: QualityProbeDeps?): QualityProbe
 		frames += 1
 		if acc >= 0.5 then
 			local fps = frames / acc
-			-- EMA: сглаживаем, чтобы тир не дёргался
 			self._fpsEma = self._fpsEma * 0.7 + fps * 0.3
 			acc = 0
 			frames = 0
@@ -67,7 +72,6 @@ function QualityProbe:getHints(): DeviceHints
 	if self._isReduceMotion then
 		reduce = self._isReduceMotion()
 	end
-	-- GuiService.PreferredTransparency / touch — эвристика mobile
 	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 	if GuiService:IsTenFootInterface() then
 		touch = false
@@ -80,7 +84,23 @@ function QualityProbe:getHints(): DeviceHints
 	}
 end
 
+function QualityProbe:getFps(): number
+	return self._fpsEma
+end
+
+function QualityProbe:setTierOverride(tier: QualityTier?)
+	self._tierOverride = tier
+end
+
+function QualityProbe:getTierOverride(): QualityTier?
+	return self._tierOverride
+end
+
 function QualityProbe:getBudget(): QualityBudget
+	if self._tierOverride then
+		local budget = QualityLogic.budgetFor(self._tierOverride)
+		return QualityLogic.applyThermal(budget, self._fpsEma)
+	end
 	return QualityLogic.resolveBudget(self:getHints())
 end
 

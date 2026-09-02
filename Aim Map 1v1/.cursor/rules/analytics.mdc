@@ -1,0 +1,32 @@
+---
+description: AnalyticsService — воронка и экономика с первого билда
+globs: src/**/*.luau
+alwaysApply: false
+---
+
+# Аналитика
+
+`AnalyticsService` — встроенный, пакет не нужен. События с первого soft launch.
+
+## Правила
+
+- Один модуль `server/core/GameAnalytics.luau` — единственная точка `LogCustomEvent`.
+- Клиент **не** шлёт аналитику напрямую — сервер логирует после валидации действия.
+- Имена событий: `snake_case`, стабильные (не переименовывать после релиза).
+- Custom fields — только числа (Roblox ограничение).
+
+## Обязательные события MVP
+
+| Событие | Когда |
+|---------|-------|
+| `session_start` | Профиль загружен |
+| `first_action` | Первое игровое действие (mine/sell/upgrade) |
+| `milestone_depth` | Каждые N глубины (50, 100, 500…) |
+| `purchase_complete` | ProcessReceipt success |
+| `rebirth` | Rebirth выполнен |
+
+## Антипаттерны
+
+- PII в событиях (имена, userId в custom fields как строка)
+- Дублирование логики аналитики в каждом менеджере
+- События без серверной валидации («клиент сказал купил»)

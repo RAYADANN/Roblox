@@ -1,5 +1,5 @@
 --!strict
--- Custom ProximityPrompt UI — absolute layout only (no UIListLayout fights).
+-- Toybox Premium custom ProximityPrompt UI.
 
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
@@ -18,8 +18,8 @@ local C = ThemeColors.Colors
 local screen = UiScreen.ensure(playerGui, "BreedRaidPrompts", "toast")
 local active: { [ProximityPrompt]: BillboardGui } = {}
 
-local function keyLabel(prompt: ProximityPrompt): string
-	if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
+local function keyLabel(prompt: ProximityPrompt, inputType: Enum.ProximityPromptInputType): string
+	if inputType == Enum.ProximityPromptInputType.Touch then
 		return "TAP"
 	end
 	local ok, name = pcall(function()
@@ -39,20 +39,25 @@ local function destroyUi(prompt: ProximityPrompt)
 	end
 end
 
-local function showUi(prompt: ProximityPrompt, _inputType: Enum.ProximityPromptInputType)
+local function showUi(prompt: ProximityPrompt, inputType: Enum.ProximityPromptInputType)
 	destroyUi(prompt)
 	local adornee = prompt.Parent
-	if not adornee or not adornee:IsA("BasePart") then
+	if not adornee or (not adornee:IsA("BasePart") and not adornee:IsA("Attachment")) then
 		return
 	end
 
 	local kindAttr = prompt:GetAttribute("UiKind")
 	local kind = if typeof(kindAttr) == "string" then kindAttr else nil
 	local accent = WorldUi.promptAccent(kind)
+	local isTouch = inputType == Enum.ProximityPromptInputType.Touch
+	local promptWidth = if isTouch then 268 else 250
+	local promptHeight = if isTouch then 96 else 88
+	local keyWidth = if isTouch then 72 else 54
+	local connections: { RBXScriptConnection } = {}
 
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "CustomPrompt"
-	gui.Size = UDim2.fromOffset(228, 76)
+	gui.Size = UDim2.fromOffset(promptWidth, promptHeight)
 	gui.StudsOffset = Vector3.new(0, 3.2, 0)
 	gui.AlwaysOnTop = true
 	gui.MaxDistance = prompt.MaxActivationDistance + 8
@@ -65,37 +70,44 @@ local function showUi(prompt: ProximityPrompt, _inputType: Enum.ProximityPromptI
 	-- Prompt uses absolute children on card; clear content list usage
 	content:Destroy()
 
-	local key = Instance.new("Frame")
+	local key = Instance.new("TextButton")
 	key.Name = "Key"
-	key.Size = UDim2.fromOffset(40, 40)
-	key.Position = UDim2.new(0, 16, 0.5, 0)
+	key.Size = UDim2.fromOffset(keyWidth, if isTouch then 58 else 54)
+	key.Position = UDim2.new(0, 18, 0.5, -4)
 	key.AnchorPoint = Vector2.new(0, 0.5)
 	key.BackgroundColor3 = accent
 	key.BorderSizePixel = 0
+	key.AutoButtonColor = false
+	key.Active = isTouch
+	key.Text = ""
 	key.ZIndex = 3
 	key.Parent = card
 	local kc = Instance.new("UICorner")
-	kc.CornerRadius = UDim.new(0, 10)
+	kc.CornerRadius = UDim.new(0, 18)
 	kc.Parent = key
+	local keyStroke = Instance.new("UIStroke")
+	keyStroke.Color = C.outline
+	keyStroke.Thickness = 3
+	keyStroke.Parent = key
 	local kl = Instance.new("TextLabel")
 	kl.BackgroundTransparency = 1
 	kl.Size = UDim2.fromScale(1, 1)
 	kl.Font = Enum.Font.GothamBlack
-	kl.TextSize = 16
-	-- Bright accents (gold) need dark glyph; deep accents use white.
+	kl.TextSize = if isTouch then 17 else 21
 	local lum = accent.R * 0.299 + accent.G * 0.587 + accent.B * 0.114
 	kl.TextColor3 = if lum > 0.55 then C.textDark else C.white
-	kl.Text = keyLabel(prompt)
+	kl.Text = keyLabel(prompt, inputType)
 	kl.ZIndex = 4
 	kl.Parent = key
 
+	local textLeft = 18 + keyWidth + 14
 	local action = Instance.new("TextLabel")
 	action.BackgroundTransparency = 1
-	action.Position = UDim2.fromOffset(64, 12)
-	action.Size = UDim2.new(1, -74, 0, 22)
-	action.Font = Enum.Font.GothamBold
-	action.TextSize = 16
-	action.TextColor3 = C.textMain
+	action.Position = UDim2.fromOffset(textLeft, 14)
+	action.Size = UDim2.new(1, -(textLeft + 14), 0, 24)
+	action.Font = Enum.Font.GothamBlack
+	action.TextSize = if isTouch then 18 else 17
+	action.TextColor3 = accent
 	action.TextXAlignment = Enum.TextXAlignment.Left
 	action.TextTruncate = Enum.TextTruncate.AtEnd
 	action.Text = prompt.ActionText
@@ -104,8 +116,8 @@ local function showUi(prompt: ProximityPrompt, _inputType: Enum.ProximityPromptI
 
 	local object = Instance.new("TextLabel")
 	object.BackgroundTransparency = 1
-	object.Position = UDim2.fromOffset(64, 36)
-	object.Size = UDim2.new(1, -74, 0, 18)
+	object.Position = UDim2.fromOffset(textLeft, 40)
+	object.Size = UDim2.new(1, -(textLeft + 14), 0, 18)
 	object.Font = Enum.Font.GothamMedium
 	object.TextSize = 12
 	object.TextColor3 = C.textSub
@@ -117,9 +129,9 @@ local function showUi(prompt: ProximityPrompt, _inputType: Enum.ProximityPromptI
 
 	local barBg = Instance.new("Frame")
 	barBg.Name = "HoldBg"
-	barBg.Size = UDim2.new(1, -24, 0, 4)
-	barBg.Position = UDim2.new(0, 12, 1, -10)
-	barBg.BackgroundColor3 = C.outlineSoft
+	barBg.Size = UDim2.new(1, -32, 0, 9)
+	barBg.Position = UDim2.new(0, 16, 1, -16)
+	barBg.BackgroundColor3 = C.bg4
 	barBg.BorderSizePixel = 0
 	barBg.Visible = prompt.HoldDuration > 0
 	barBg.ZIndex = 3
@@ -138,11 +150,28 @@ local function showUi(prompt: ProximityPrompt, _inputType: Enum.ProximityPromptI
 	barFillCorner.Parent = bar
 
 	local scale = Instance.new("UIScale")
-	scale.Scale = 0.92
+	scale.Scale = 0.9
 	scale.Parent = card
 	TweenService:Create(scale, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 
-	local connections: { RBXScriptConnection } = {}
+	if isTouch then
+		table.insert(
+			connections,
+			key.InputBegan:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+					prompt:InputHoldBegin()
+				end
+			end)
+		)
+		table.insert(
+			connections,
+			key.InputEnded:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+					prompt:InputHoldEnd()
+				end
+			end)
+		)
+	end
 	if prompt.HoldDuration > 0 then
 		table.insert(
 			connections,
@@ -184,8 +213,13 @@ local function showUi(prompt: ProximityPrompt, _inputType: Enum.ProximityPromptI
 end
 
 local ProximityUi = {}
+local started = false
 
 function ProximityUi.start()
+	if started then
+		return
+	end
+	started = true
 	ProximityPromptService.PromptShown:Connect(function(prompt, inputType)
 		if prompt.Style ~= Enum.ProximityPromptStyle.Custom then
 			return

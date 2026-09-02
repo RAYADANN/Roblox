@@ -11,6 +11,8 @@ local HitConfirm: EffectDef = {
 	priority = "Medium",
 	lifetime = 0.6,
 	layers = {
+		{ at = 0, type = "Sound", soundId = "vfx_spark", pitch = 1.3 },
+		{ at = 0, type = "Haptic", hapticProfile = "Light" },
 		{ at = 0, type = "Highlight", duration = 0.2 },
 		{ at = 0, type = "Emit", count = 12 },
 	},

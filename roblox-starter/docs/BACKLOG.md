@@ -27,3 +27,8 @@ Cursor не реализует без явного запроса.
 ---
 
 _Добавляй свои идеи ниже._
+
+## VFX Authoring Plugin (полный editor)
+- **Зачем:** таймлайн / attachments / keyframes удобнее ручных пресетов
+- **Приоритет:** после v0.1 exporter+timeline (см. `docs/VFX_AUTHORING_PLUGIN_v0.1.md`)
+- **Зависимости:** стабильный LayerDef export, TextureCatalog

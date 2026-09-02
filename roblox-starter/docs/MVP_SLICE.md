@@ -1,43 +1,51 @@
-# MVP Slice — первый релиз
+# MVP Slice — первый релиз новой игры
 
-Вертикальный срез: **одна петля прогресса за 15 минут**.
+Этот файл — **как выбрать вертикальный срез**, не готовый жанр.  
+Starter даёт системы (профиль, Zap, UI, VFX…), не готовый хит. Жанр и фантазия — на новой игре.
+
+Урок: много систем без soft launch = нет ответа «зашло ли». Цель — **узкая петля → soft launch**.
+
+## Принцип
+
+Вертикальный срез: **одна петля прогресса за ~15 минут**, в которую врезаны save / сеть / HUD.  
 Всё остальное — `BACKLOG.md` / апдейты 1.1+.
 
-## Петля MVP (mining/incremental)
+Петля = действие → награда → рост → снова действие. Формула своя (combat, sim, tycoon, …).
+
+### Пример формы петли (только иллюстрация, не эталон)
 
 ```
-Копать → получить ресурс → продать → купить апгрейд → копать глубже → rebirth
+Действие → ресурс → обмен/апгрейд → сильнее действие → meta-progress (rebirth и т.п.)
 ```
 
-## В scope MVP
+## В scope первого soft launch (системы шаблона)
+
+Подставь под свою петлю; таблица — чеклист **инфраструктуры**, не контент:
 
 | Система | Минимум |
 |---------|---------|
-| Mining | Клик/авто, 3–5 руд, глубина |
-| Economy | Монеты, продажа, 3–5 апгрейдов |
-| Rebirth | 1 tier, multiplier |
-| HUD | Монеты, глубина, кнопка sell, панель апгрейдов |
+| Core loop | 1 действие + 1 награда + 1 апгрейд/рост |
+| Economy / progress | Серверный авторитет, без client-trusted валюты |
+| Meta (опционально) | 1 простой reset/multiplier **если** петля без него ломается |
+| HUD | Главный ресурс + главная CTA + панель роста |
 | Save | ProfileStore, session lock |
-| Network | Zap: sync + buy + notify |
-| UI | React HUD, professional Button/Chip/Modal |
-| Analytics | session_start, first_action, rebirth |
+| Network | Zap: sync + intent + notify |
+| UI | React HUD, theme, Button/Chip/Modal |
+| Analytics | session_start, first_action, ключевой progress event |
 | CI | Зелёный на каждый merge |
 
-## Вне scope MVP (→ BACKLOG)
+## Вне scope первого релиза (→ BACKLOG)
 
-- Петы / яйца / gacha
-- Квесты / daily rewards
-- Shop за Robux (можно заглушку UI)
-- Локализация (если только EN на старте)
-- Leaderboard
-- Tutorial (минимум: 3 подсказки OK)
-- Social rewards / promo codes
+- Контент №N+1
+- Gacha / daily / соц-награды / промокоды
+- Полный Robux shop (заглушка UI — ок)
+- Локализация (если старт только EN)
+- Leaderboard, тяжёлый tutorial
 
 ## Критерий готовности soft launch
 
-- [ ] 15-минутная петля проходима без багов
-- [ ] Работает phone + desktop
+- [ ] 15-минутная петля **твоей** игры проходима без багов
+- [ ] Phone + desktop
 - [ ] CI зелёный
-- [ ] ProductIds ≠ 0 (если есть монетизация)
-- [ ] `PLAYTEST_CHECKLIST.md` пройден
-- [ ] `RELEASE_CHECKLIST.md` пройден
+- [ ] ProductIds ≠ 0 (если есть покупки)
+- [ ] `PLAYTEST_CHECKLIST.md` / `RELEASE_CHECKLIST.md`

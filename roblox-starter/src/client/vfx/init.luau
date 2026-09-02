@@ -15,6 +15,17 @@ local HitConfirm = require(script.presets.HitConfirm)
 local FlipbookBurst = require(script.presets.FlipbookBurst)
 local NeonImpact = require(script.presets.NeonImpact)
 local SmokeDash = require(script.presets.SmokeDash)
+local CritImpact = require(script.presets.CritImpact)
+local GroundSlam = require(script.presets.GroundSlam)
+local HealPulse = require(script.presets.HealPulse)
+local UltimateCharge = require(script.presets.UltimateCharge)
+local ChainStrike = require(script.presets.ChainStrike)
+local MeteorStrike = require(script.presets.MeteorStrike)
+local OreShatter = require(script.presets.OreShatter)
+local PetAppear = require(script.presets.PetAppear)
+local EggHatch = require(script.presets.EggHatch)
+local MeguminBlast = require(script.presets.MeguminBlast)
+local CinemaCataclysm = require(script.presets.CinemaCataclysm)
 
 export type Deps = VfxEngine.Deps
 export type PlayContext = VfxEngine.PlayContext
@@ -34,6 +45,17 @@ local BUILTIN = {
 	FlipbookBurst,
 	NeonImpact,
 	SmokeDash,
+	CritImpact,
+	GroundSlam,
+	HealPulse,
+	UltimateCharge,
+	ChainStrike,
+	MeteorStrike,
+	OreShatter,
+	PetAppear,
+	EggHatch,
+	MeguminBlast,
+	CinemaCataclysm,
 }
 
 local VFX = {}
@@ -60,6 +82,17 @@ VFX.presets = {
 	FlipbookBurst = FlipbookBurst,
 	NeonImpact = NeonImpact,
 	SmokeDash = SmokeDash,
+	CritImpact = CritImpact,
+	GroundSlam = GroundSlam,
+	HealPulse = HealPulse,
+	UltimateCharge = UltimateCharge,
+	ChainStrike = ChainStrike,
+	MeteorStrike = MeteorStrike,
+	OreShatter = OreShatter,
+	PetAppear = PetAppear,
+	EggHatch = EggHatch,
+	MeguminBlast = MeguminBlast,
+	CinemaCataclysm = CinemaCataclysm,
 }
 
 return VFX
