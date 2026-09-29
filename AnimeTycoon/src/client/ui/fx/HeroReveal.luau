@@ -4,6 +4,8 @@
 
 local Debris = game:GetService("Debris")
 local HttpService = game:GetService("HttpService")
+local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
@@ -28,19 +30,10 @@ local SPIN_SEC = 0.75
 local ZOOM_SEC = 0.65
 local IDLE_SWAY_DEG = 10
 local IDLE_SWAY_SPEED = 1.1
-
-local RARITY_ACCENT: { [string]: Color3 } = {
-    common = Color3.fromRGB(180, 190, 200),
-    uncommon = Color3.fromRGB(80, 200, 120),
-    rare = Color3.fromRGB(80, 140, 255),
-    epic = Color3.fromRGB(180, 90, 255),
-    legendary = Color3.fromRGB(255, 180, 40),
-    mythic = Color3.fromRGB(255, 70, 140),
-}
-
-local function accentFor(rarity: string): Color3
-    return RARITY_ACCENT[string.lower(rarity)] or Color3.fromRGB(180, 90, 255)
-end
+local BACKDROP_IMAGE = "rbxassetid://101824724626288"
+local BACKDROP_SPIN_DEG_PER_SEC = 28
+local BLUR_NAME = "HeroRevealBlur"
+local BLUR_SIZE = 22
 
 local function smoothstep(t: number): number
     local x = math.clamp(t, 0, 1)
@@ -88,13 +81,39 @@ local function setHeroYaw(hero: Model, center: Vector3, yaw: number)
     hero:PivotTo(CFrame.new(center) * CFrame.Angles(0, yaw, 0))
 end
 
+local function ensureBlur(): BlurEffect
+    local found = Lighting:FindFirstChild(BLUR_NAME)
+    if found and found:IsA("BlurEffect") then
+        return found
+    end
+    local created = Instance.new("BlurEffect")
+    created.Name = BLUR_NAME
+    created.Size = 0
+    created.Enabled = false
+    created.Parent = Lighting
+    return created
+end
+
+local function tweenBlur(size: number, info: TweenInfo, disableWhenZero: boolean?)
+    local blur = ensureBlur()
+    blur.Enabled = true
+    local tw = TweenService:Create(blur, info, { Size = size })
+    tw:Play()
+    if disableWhenZero and size <= 0 then
+        tw.Completed:Connect(function()
+            if blur.Parent and blur.Size <= 0.05 then
+                blur.Enabled = false
+            end
+        end)
+    end
+end
+
 function HeroReveal.show(payload: RevealPayload)
     if _busy then
         return
     end
     _busy = true
 
-    local accent = accentFor(payload.rarity)
     local layer = FxOverlay.getLayer()
 
     local root = Instance.new("Frame")
@@ -117,17 +136,21 @@ function HeroReveal.show(payload: RevealPayload)
     dim.ZIndex = 50
     dim.Parent = root
 
-    local glow = Instance.new("ImageLabel")
-    glow.Name = "Glow"
-    glow.AnchorPoint = Vector2.new(0.5, 0.5)
-    glow.Position = UDim2.fromScale(0.5, 0.42)
-    glow.Size = UDim2.fromOffset(40, 40)
-    glow.BackgroundTransparency = 1
-    glow.Image = "rbxassetid://5028857085"
-    glow.ImageColor3 = accent
-    glow.ImageTransparency = 0.35
-    glow.ZIndex = 51
-    glow.Parent = root
+    -- Rear screen image: no solid label background, only the asset.
+    local backdrop = Instance.new("ImageLabel")
+    backdrop.Name = "Backdrop"
+    backdrop.AnchorPoint = Vector2.new(0.5, 0.5)
+    backdrop.Position = UDim2.fromScale(0.5, 0.42)
+    backdrop.Size = UDim2.fromOffset(80, 80)
+    backdrop.BackgroundColor3 = Color3.new(0, 0, 0)
+    backdrop.BackgroundTransparency = 1
+    backdrop.BorderSizePixel = 0
+    backdrop.Image = BACKDROP_IMAGE
+    backdrop.ImageColor3 = Color3.new(1, 1, 1)
+    backdrop.ImageTransparency = 1
+    backdrop.ScaleType = Enum.ScaleType.Fit
+    backdrop.ZIndex = 51
+    backdrop.Parent = root
 
     local viewport = Instance.new("ViewportFrame")
     viewport.Name = "HeroViewport"
@@ -206,12 +229,13 @@ function HeroReveal.show(payload: RevealPayload)
             return
         end
         closed = true
+        tweenBlur(0, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In), true)
         TweenService:Create(dim, TweenInfo.new(0.22), { BackgroundTransparency = 1 }):Play()
         TweenService:Create(viewport, TweenInfo.new(0.22), {
             Size = UDim2.fromScale(0.08, 0.1),
         }):Play()
-        TweenService:Create(glow, TweenInfo.new(0.22), {
-            Size = UDim2.fromOffset(20, 20),
+        TweenService:Create(backdrop, TweenInfo.new(0.22), {
+            Size = UDim2.fromOffset(40, 40),
             ImageTransparency = 1,
         }):Play()
         task.delay(0.25, function()
@@ -236,17 +260,37 @@ function HeroReveal.show(payload: RevealPayload)
             close()
         end
     end)
+    local spinConn = RunService.RenderStepped:Connect(function(dt)
+        if closed or not backdrop.Parent then
+            return
+        end
+        backdrop.Rotation += BACKDROP_SPIN_DEG_PER_SEC * dt
+    end)
     root.Destroying:Connect(function()
         inputConn:Disconnect()
+        spinConn:Disconnect()
+        -- Safety: clear blur if destroyed without close().
+        if not closed then
+            tweenBlur(0, TweenInfo.new(0.15), true)
+        end
     end)
 
-    TweenService:Create(dim, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        BackgroundTransparency = 0.35,
-    }):Play()
-    TweenService:Create(glow, TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        Size = UDim2.fromOffset(560, 560),
-        ImageTransparency = 0.48,
-    }):Play()
+    tweenBlur(
+        BLUR_SIZE,
+        TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        false
+    )
+    TweenService
+        :Create(dim, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            BackgroundTransparency = 0.35,
+        })
+        :Play()
+    TweenService
+        :Create(backdrop, TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.fromOffset(1120, 1120),
+            ImageTransparency = 0,
+        })
+        :Play()
 
     -- Hero motion: fast spin (small) → zoom to face → idle sway facing camera.
     if hero then
@@ -292,22 +336,40 @@ function HeroReveal.show(payload: RevealPayload)
                     TweenService:Create(stroke, textInfo, { Transparency = 0 }):Play()
                 end
             end
-            TweenService:Create(hint, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, 0.35), {
-                TextTransparency = 0.25,
-            }):Play()
+            TweenService
+                :Create(
+                    hint,
+                    TweenInfo.new(
+                        0.4,
+                        Enum.EasingStyle.Quad,
+                        Enum.EasingDirection.Out,
+                        0,
+                        false,
+                        0.35
+                    ),
+                    {
+                        TextTransparency = 0.25,
+                    }
+                )
+                :Play()
 
             -- Phase 3: idle, face camera, slight sway
             local tIdle = os.clock()
             while root.Parent and not closed do
-                local sway = math.sin((os.clock() - tIdle) * IDLE_SWAY_SPEED) * math.rad(IDLE_SWAY_DEG)
+                local sway = math.sin((os.clock() - tIdle) * IDLE_SWAY_SPEED)
+                    * math.rad(IDLE_SWAY_DEG)
                 setHeroYaw(hero, center, faceYaw + sway)
                 task.wait()
             end
         end)
     else
-        TweenService:Create(viewport, TweenInfo.new(ZOOM_SEC, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-            Size = UDim2.fromScale(0.46, 0.56),
-        }):Play()
+        TweenService:Create(
+            viewport,
+            TweenInfo.new(ZOOM_SEC, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+            {
+                Size = UDim2.fromScale(0.46, 0.56),
+            }
+        ):Play()
     end
 
     Debris:AddItem(root, AUTO_CLOSE_SEC + 1)
