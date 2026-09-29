@@ -1,0 +1,407 @@
+--!strict
+-- RebirthPanel.lua — Phase 9.
+--
+-- Контент 4-го таба HUD. Показывает:
+--   * Заголовок «Ребёрты: N» + «Множитель: x1.X».
+--   * Кнопка REBIRTH (стоимость, disabled если не хватает монет).
+--   * Информационные секции: что сохранится / сбросится / следующий бонус.
+--
+-- На клик [REBIRTH] открывается RebirthConfirmModal (anti-misclick 0.3с),
+-- по подтверждению — Net:Invoke("Rebirth"). Сервер возвращает success или
+-- ошибку (which is shown через Notification). FX/тост приходят отдельно
+-- через Net:Connect("Notify") с kind="rebirth".
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Fusion = require(ReplicatedStorage:WaitForChild("Packages").Fusion)
+local Net = require(ReplicatedStorage:WaitForChild("Packages").Net)
+local Constants = require(ReplicatedStorage:WaitForChild("shared").constants)
+local RebirthLogic = require(ReplicatedStorage:WaitForChild("shared").util.RebirthLogic)
+
+local ScopeFactory = require(script.Parent.Parent.ScopeFactory)
+local HudStateModule = require(script.Parent.Parent.HudState)
+local theme = require(script.Parent.Parent.theme)
+local Formatters = require(script.Parent.Parent.formatters)
+local SoundManager = require(script.Parent.Parent.Parent.Parent.core.SoundManager)
+local Notification = require(script.Parent.Parent.Parent.Notification)
+local RebirthConfirmModal = require(script.Parent.Parent.components.RebirthConfirmModal)
+local RebirthPreviewCard = require(script.Parent.Parent.components.RebirthPreviewCard)
+local UiIcon = require(script.Parent.Parent.components.UiIcon)
+local PanelScale = require(script.Parent.Parent.PanelScale)
+local UiAssets = require(ReplicatedStorage:WaitForChild("shared").data.UiAssets)
+local L = require(ReplicatedStorage:WaitForChild("shared").loc.Localization).t
+local ServerMessage = require(ReplicatedStorage:WaitForChild("shared").loc.ServerMessage)
+
+local OnEvent = Fusion.OnEvent
+local Children = Fusion.Children
+local peek = Fusion.peek
+local C = theme.C
+-- Десктоп: геометрия ×2 синхронно с ×2 текстом (gsc). Phone/tablet без изменений.
+local sc = PanelScale.gsc
+local text = PanelScale.text
+local tsize = PanelScale.tsize
+
+local RebirthPanel = {}
+
+local function buildBodyText(currentRebirths: number, currentMultiplier: number, nextMultiplier: number): string
+    -- RichText. Используется в RebirthConfirmModal: важно, чтобы текст
+    -- читался за 1-2 секунды (anti-misclick 0.3с — это floor, игрок всё
+    -- равно может ткнуть быстро).
+    local invPerRebirth = (Constants.REBIRTH and Constants.REBIRTH.inventorySlotsPerRebirth) or 0
+    local lines = {
+        L("panel.rebirth.bodyCurrent", { from = currentRebirths, to = currentRebirths + 1 }),
+        L("panel.rebirth.bodyMultiplier", {
+            from = RebirthLogic.formatMultiplier(currentMultiplier),
+            to = RebirthLogic.formatMultiplier(nextMultiplier),
+        }),
+        "",
+        L("panel.rebirth.bodyKeep"),
+        L("panel.rebirth.bodyReset"),
+    }
+    if invPerRebirth > 0 then
+        table.insert(lines, L("panel.rebirth.bodyUnlock", { slots = invPerRebirth }))
+    end
+    local nextThreshold = RebirthLogic.nextPickaxeBonusThreshold(currentRebirths)
+    if nextThreshold then
+        local remaining = nextThreshold - currentRebirths
+        table.insert(lines, L("panel.rebirth.bodyNextBonus", { threshold = nextThreshold, remaining = remaining }))
+    end
+    return table.concat(lines, "\n")
+end
+
+local function panelHeader(s: ScopeFactory.HudScope, state: HudStateModule.HudState)
+    return s:New("Frame")({
+        Name = "Header",
+        Size = UDim2.new(1, -sc(8), 0, sc(78)),
+        BackgroundColor3 = C.btnBg,
+        BorderSizePixel = 0,
+        [Children] = {
+            s:New("UICorner")({ CornerRadius = UDim.new(0, sc(8)) }),
+            s:New("UIStroke")({ Color = C.gold, Thickness = sc(1.5), Transparency = 0.4 }),
+            UiIcon.titleRow(s, {
+                source = "tab_rebirth",
+                text = L("panel.rebirth.headerRebirths"),
+                textSize = sc(13),
+                font = Enum.Font.GothamBold,
+                textColor = C.textLabel,
+                size = UDim2.new(0.5, -sc(16), 0, sc(22)),
+                position = UDim2.new(0, sc(14), 0, sc(12)),
+                iconSize = sc(16),
+            }),
+            s:New("TextLabel")({
+                Size = UDim2.new(0.5, -sc(16), 0, sc(30)),
+                Position = UDim2.new(0, sc(14), 0, sc(34)),
+                BackgroundTransparency = 1,
+                Text = s:Computed(function(use)
+                    return tostring(math.floor(use(state.rebirths) or 0))
+                end),
+                TextSize = tsize(26),
+                Font = Enum.Font.GothamBlack,
+                TextColor3 = C.gold,
+                TextXAlignment = Enum.TextXAlignment.Left,
+            }),
+            UiIcon.titleRow(s, {
+                source = "icon_sparkle",
+                text = L("panel.rebirth.headerMultiplier"),
+                textSize = sc(13),
+                font = Enum.Font.GothamBold,
+                textColor = C.textLabel,
+                size = UDim2.new(0.5, -sc(16), 0, sc(22)),
+                position = UDim2.new(0.5, 0, 0, sc(12)),
+                iconSize = sc(16),
+            }),
+            s:New("TextLabel")({
+                Size = UDim2.new(0.5, -sc(16), 0, sc(30)),
+                Position = UDim2.new(0.5, 0, 0, sc(34)),
+                BackgroundTransparency = 1,
+                Text = s:Computed(function(use)
+                    local mult = use(state.rebirthMultiplier) or 1
+                    return RebirthLogic.formatMultiplier(mult)
+                end),
+                TextSize = tsize(26),
+                Font = Enum.Font.GothamBlack,
+                TextColor3 = C.gold,
+                TextXAlignment = Enum.TextXAlignment.Right,
+            }),
+        },
+    })
+end
+
+local function tryRebirth(s: ScopeFactory.HudScope, state: HudStateModule.HudState, isBusy: any)
+    if peek(isBusy) then
+        return
+    end
+    local rebirths = peek(state.rebirths) or 0
+    local cost = RebirthLogic.cost(rebirths)
+    local coins = peek(state.coins) or 0
+    if coins < cost then
+        SoundManager.play("buy_fail")
+        Notification.show({
+            text = L("panel.rebirth.notEnoughCoins", { amount = cost - coins }),
+            icon = "tab_rebirth",
+            color = Color3.fromRGB(255, 140, 60),
+            duration = 2.5,
+        })
+        return
+    end
+
+    -- Открываем confirm-модал. Сам Net:Invoke происходит ТОЛЬКО после
+    -- подтверждения (см. opts.confirm).
+    local currentMult = peek(state.rebirthMultiplier) or 1
+    local nextMult = RebirthLogic.valueMultiplier(rebirths + 1)
+    RebirthConfirmModal.show({
+        scope = s,
+        title = L("panel.rebirth.confirmTitle", { number = rebirths + 1 }),
+        body = buildBodyText(rebirths, currentMult, nextMult),
+        confirmText = L("panel.rebirth.confirmBtn", { cost = Formatters.shortNumber(cost) }),
+        cancelText = L("panel.rebirth.cancelBtn"),
+        confirm = function()
+            isBusy:set(true)
+            local ok, result = pcall(function()
+                return Net:Invoke("Rebirth")
+            end)
+            isBusy:set(false)
+            if not ok then
+                SoundManager.play("buy_fail")
+                Notification.show({
+                    text = L("panel.rebirth.networkError"),
+                    icon = "icon_warning",
+                    color = Color3.fromRGB(255, 140, 60),
+                    duration = 2.5,
+                })
+                return
+            end
+            if typeof(result) == "table" and result.success then
+                SoundManager.play("buy_upgrade")
+                return
+            end
+            if typeof(result) == "table" and result.message then
+                SoundManager.play("buy_fail")
+                Notification.show({
+                    text = ServerMessage.fromResult(result, "server.error.unknown"),
+                    icon = "icon_warning",
+                    color = Color3.fromRGB(255, 140, 60),
+                    duration = 2.5,
+                })
+                return
+            end
+            SoundManager.play("buy_fail")
+            Notification.show({
+                text = L("panel.rebirth.networkError"),
+                icon = "icon_warning",
+                color = Color3.fromRGB(255, 140, 60),
+                duration = 2.5,
+            })
+        end,
+    })
+end
+
+local function rebirthBody(
+    s: ScopeFactory.HudScope,
+    state: HudStateModule.HudState,
+    isBusy: any,
+    hovered: any,
+    rebirthCost: any,
+    canAfford: any
+): { Instance }
+    return {
+            panelHeader(s, state),
+            RebirthPreviewCard.create(s, state),
+            -- Кнопка REBIRTH. Размер крупный — это «фокус» вкладки.
+            s:New("TextButton")({
+                Name = "RebirthButton",
+                Size = UDim2.new(1, -sc(8), 0, sc(56)),
+                BackgroundColor3 = s:Computed(function(use)
+                    if use(isBusy) then
+                        return C.btnDisabled
+                    end
+                    if not use(canAfford) then
+                        return C.btnDisabled
+                    end
+                    return use(hovered) and Color3.fromRGB(220, 180, 30) or C.gold
+                end),
+                BorderSizePixel = 0,
+                AutoButtonColor = false,
+                Text = s:Computed(function(use)
+                    local cost = use(rebirthCost)
+                    if not use(canAfford) then
+                        local coins = use(state.coins) or 0
+                        local deficit = math.max(0, cost - coins)
+                        return L("panel.rebirth.notEnough", { amount = Formatters.shortNumber(deficit) })
+                    end
+                    return L("panel.rebirth.confirmBtn", { cost = Formatters.shortNumber(cost) })
+                end),
+                TextSize = tsize(18),
+                Font = Enum.Font.GothamBlack,
+                TextColor3 = s:Computed(function(use)
+                    return if use(canAfford) and not use(isBusy)
+                        then Color3.fromRGB(40, 25, 0)
+                        else C.textMuted
+                end),
+                [Children] = {
+                    s:New("UICorner")({ CornerRadius = UDim.new(0, sc(8)) }),
+                    s:New("UIStroke")({
+                        Color = s:Computed(function(use)
+                            return use(canAfford) and Color3.fromRGB(255, 240, 150) or C.btnBorder
+                        end),
+                        Thickness = sc(2),
+                        Transparency = 0.2,
+                    }),
+                    s:New("ImageLabel")({
+                        Size = UDim2.fromOffset(sc(16), sc(16)),
+                        Position = UDim2.new(0.72, 0, 0.5, -sc(8)),
+                        BackgroundTransparency = 1,
+                        Image = UiAssets.image("coin"),
+                        ScaleType = Enum.ScaleType.Fit,
+                        Visible = s:Computed(function(use)
+                            return use(canAfford)
+                        end),
+                        ZIndex = 3,
+                    }),
+                },
+                [OnEvent("MouseEnter")] = function() hovered:set(true) end,
+                [OnEvent("MouseLeave")] = function() hovered:set(false) end,
+                [OnEvent("Activated")] = function()
+                    tryRebirth(s, state, isBusy)
+                end,
+            }),
+            -- Информационная подсказка.
+            s:New("TextLabel")({
+                Name = "RewardLine",
+                Size = UDim2.new(1, -sc(8), 0, sc(18)),
+                BackgroundTransparency = 1,
+                Text = s:Computed(function(use)
+                    return RebirthLogic.describeReward(use(state.rebirths) or 0)
+                end),
+                TextSize = text(13),
+                Font = Enum.Font.GothamBold,
+                TextColor3 = C.gold,
+                TextXAlignment = Enum.TextXAlignment.Left,
+            }),
+            s:New("Frame")({
+                Size = UDim2.new(1, -sc(8), 0, sc(18)),
+                BackgroundTransparency = 1,
+                [Children] = {
+                    UiIcon.create(s, {
+                        source = "icon_check",
+                        size = UDim2.fromOffset(sc(14), sc(14)),
+                        position = UDim2.new(0, 0, 0.5, -sc(7)),
+                    }),
+                    s:New("TextLabel")({
+                        Size = UDim2.new(1, -sc(20), 1, 0),
+                        Position = UDim2.new(0, sc(20), 0, 0),
+                        BackgroundTransparency = 1,
+                        Text = L("panel.rebirth.keepLine"),
+                        TextSize = text(12),
+                        Font = Enum.Font.Gotham,
+                        TextColor3 = Color3.fromRGB(150, 255, 150),
+                        TextXAlignment = Enum.TextXAlignment.Left,
+                        TextWrapped = true,
+                    }),
+                },
+            }),
+            -- Что сбросится.
+            s:New("Frame")({
+                Size = UDim2.new(1, -sc(8), 0, sc(32)),
+                BackgroundTransparency = 1,
+                [Children] = {
+                    UiIcon.create(s, {
+                        source = "icon_close",
+                        size = UDim2.fromOffset(sc(14), sc(14)),
+                        position = UDim2.new(0, 0, 0, sc(2)),
+                    }),
+                    s:New("TextLabel")({
+                        Size = UDim2.new(1, -sc(20), 1, 0),
+                        Position = UDim2.new(0, sc(20), 0, 0),
+                        BackgroundTransparency = 1,
+                        Text = L("panel.rebirth.resetLine"),
+                        TextSize = text(12),
+                        Font = Enum.Font.Gotham,
+                        TextColor3 = Color3.fromRGB(255, 140, 90),
+                        TextXAlignment = Enum.TextXAlignment.Left,
+                        TextWrapped = true,
+                    }),
+                },
+            }),
+            -- Следующий бонус (если есть).
+            s:New("Frame")({
+                Size = UDim2.new(1, -sc(8), 0, sc(32)),
+                BackgroundTransparency = 1,
+                [Children] = {
+                    UiIcon.create(s, {
+                        source = "upg_pickaxe",
+                        size = UDim2.fromOffset(sc(14), sc(14)),
+                        position = UDim2.new(0, 0, 0, sc(2)),
+                    }),
+                    s:New("TextLabel")({
+                        Size = UDim2.new(1, -sc(20), 1, 0),
+                        Position = UDim2.new(0, sc(20), 0, 0),
+                        BackgroundTransparency = 1,
+                        Text = s:Computed(function(use)
+                            local current = use(state.rebirths) or 0
+                            local nextT = RebirthLogic.nextPickaxeBonusThreshold(current)
+                            if not nextT then
+                                return L("panel.rebirth.allBonuses")
+                            end
+                            local remaining = nextT - current
+                            return L("panel.rebirth.nextBonus", { threshold = nextT, remaining = remaining })
+                        end),
+                        TextSize = text(12),
+                        Font = Enum.Font.Gotham,
+                        TextColor3 = Color3.fromRGB(120, 200, 255),
+                        TextXAlignment = Enum.TextXAlignment.Left,
+                        TextWrapped = true,
+                    }),
+                },
+            }),
+    }
+end
+
+function RebirthPanel.create(s: ScopeFactory.HudScope, state: HudStateModule.HudState)
+    local isBusy = s:Value(false)
+    local hovered = s:Value(false)
+
+    local rebirthCost = s:Computed(function(use)
+        return RebirthLogic.cost(use(state.rebirths) or 0)
+    end)
+
+    local canAfford = s:Computed(function(use)
+        return (use(state.coins) or 0) >= use(rebirthCost)
+    end)
+
+    return s:New("ScrollingFrame")({
+        Name = "Rebirth",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ScrollBarThickness = PanelScale.scrollBar(),
+        ScrollBarImageColor3 = C.panelBorder,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        AutomaticCanvasSize = Enum.AutomaticSize.Y,
+        Visible = s:Computed(function(use)
+            return use(state.activeTab) == "rebirth"
+        end),
+        [Children] = {
+            s:New("UIPadding")({
+                PaddingTop = PanelScale.pad(4),
+                PaddingLeft = PanelScale.pad(4),
+                PaddingRight = PanelScale.pad(4),
+                PaddingBottom = PanelScale.pad(8),
+            }),
+            s:New("UIListLayout")({
+                FillDirection = Enum.FillDirection.Vertical,
+                Padding = PanelScale.pad(10),
+                SortOrder = Enum.SortOrder.LayoutOrder,
+            }),
+            -- Контент монтируется при активном табе (не ждём panelOpen — иначе
+            -- при первом открытии AutomaticCanvasSize остаётся {0,0}).
+            s:Computed(function(use)
+                if use(state.activeTab) ~= "rebirth" then
+                    return {}
+                end
+                return rebirthBody(s, state, isBusy, hovered, rebirthCost, canAfford)
+            end),
+        },
+    })
+end
+
+return RebirthPanel

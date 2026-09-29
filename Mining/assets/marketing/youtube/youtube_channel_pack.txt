@@ -1,0 +1,122 @@
+================================================================================
+ZEON STUDIO — YouTube Channel Pack
+================================================================================
+
+FILES (assets/marketing/youtube/)
+  zeon_youtube_banner_2560x1440.png   → Channel banner
+  zeon_youtube_profile_800x800.png    → Profile picture (avatar)
+  zeon_youtube_watermark_512x512.png  → Video watermark (branding)
+
+================================================================================
+UPLOAD GUIDE
+================================================================================
+
+1. YouTube Studio → Customization → Branding
+2. Profile picture  → zeon_youtube_profile_800x800.png
+3. Banner           → zeon_youtube_banner_2560x1440.png
+4. Video watermark  → zeon_youtube_watermark_512x512.png
+   • Display time: entire video
+   • Position: bottom-right (or bottom-left)
+   • YouTube scales to ~150px — keep logo simple ✓
+
+Banner safe zone: keep logo/text in CENTER strip
+(mobile crops top/bottom edges).
+
+================================================================================
+CHANNEL NAME
+================================================================================
+
+Zeon Studio
+
+================================================================================
+CHANNEL DESCRIPTION (English — copy-paste)
+================================================================================
+
+🌌 Welcome to Zeon Studio — a solo indie Roblox developer building worlds across the multiverse.
+
+Different worlds. One network.
+
+⛏️ NOW PLAYING: Deep Digger
+An infinite-depth mining simulator. Dig, sell, upgrade, hatch pets, rebirth for multipliers — how deep can you go?
+
+🎬 ON THIS CHANNEL
+• Devlogs & behind-the-scenes
+• Update trailers & patch notes
+• Gameplay & tips
+• Sneak peeks of new worlds
+
+🎮 PLAY
+Deep Digger → [your Roblox game link]
+Roblox Group → https://www.roblox.com/communities/1066009408
+
+💬 COMMUNITY
+Discord → [your Discord invite link]
+
+🎁 FREE REWARDS IN-GAME
+Join the Roblox group + Favorite the game for a bonus!
+
+👍 Like · Subscribe · Hit the bell — new worlds are coming.
+
+━━━━━━━━━━━━━━━━━━━━━━
+Business: [your email if you want]
+© Zeon Studio
+
+================================================================================
+CHANNEL DESCRIPTION (Русский — для About или соцсетей)
+================================================================================
+
+🌌 Zeon Studio — соло-разработчик Roblox-игр.
+Разные миры. Одна сеть.
+
+⛏️ Сейчас в эфире: Deep Digger — симулятор бесконечной шахты.
+
+🎬 На канале: devlog'и, трейлеры апдейтов, геймплей, закулисье.
+
+🎮 Игра → [ссылка]
+👥 Группа → https://www.roblox.com/communities/1066009408
+💬 Discord → [ссылка]
+
+👍 Подписывайся — новые миры уже в разработке!
+
+================================================================================
+SHORT DESCRIPTION (for social links / limited fields)
+================================================================================
+
+EN: Solo Roblox dev · Deep Digger & more · Devlogs · Updates · Different worlds, one network.
+
+RU: Roblox-разработчик · Deep Digger · Devlog'и · Разные миры — одна сеть.
+
+================================================================================
+DEFAULT VIDEO DESCRIPTION TEMPLATE
+================================================================================
+
+⛏️ DEEP DIGGER — [Video Title Context]
+
+🎮 Play now: [Roblox link]
+👥 Join group for free reward: https://www.roblox.com/communities/1066009408
+💬 Discord: [invite link]
+
+⏱️ TIMESTAMPS
+0:00 Intro
+[add timestamps]
+
+🔔 Subscribe for devlogs & updates from Zeon Studio!
+
+#Roblox #DeepDigger #ZeonStudio #RobloxDev #MiningSimulator
+
+================================================================================
+CHANNEL TAGS (Settings → Channel → Basic info)
+================================================================================
+
+Roblox, Zeon Studio, Deep Digger, Roblox dev, mining simulator,
+Roblox game dev, indie dev, devlog, Roblox update, pet simulator
+
+================================================================================
+CHANNEL TRAILER / LINKS (Customization → Basic info)
+================================================================================
+
+Featured link 1: Play Deep Digger → [Roblox URL]
+Featured link 2: Join Discord    → [Discord URL]
+Featured link 3: Roblox Group     → https://www.roblox.com/communities/1066009408
+
+================================================================================

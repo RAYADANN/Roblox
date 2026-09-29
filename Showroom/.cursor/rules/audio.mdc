@@ -1,0 +1,34 @@
+---
+description: Звук — SoundManager, категории, layering
+globs: src/client/**/*.luau
+alwaysApply: false
+---
+
+# Аудио
+
+Звук = 50% ощущения polish. Один `client/core/SoundManager.luau`.
+
+## Правила
+
+- Категории: `sfx`, `ui`, `music` — отдельные группы громкости.
+- Кэш `Sound` по `eventId` из `shared/data/SoundDatabase.luau`.
+- UI-клик: `ui_click` на **каждой** кнопке (< 100ms от нажатия).
+- Пиковые моменты: уникальный stinger per tier (не generic break sound).
+- `playWithPitch(eventId, pitch)` для эскалации (hatch shake, sell amount).
+- Музыка: loop + fade in/out, duck на big moment (−30% на 0.3s).
+- Все play обёрнуты в `pcall` — битый assetId не крашит клиент.
+
+## SoundDatabase
+
+```luau
+-- shared/data/SoundDatabase.luau — данные, не код
+return {
+    ui_click = { id = "rbxassetid://0", volume = 0.5 },  -- заменить до релиза
+}
+```
+
+## Антипаттерны
+
+- `Instance.new("Sound")` на каждый клик без кэша
+- Один звук на все rarity tiers
+- Громкость без Settings (см. `accessibility.mdc`)

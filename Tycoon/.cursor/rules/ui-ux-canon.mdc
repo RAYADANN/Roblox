@@ -1,0 +1,21 @@
+---
+description: Канон профессионального game UI/UX. Читать при дизайне/polish интерфейса, палитры, типографики, HUD, world UI.
+globs:
+alwaysApply: false
+---
+
+# UI/UX Canon (theory)
+
+Перед проектированием или крупным polish UI:
+
+1. `docs/ui-ux-canon/00-priority-ladder.md` — какая ступень (не делать ornament до read/respond)
+2. `docs/ui-ux-canon/QUICK_REFERENCE.md`
+3. Жанр: `19-genre-recipes.md` и для Discover sim — `20-roblox-sim-playbook.md`
+4. Тема задачи из `docs/ui-ux-canon/README.md`
+5. Новый экран → `templates/screen-brief.md`
+6. DoD → `18-checklists-dod.md` + метрики `21-benchmarks-metrics.md`
+7. Реализация → `.cursor/rules/professional-ui.mdc` + `docs/UI_ADAPTIVITY.md`
+8. Roblox ловушки → `22-roblox-edge-cases.md`
+9. Учиться структуре → `references/` (не копировать skin)
+
+Только профессиональные правила. Reject: default prompts, neon pads, color-only meaning, случайные отступы, L7 без L1–L3.

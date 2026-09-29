@@ -1,0 +1,27 @@
+--!strict
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local NetTypes = require(ReplicatedStorage.shared.net.NetTypes)
+local React = require(ReplicatedStorage:WaitForChild("Packages").React)
+
+export type HudContextValue = {
+    hud: NetTypes.HudSyncPayload,
+    buyUpgrade: (upgradeId: string) -> (),
+}
+
+local defaultValue: HudContextValue = {
+    hud = {
+        coins = 0,
+        rebirths = 0,
+        upgrades = {},
+        handUid = "",
+        offersJson = "[]",
+        slotsJson = "[]",
+        inventoryJson = "[]",
+    },
+    buyUpgrade = function() end,
+}
+
+local HudContext = React.createContext(defaultValue)
+
+return HudContext

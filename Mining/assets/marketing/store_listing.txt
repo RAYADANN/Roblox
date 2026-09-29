@@ -1,0 +1,115 @@
+================================================================================
+DEEP DIGGER — Store Listing Pack (Zeon Studio)
+================================================================================
+Game: Deep Digger
+Studio: Zeon Studio
+Group: https://www.roblox.com/communities/1066009408
+Place: https://www.roblox.com/games/77149464720360
+
+================================================================================
+ASSETS (upload from assets/marketing/)
+================================================================================
+
+Game Icon (512×512):
+  deep_digger_icon_512x512.png
+
+Thumbnails (1920×1080, max 3 MB — use .jpg if .png is too large):
+  deep_digger_thumbnail_main_1920x1080.jpg     ← primary (set as #1 active)
+  deep_digger_thumbnail_pets_1920x1080.jpg     ← pets / eggs
+  deep_digger_thumbnail_rebirth_1920x1080.jpg  ← rebirth / prestige
+
+Roblox allows up to 10 thumbnails; activate 2–5 best ones in Creator Hub.
+
+================================================================================
+GAME DESCRIPTION — ENGLISH (recommended for Roblox page)
+================================================================================
+
+⛏️ Welcome to DEEP DIGGER — the ultimate mining simulator by Zeon Studio!
+
+Dig through infinite underground layers, sell rare ores, upgrade your pickaxe, hatch powerful pets, and rebirth for massive income multipliers. How deep can YOU go?
+
+✨ FEATURES
+• Infinite depth — 7 unique layers from Grassland to the Void
+• 50+ ores to discover — from Coal to Mythic gems
+• 30+ collectible pets with eggs & rarity tiers
+• Rebirth / Prestige system — reset for permanent multipliers
+• Pickaxe, Speed, Fortune, Crit & Inventory upgrades
+• Daily rewards, quests, achievements & promo codes
+• Global leaderboards (Coins & Depth)
+• VIP, Auto-Sell & Pet Slot gamepasses
+
+🎁 FREE REWARDS
+• Join Zeon Studio group + Favorite the game = bonus coins, gems & boost!
+• Daily login streak rewards
+• Promo codes in-game
+
+👍 Like & Favorite for updates!
+💬 Found a bug? Tell us in group shout or comments.
+
+Made with ❤️ by Zeon Studio — solo indie developer.
+
+Tags: Mining, Simulator, Pets, Rebirth, Idle, Upgrade, Dig, Ores, Eggs
+
+================================================================================
+GAME DESCRIPTION — РУССКИЙ (для соцсетей / Discord / группы)
+================================================================================
+
+⛏️ DEEP DIGGER — симулятор бесконечной шахты от Zeon Studio!
+
+Копай сквозь слои земли, продавай редкую руду, улучшай кирку, открывай питомцев из яиц и делай ребёрт ради огромных множителей. Как глубоко ты сможешь зайти?
+
+✨ ОСОБЕННОСТИ
+• Бесконечная глубина — 7 уникальных слоёв от Grassland до Void
+• 50+ видов руды — от угля до мифических кристаллов
+• 30+ питомцев с яйцами и редкостями
+• Ребёрт — сброс прогресса за постоянный множитель дохода
+• Апгрейды: кирка, скорость, удача, крит, инвентарь
+• Ежедневные награды, квесты, достижения, промокоды
+• Глобальные лидерборды (монеты и глубина)
+• VIP, авто-продажа, доп. слоты питомцев
+
+🎁 БЕСПЛАТНЫЕ НАГРАДЫ
+• Вступи в группу Zeon Studio + добавь в избранное = бонус!
+• Ежедневный стрик наград
+• Промокоды в меню игры
+
+👍 Лайк и избранное — чтобы не пропустить обновления!
+
+================================================================================
+SHORT DESCRIPTION (Creator Hub — if character limit applies, ~350 chars)
+================================================================================
+
+EN: Dig infinite depths, collect 50+ ores, hatch 30+ pets & rebirth for multipliers! Daily rewards, quests, leaderboards & free group bonus. By Zeon Studio.
+
+RU: Копай бесконечную шахту, собирай 50+ руд, открывай 30+ питомцев и делай ребёрт! Ежедневки, квесты, лидерборды и бонус за группу. Zeon Studio.
+
+================================================================================
+SOCIAL / GROUP SHOUT (copy-paste)
+================================================================================
+
+🆕 DEEP DIGGER is LIVE!
+⛏️ Dig · Sell · Upgrade · Rebirth · Collect Pets
+🎁 Join group + Favorite = FREE REWARD in-game!
+👉 Play now: [your game link]
+
+================================================================================
+UPLOAD CHECKLIST (Creator Hub → Creations → Deep Digger)
+================================================================================
+
+[ ] Icon: deep_digger_icon_512x512.png (512×512)
+[ ] Thumbnails: upload 3 JPGs, activate all 3
+[ ] Description: paste ENGLISH version above
+[ ] Genre tags: Simulation, All Genres (or Adventure)
+[ ] Max players: set appropriately
+[ ] Private server price: optional
+[ ] Social links: Zeon Studio group
+[ ] Age recommendation: All Ages (if content allows)
+
+Thumbnail order (recommended):
+  1. Main (hero — miner + gems + title)
+  2. Pets (eggs — appeals to pet sim audience)
+  3. Rebirth (prestige — appeals to grinder audience)
+
+A/B tip: swap thumbnail #1 every 2 weeks and watch visit rate in Analytics.
+
+================================================================================

@@ -1,0 +1,239 @@
+================================================================================
+ZEON NETWORK — Discord Manual Setup Pack (pretty / copy-paste)
+================================================================================
+Roles: keep your 10 (Zeon, Mod, Explorer, Collector, Grinder, Social, Creator,
+       Updates, Codes, Wanderer) — no changes.
+
+================================================================================
+SERVER PROFILE
+================================================================================
+
+Server name:
+  Zeon Network
+
+Description (Server Settings → Profile):
+  🌌 The official multiverse hub of Zeon Studio.
+  Wander between worlds. Catch every signal.
+  Updates · Codes · Community
+
+Discovery / invite splash text:
+  Step through the gate. Join the Network.
+
+Banner image:
+  assets/marketing/zeon_discord_banner.png
+  (upload in Server Settings → Profile → Banner)
+
+Icon:
+  assets/zeon_studio_group_cover_universal.png
+
+================================================================================
+CATEGORIES (create in this order, top → bottom)
+================================================================================
+
+━━ THE GATE ━━       ← info, read-only
+━━ THE NEXUS ━━       ← community chat
+━━ THE CORE ━━        ← studio / dev
+🔊 VOICE              ← voice (no category emoji — cleaner)
+
+================================================================================
+CHANNELS + TOPICS (paste into Channel Description / Topic field)
+================================================================================
+
+── THE GATE ────────────────────────────────────────────────────────────────
+
+#📜·charter
+Topic: The laws of the Network. Read before you wander.
+Pin:
+  ━━━━━━━━━━━━━━━━━━━━━━━
+  ✦ ZEON NETWORK CHARTER ✦
+  ━━━━━━━━━━━━━━━━━━━━━━━
+
+  Welcome to the multiverse, Wanderer.
+
+  ① Respect everyone — no hate, harassment, or drama.
+  ② No spam, scam links, or fake "free Robux" offers.
+  ③ No cheats, exploits, or account trading.
+  ④ Glitches go in #🐛·glitches · Ideas go in #✨·beacons
+  ⑤ Real promo codes are posted only in #🎁·drops
+  ⑥ Any language is welcome — stay civil.
+
+  Break the charter → warn → mute → ban.
+
+  ✦ Different worlds. One network.
+
+#🌌·arrival
+Topic: You made it through the gate. Pick your path below.
+Pin:
+  ━━━━━━━━━━━━━━━━━━━━━━━
+  🌌 WELCOME TO THE ZEON NETWORK
+  ━━━━━━━━━━━━━━━━━━━━━━━
+
+  You've crossed into the hub of every world built by **Zeon Studio**.
+  From here, Wanderers jump between dimensions — simulators, adventures,
+  and whatever comes next.
+
+  ── ✦ CHOOSE YOUR PATH (pick one) ──
+  🧭 Explorer  · discover new worlds & mechanics
+  💎 Collector  · hunt rare finds & 100% completions
+  ⚡ Grinder    · ranks, progress & leaderboards
+  💬 Social     · events, help & good vibes
+  🎨 Creator    · ideas, art & feedback
+
+  ── ✦ SIGNAL PINGS (optional) ──
+  📡 Updates  · new worlds & major patches
+  🎁 Codes    · promo code drops
+
+  React below to claim your roles ↑
+
+  ── ✦ PORTALS ──
+  🎮 Play     → [your Roblox game link]
+  👥 Group    → https://www.roblox.com/communities/1066009408
+  ⭐ Support the studio — Like & Favorite the game!
+
+#📡·signals
+Topic: Transmissions from Zeon Studio. Major news only. · Ping: @Updates
+Type: Announcement channel (after Community is enabled)
+First post:
+  📡 **TRANSMISSION #001 — NETWORK ONLINE**
+
+  The Zeon Network is live.
+
+  This channel carries official signals from the studio:
+  new worlds, updates, events & maintenance.
+
+  Want a ping? Grab **@Updates** in #🌌·arrival
+
+  ✦ Stay tuned, Wanderer.
+
+#🎁·drops
+Topic: Official supply drops — promo codes for all Zeon worlds. · Ping: @Codes
+First post:
+  🎁 **SUPPLY DROPS**
+
+  Real promo codes land here. No fakes. No DMs.
+
+  Grab the **@Codes** role in #🌌·arrival to get pinged.
+
+  ━━━━━━━━━━━━━━━━━━━━━━━
+  No active drops right now — check back soon.
+  ━━━━━━━━━━━━━━━━━━━━━━━
+
+#🔗·portals
+Topic: Gateways to Zeon worlds & official links.
+Pin:
+  🔗 **OFFICIAL PORTALS**
+
+  🎮 **Deep Digger** (live)
+  → [Roblox game link]
+
+  👥 **Zeon Studio** (Roblox Group)
+  → https://www.roblox.com/communities/1066009408
+
+  🛠️ **More worlds incoming...**
+  The Network is expanding. New portals open with each release.
+
+── THE NEXUS ───────────────────────────────────────────────────────────────
+
+#💬·lounge
+Topic: The heart of the Network — talk about anything Zeon.
+Slowmode: 3s (optional, if busy)
+
+#🆘·help
+Topic: Lost in a world? Ask here. Someone will point the way.
+Pin:
+  🆘 **NEED HELP?**
+
+  Ask your question in one message:
+  • Which game?
+  • What are you trying to do?
+  • Platform: PC / Mobile
+
+  Someone from the Network will answer.
+
+#🐛·glitches
+Topic: Reality broke? Report it here. One glitch = one message.
+Pin:
+  ⚠️ **GLITCH REPORT**
+
+  Copy & fill:
+  ```
+  World: (which game)
+  What happened:
+  Steps: 1)  2)  3)
+  Platform: PC / Mobile
+  Screenshot: (attach)
+  ```
+
+#✨·beacons
+Topic: Send up a beacon — feature ideas for any Zeon world.
+Pin:
+  ✨ **IDEA BEACONS**
+
+  Got an idea? Post it:
+  • Which world is it for?
+  • What would it add?
+  • Why would it be fun?
+
+  Vote with 👍 / 👎 on ideas you like.
+
+── THE CORE ─────────────────────────────────────────────────────────────────
+
+#🔮·signals
+Topic: Behind the curtain — dev logs, WIP, sneak peeks. · Ping: @Updates
+First post:
+  🔮 **DEV SIGNALS**
+
+  Raw transmissions from the studio.
+  Work-in-progress, roadmaps, and honest updates.
+
+  Not every idea ships — but every idea is heard.
+
+── VOICE ────────────────────────────────────────────────────────────────────
+
+Voice · Nexus
+Topic: Hang out, grind together, or just vibe.
+
+================================================================================
+PERMISSIONS CHEAT SHEET
+================================================================================
+
+THE GATE channels (#charter, #arrival, #signals, #drops, #portals):
+  @everyone     → View #charter + #arrival only (no send)
+  @Wanderer     → View all GATE channels, Send ❌
+  @Zeon         → Send ✅
+
+THE NEXUS + THE CORE (#lounge, #help, #glitches, #beacons, #signals dev):
+  @everyone     → View ❌
+  @Wanderer     → View ✅, Send ✅
+  @Zeon         → Full access
+
+Onboarding (Community → Onboarding):
+  Default channels shown: #charter, #arrival, #lounge
+  Grant role on accept: Wanderer
+  Optional questions: Updates, Codes
+
+================================================================================
+REACTION ROLES (post in #arrival, add reactions manually or via Carl-bot)
+================================================================================
+
+🧭 → Explorer
+💎 → Collector
+⚡ → Grinder
+💬 → Social
+🎨 → Creator
+📡 → Updates
+🎁 → Codes
+
+================================================================================
+OPTIONAL POLISH (5 min, big visual upgrade)
+================================================================================
+
+□ Upload banner: assets/marketing/zeon_discord_banner.png
+□ Upload icon:  assets/zeon_studio_group_cover_universal.png
+□ Server accent color: #7C4DFF (purple) in Server Settings → Profile
+□ Enable Community + Onboarding
+□ Mark #signals as Announcement channel
+□ Add slowmode 3s on #lounge if spam appears
+□ Pin first post in every GATE channel (text above)
+
+================================================================================

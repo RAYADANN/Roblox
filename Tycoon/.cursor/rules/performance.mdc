@@ -1,0 +1,41 @@
+---
+description: Производительность — mobile-first, пулинг, бюджеты
+globs: src/**/*.luau
+alwaysApply: false
+---
+
+# Производительность
+
+Профи оптимизируют **до** жалоб игроков. Тестируй на слабом устройстве, не на десктопе.
+
+## Правила
+
+- **Object pooling** для частых spawn/destroy (монеты, частицы, блоки). `Trove` для cleanup.
+- Лимит одновременных FX (queue cap, как OreDiscovery max 6).
+- `Debris:AddItem` или pool return — никогда не оставлять orphan instances.
+- Горячие пути: без аллокаций в Heartbeat (переиспользуй таблицы).
+- Сервер: rate-limit + batch-cap на частые действия (CPS, mine batch).
+- Клиент: `StreamingEnabled` для больших миров.
+
+## Бюджеты (ориентиры)
+
+| Что | Лимит |
+|-----|-------|
+| Particles per FX burst | через `QualityLogic` (Low ≤12 … Ultra ≤72) |
+| Concurrent world FX | Low 4 / Med 8 / High 14 / Ultra 20 |
+| Active tweens per screen | ≤ 20 |
+| Remote calls per second per player | ≤ 15 |
+| HUD re-render | Только при изменении payload, не каждый кадр |
+
+World VFX: `docs/VFX_ENGINE.md` — device tier + FPS adapt. Не обходи `BudgetGate`.
+
+## Профайлинг
+
+- MicroProfiler в Studio перед релизом.
+- Если FPS < 30 на phone — режь FX/полигоны, не добавляй ECS.
+
+## Антипаттерны
+
+- 100+ `Instance.new` за один кадр (coin rain без pool)
+- `GetDescendants()` в Heartbeat
+- Отправка полного инвентаря каждый тик

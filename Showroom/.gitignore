@@ -1,0 +1,25 @@
+# Rojo build output (артефакты, не код)
+*.rbxl
+*.rbxlx
+*.rbxm
+*.rbxmx
+sourcemap.json
+serve.log
+
+# Wally packages (восстанавливаются через `wally install`)
+/Packages
+/ServerPackages
+/DevPackages
+# wally.lock КОММИТИТСЯ — не игнорируем (воспроизводимость сборки)
+
+# Lune
+.lune/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Zap codegen output (регенерируется из .zap)
+# src/shared/net/  # раскомментируй, если генеришь в отслеживаемую папку и не хочешь коммитить

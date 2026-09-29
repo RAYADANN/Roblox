@@ -1,0 +1,381 @@
+--!strict
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Constants = require(ReplicatedStorage:WaitForChild("shared").constants)
+local RebirthLogic = require(ReplicatedStorage:WaitForChild("shared").util.RebirthLogic)
+local Localization = require(ReplicatedStorage:WaitForChild("shared").loc.Localization)
+local UpgradeMeta = require(script.Parent.UpgradeMeta)
+
+export type InventoryEntry = { oreId: string, count: number }
+
+export type UpgradeLevels = { [string]: { level: number } }
+
+-- Phase 10: payload-секции для daily / boosts / leaderboard. Сервер
+-- (init.server.lua buildHudPayload) формирует их через DailyLogic /
+-- PlayerBoosts.toPayloadList. Клиент сюда складывает as-is, без логики.
+export type DailyStatePayload = {
+    canClaim: boolean?,
+    currentStreak: number?,
+    nextDay: number?,
+    totalDaysClaimed: number?,
+    secondsUntilNextDay: number?,
+}
+
+export type ActiveBoostPayload = {
+    kind: string?,
+    multiplier: number?,
+    remaining: number?,
+    source: string?,
+    expiresAt: number?,
+}
+
+export type LeaderboardPlacementPayload = {
+    coinsRank: number?,
+    depthRank: number?,
+    coinsValue: number?,
+    depthValue: number?,
+}
+
+-- Phase 11: pet payload-секции.
+export type PetRecordPayload = {
+    uid: string,
+    petId: string,
+}
+
+export type PetEffectsPayload = {
+    damage: number?,
+    luck: number?,
+    coin: number?,
+    multiMine: number?,
+    equippedCount: number?,
+}
+
+export type ServerPlayerPayload = {
+    coins: number?,
+    gems: number?,
+    depth: number?,
+    layer: string?,
+    layerName: string?,
+    inventory: { InventoryEntry } | { [string]: number }?,
+    pickaxeLevel: number?,
+    speedLevel: number?,
+    fortuneLevel: number?,
+    inventoryLevel: number?,
+    critLevel: number?,
+    multiSellLevel: number?,
+    autoSellUnlocked: boolean?,
+    totalBlocksMined: number?,
+    totalCoinsEarned: number?,
+    bossesDefeated: number?,
+    maxDepthReached: number?,
+    -- Phase 8: 0..3, см. Constants.TUTORIAL_STEPS.
+    tutorialStep: number?,
+    -- Phase 9: prestige. rebirths — счётчик, rebirthMultiplier —
+    -- денормализованный множитель к value руд (1 + rebirths * 0.1).
+    rebirths: number?,
+    rebirthMultiplier: number?,
+    -- Phase 10: retention-state.
+    dailyState: DailyStatePayload?,
+    activeBoosts: { ActiveBoostPayload }?,
+    leaderboardPlacement: LeaderboardPlacementPayload?,
+    -- Phase 11: pets.
+    pets: { PetRecordPayload }?,
+    equippedPet: string?,
+    petEffects: PetEffectsPayload?,
+    -- Phase 12: монетизация.
+    gamepasses: { [string]: boolean }?,
+    shopPurchases: { [string]: boolean }?,
+    equippedUids: { string }?,
+    petMaxEquipped: number?,
+    -- Phase 13: журнал находок.
+    discoveredOres: { [string]: boolean }?,
+    discoveredMilestones: { [string]: boolean }?,
+    discoveryProgress: { found: number?, total: number? }?,
+    questActive: QuestActivePayload?,
+    questClaimedCount: number?,
+    questTotalCount: number?,
+    achievements: { AchievementPayload }?,
+    equippedTitleId: string?,
+    dailyQuests: DailyQuestsPayload?,
+    socialReward: SocialRewardPayload?,
+}
+
+export type SocialRewardPayload = {
+    claimed: boolean?,
+    promptSeen: boolean?,
+    favoriteConfirmed: boolean?,
+    inGroup: boolean?,
+    canClaim: boolean?,
+}
+
+export type DailyQuestEntry = {
+    id: string,
+    name: string,
+    desc: string,
+    metric: string,
+    target: number,
+    progress: number,
+    claimable: boolean,
+    claimed: boolean,
+    reward: { coins: number?, gems: number? },
+}
+
+export type DailyQuestsPayload = {
+    quests: { DailyQuestEntry },
+    secondsUntilReset: number,
+}
+
+export type QuestActivePayload = {
+    id: string,
+    name: string,
+    desc: string,
+    metric: string?,
+    progress: number,
+    target: number,
+    claimable: boolean,
+    reward: { coins: number?, gems: number? },
+}
+
+export type AchievementPayload = {
+    id: string,
+    name: string,
+    description: string,
+    icon: string,
+    unlocked: boolean,
+    reward: { coins: number?, gems: number?, aura: string? },
+}
+
+export type MappedPlayerData = {
+    coins: number,
+    gems: number,
+    inventory: { InventoryEntry },
+    upgrades: UpgradeLevels,
+    totalBlocksMined: number,
+    totalCoinsEarned: number,
+    bossesDefeated: number,
+    maxDepthReached: number,
+    tutorialStep: number,
+    rebirths: number,
+    rebirthMultiplier: number,
+    dailyState: DailyStatePayload,
+    activeBoosts: { ActiveBoostPayload },
+    leaderboardPlacement: LeaderboardPlacementPayload,
+    pets: { PetRecordPayload },
+    equippedPet: string?,
+    petEffects: PetEffectsPayload,
+    gamepasses: { [string]: boolean },
+    shopPurchases: { [string]: boolean },
+    equippedUids: { string },
+    petMaxEquipped: number,
+    discoveredOres: { [string]: boolean },
+    discoveredMilestones: { [string]: boolean },
+    discoveryProgress: { found: number, total: number },
+    questActive: QuestActivePayload?,
+    questClaimedCount: number,
+    questTotalCount: number,
+    achievements: { AchievementPayload },
+    equippedTitleId: string?,
+    dailyQuests: DailyQuestsPayload,
+    socialReward: SocialRewardPayload,
+}
+
+local PlayerDataMapper = {}
+
+function PlayerDataMapper.normalizeInventory(inv: any): { InventoryEntry }
+    local result: { InventoryEntry } = {}
+    if typeof(inv) ~= "table" then
+        return result
+    end
+    local first = inv[1]
+    if first and typeof(first) == "table" and first.oreId then
+        for _, item in ipairs(inv) do
+            if item.oreId and item.count and item.count > 0 then
+                table.insert(result, { oreId = item.oreId, count = item.count })
+            end
+        end
+    else
+        for oId, c in pairs(inv) do
+            if type(c) == "number" and c > 0 then
+                table.insert(result, { oreId = oId, count = c })
+            end
+        end
+    end
+    return result
+end
+
+function PlayerDataMapper.resolveLayerName(layerId: string, layerName: string?): string
+    -- Локализованное имя слоя по стабильному id (ключ layer.{id}.name).
+    -- Игнорируем сырое server-payload имя, чтобы всегда показывать язык сессии.
+    local nameKey = "layer." .. layerId .. ".name"
+    if Localization.has(nameKey) then
+        return Localization.t(nameKey)
+    end
+    if layerName then
+        return layerName
+    end
+    for _, layer in ipairs(Constants.LAYERS) do
+        if layer.id == layerId then
+            return layer.name
+        end
+    end
+    return layerId
+end
+
+local function upgradeLevel(payload: ServerPlayerPayload, id: string): number
+    if id == "pickaxe" then
+        return payload.pickaxeLevel or 1
+    elseif id == "speed" then
+        return payload.speedLevel or 1
+    elseif id == "fortune" then
+        return payload.fortuneLevel or 1
+    elseif id == "inventory" then
+        return payload.inventoryLevel or 1
+    elseif id == "crit" then
+        return payload.critLevel or 1
+    elseif id == "multiSell" then
+        return payload.multiSellLevel or 1
+    end
+    return 1
+end
+
+function PlayerDataMapper.mapUpgrades(payload: ServerPlayerPayload): UpgradeLevels
+    local ups: UpgradeLevels = {}
+    for _, id in ipairs(UpgradeMeta.ORDER) do
+        if id == "autoSell" then
+            ups[id] = { level = if payload.autoSellUnlocked then 1 else 0 }
+        else
+            ups[id] = { level = upgradeLevel(payload, id) }
+        end
+    end
+    return ups
+end
+
+local DEFAULT_DAILY_STATE: DailyStatePayload = {
+    canClaim = false,
+    currentStreak = 0,
+    nextDay = 1,
+    totalDaysClaimed = 0,
+    secondsUntilNextDay = 0,
+}
+
+local DEFAULT_LEADERBOARD: LeaderboardPlacementPayload = {
+    coinsRank = nil,
+    depthRank = nil,
+    coinsValue = 0,
+    depthValue = 0,
+}
+
+local DEFAULT_PET_EFFECTS: PetEffectsPayload = {
+    damage = 1,
+    luck = 1,
+    coin = 0,
+    multiMine = 0,
+    equippedCount = 0,
+}
+
+-- Нормализует список pet-записей. Сервер шлёт { uid, petId } (без def'ов —
+-- их PetsPanel резолвит через PetDatabase). Битые записи отбрасываем.
+local function normalizePets(pets: any): { PetRecordPayload }
+    local result: { PetRecordPayload } = {}
+    if typeof(pets) ~= "table" then
+        return result
+    end
+    for _, rec in ipairs(pets) do
+        if typeof(rec) == "table" and typeof(rec.uid) == "string" and typeof(rec.petId) == "string" then
+            table.insert(result, { uid = rec.uid, petId = rec.petId })
+        end
+    end
+    return result
+end
+
+local function copyStringArray(arr: { string }): { string }
+    local copy: { string } = {}
+    for i, v in ipairs(arr) do
+        copy[i] = v
+    end
+    return copy
+end
+
+local function normalizeEquippedUids(payload: ServerPlayerPayload): { string }
+    if typeof(payload.equippedUids) == "table" then
+        return copyStringArray(payload.equippedUids)
+    end
+    local eq = payload.equippedPet
+    if typeof(eq) == "string" and eq ~= "" then
+        return { eq }
+    end
+    if typeof(eq) == "table" then
+        return copyStringArray(eq)
+    end
+    return {}
+end
+
+function PlayerDataMapper.fromServer(payload: ServerPlayerPayload): MappedPlayerData
+    local rebirths = payload.rebirths or 0
+    local daily = payload.dailyState or DEFAULT_DAILY_STATE
+    local boosts = payload.activeBoosts or {}
+    local placement = payload.leaderboardPlacement or DEFAULT_LEADERBOARD
+    return {
+        coins = payload.coins or 0,
+        -- P1.6: гемы перестали быть «мёртвыми» — теперь это валюта Desert Egg
+        -- (PetsPanel). Раньше тут было жёстко 0 (валюта скрыта без сейва).
+        gems = payload.gems or 0,
+        inventory = PlayerDataMapper.normalizeInventory(payload.inventory),
+        upgrades = PlayerDataMapper.mapUpgrades(payload),
+        totalBlocksMined = payload.totalBlocksMined or 0,
+        totalCoinsEarned = payload.totalCoinsEarned or 0,
+        bossesDefeated = payload.bossesDefeated or 0,
+        maxDepthReached = payload.maxDepthReached or 0,
+        tutorialStep = payload.tutorialStep or 0,
+        rebirths = rebirths,
+        -- Если сервер не прислал — считаем через RebirthLogic (P1.4:
+        -- мультипликативная кривая). Последний рубеж/фолбэк.
+        rebirthMultiplier = payload.rebirthMultiplier or RebirthLogic.valueMultiplier(rebirths),
+        dailyState = {
+            canClaim = daily.canClaim or false,
+            currentStreak = daily.currentStreak or 0,
+            nextDay = daily.nextDay or 1,
+            totalDaysClaimed = daily.totalDaysClaimed or 0,
+            secondsUntilNextDay = daily.secondsUntilNextDay or 0,
+        },
+        activeBoosts = boosts,
+        leaderboardPlacement = {
+            coinsRank = placement.coinsRank,
+            depthRank = placement.depthRank,
+            coinsValue = placement.coinsValue or 0,
+            depthValue = placement.depthValue or 0,
+        },
+        pets = normalizePets(payload.pets),
+        equippedPet = payload.equippedPet,
+        petEffects = payload.petEffects or DEFAULT_PET_EFFECTS,
+        gamepasses = if typeof(payload.gamepasses) == "table" then payload.gamepasses else {},
+        shopPurchases = if typeof(payload.shopPurchases) == "table" then payload.shopPurchases else {},
+        equippedUids = normalizeEquippedUids(payload),
+        petMaxEquipped = payload.petMaxEquipped or 1,
+        discoveredOres = if typeof(payload.discoveredOres) == "table" then payload.discoveredOres else {},
+        discoveredMilestones = if typeof(payload.discoveredMilestones) == "table" then payload.discoveredMilestones else {},
+        discoveryProgress = {
+            found = (payload.discoveryProgress and payload.discoveryProgress.found) or 0,
+            total = (payload.discoveryProgress and payload.discoveryProgress.total) or 0,
+        },
+        questActive = payload.questActive,
+        questClaimedCount = payload.questClaimedCount or 0,
+        questTotalCount = payload.questTotalCount or 0,
+        achievements = if typeof(payload.achievements) == "table" then payload.achievements else {},
+        equippedTitleId = if typeof(payload.equippedTitleId) == "string" then payload.equippedTitleId else nil,
+        dailyQuests = if typeof(payload.dailyQuests) == "table"
+            then payload.dailyQuests
+            else { quests = {}, secondsUntilReset = 0 },
+        socialReward = if typeof(payload.socialReward) == "table"
+            then payload.socialReward
+            else {
+                claimed = false,
+                promptSeen = false,
+                favoriteConfirmed = false,
+                inGroup = false,
+                canClaim = false,
+            },
+    }
+end
+
+return PlayerDataMapper

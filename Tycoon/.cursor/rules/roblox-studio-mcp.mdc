@@ -1,0 +1,52 @@
+---
+description: Roblox Studio MCP — always target the Tycoon place, never another open Studio.
+alwaysApply: true
+---
+
+# Roblox Studio MCP — Tycoon only
+
+This repo is **Tycoon** at `C:\Projects\Roblox\Tycoon`. Other Roblox projects on the same machine (e.g. **Aim Map 1v1**, **roblox-starter**) may also have Studio open — MCP does **not** auto-pick the workspace folder.
+
+## Before every MCP call
+
+1. Call `list_roblox_studios` (no args). **Never** reuse a `studio_id` from chat history or `"default"`.
+2. Pick the instance whose `name` matches **Tycoon**:
+   - Place file: `Tycoon (3).rbxl` (or any `Tycoon*.rbxl*` in this folder)
+   - Path contains: `C:\Projects\Roblox\Tycoon`
+3. If **zero** instances → stop and tell the user to open `Tycoon (3).rbxl` with the MCP plugin connected.
+4. If **multiple** candidates → prefer the one whose name/path includes `Tycoon`; if still ambiguous, **ask the user** before mutating the place.
+5. Pass the chosen `id` as `studio_id` on **every** MCP tool (`get_studio_state`, `upload_image`, `execute_luau`, etc.).
+
+## Sanity check (after picking)
+
+Run `execute_luau` (Edit) once to confirm Tycoon, not another game:
+
+```luau
+local shared = game:GetService("ReplicatedStorage"):FindFirstChild("shared")
+local farmHud = shared and shared:FindFirstChild("data") and shared.data:FindFirstChild("FarmDatabase")
+local islands = 0
+for _, c in workspace:GetChildren() do
+	if c.Name == "Island" then islands += 1 end
+end
+return string.format(
+	"tycoon=%s islands=%d",
+	tostring(farmHud ~= nil),
+	islands
+)
+```
+
+Expect `tycoon=true` and `islands=6`. If not — wrong Studio; re-run `list_roblox_studios` and pick again.
+
+## Wrong targets (do not use)
+
+| Project | Why wrong |
+|---------|-----------|
+| Aim Map 1v1 | Different game; UI reference only — lives in `C:\Projects\Roblox\Aim Map 1v1` |
+| roblox-starter | Template repo, not this place |
+
+## User checklist (when MCP shows 0 studios)
+
+1. Open **`C:\Projects\Roblox\Tycoon\Tycoon (3).rbxl`** in Roblox Studio (not another place).
+2. Enable / connect the **Studio MCP** plugin (green connected state).
+3. Close other Studio windows if you only work on Tycoon — reduces pick errors.
+4. Retry `list_roblox_studios` in Cursor.

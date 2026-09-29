@@ -1,0 +1,76 @@
+---
+description: React-Lua UI component patterns
+globs: "src/client/**/*.luau,src/client/**/*.lua"
+alwaysApply: false
+---
+
+# UI на React-Lua
+
+Стек UI — `jsdotlua/react` + `react-roblox`. Пиши как современный React.
+
+## Компоненты
+
+- **Function-компоненты + хуки.** Класс-компоненты не используем.
+- Компонент чистый: `props` внутрь → элемент наружу. Никакой бизнес-логики/сети/DataStore внутри — только представление и локальный UI-стейт.
+- Один компонент = один файл, `PascalCase.luau`. Атомарные виджеты (кнопка, чип, ряд) — переиспользуемые, без игро-специфики.
+
+```luau
+--!strict
+local React = require(Packages.React)
+
+export type Props = { label: string, coins: number, onBuy: () -> () }
+
+local function ShopCard(props: Props): React.Node
+    local hovered, setHovered = React.useState(false)
+    return React.createElement("TextButton", {
+        Text = props.label,
+        [React.Event.Activated] = props.onBuy,
+        [React.Event.MouseEnter] = function() setHovered(true) end,
+    })
+end
+
+return ShopCard
+```
+
+## Состояние и эффекты
+
+- Серверные данные приходят пропсами/через контекст-стор — компонент их не запрашивает сам.
+- Побочки — в `useEffect` с **обязательной функцией очистки** (connections, tween'ы, таймеры).
+- Дорогие вычисления — `useMemo`; колбэки в зависимостях — `useCallback`.
+
+## Моушен — приоритет (Flipper)
+
+UI — одна из важнейших частей игры. Статичный UI = «прототип». Анимируем через **Flipper** (пружины), простые переходы — `TweenService`.
+
+- **Пружины для «живости»:** рост чисел (монеты/глубина), появление панелей (scale/position spring), эластичные кнопки (hover/press). Используй spring, а не линейный tween, там где нужен «отклик».
+- Оборачивай моторы Flipper в хук (`useSpring`/`useMotor`) с очисткой в `useEffect` — мотор запускается на mount, останавливается на unmount.
+- Числа-счётчики: анимируй **отображаемое** значение (spring к таргету), но авторитетное значение держи точным (мгновенным) для логики «хватает ли монет».
+
+```luau
+-- псевдо-паттерн: пружинящее число
+local display = useSpring(props.coins, { frequency = 4 })
+-- рендерим math.floor(display), логику считаем по props.coins
+```
+
+## Переиспользуемость (но без преждевременной абстракции)
+
+- Пиши атомы (кнопка/панель/прогресс/тултип) как самодостаточные компоненты — но выноси их в общий Wally-пакет **после релиза игры №1**, когда паттерны проверены (см. `workflow.mdc`). Не проектируй UI-кит вслепую до первого игрока.
+- Держи цвета/отступы/типографику в `src/client/ui/theme.luau` (design tokens), а не хардкодь по компонентам.
+
+## Адаптивность (обязательно)
+
+- **Все размеры** — через `useLayout()` → `layout.px()`, `layout.text()`, `layout.gap()`, `layout.touch()`.
+- **Tier** (`phone`/`tablet`/`desktop`) — только для структуры (show/hide), **не** для пикселей.
+- Модалки: design space (`theme.Design.MODAL_W/H`) + `layout.modalFitScale()` на `UIScale`.
+- Подробно: `docs/UI_ADAPTIVITY.md` и `professional-ui.mdc`.
+
+```luau
+local useLayout = require(script.Parent.hooks.useLayout)
+local layout = useLayout()
+-- Size = UDim2.fromOffset(layout.px(52), layout.px(52))
+```
+
+## Производительность
+
+- Не пересоздавай крупные деревья каждый кадр. Для списков — стабильные `key`.
+- Тяжёлый мир/партиклы — это НЕ React; держи вне дерева компонентов.

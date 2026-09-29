@@ -1,0 +1,118 @@
+---
+description: Архитектура игры — слои, папки, паттерн фичи, DI, поток данных. Главная конституция проекта.
+alwaysApply: true
+---
+
+# Архитектура игры
+
+Полная версия с диаграммами: `docs/GAME_ARCHITECTURE.md`.
+При проектировании фичи — следуй этому rule + чеклисту в конце.
+
+## Слои (не нарушать)
+
+```
+shared/  → данные, типы, pure-логика (единственный источник правды)
+server/  → валидация, профиль, игровые менеджеры
+client/  → React UI + рендер/FX/контроллеры
+```
+
+- **shared** не трогает `game`/`workspace`/`Players` — тестируется в CI (Lune).
+- **server** авторитетен для всего, что влияет на прогресс.
+- **client** отправляет намерение, отображает результат. Не пишет в профиль.
+- **Видимость в мире** (петы, aura, 3D-косметика): сервер владеет состоянием, все клиенты рендерят — см. `client-server-split.mdc` и `docs/CLIENT_SERVER.md`.
+
+## Структура папок
+
+```
+src/shared/types/     PlayerData, HudPayload, сетевые типы
+src/shared/data/      Constants, *Database (конфиги, не код)
+src/shared/util/      *Logic (pure, + тест в tests/)
+src/server/core/      *Manager (DI, валидация, запись профиля)
+src/server/economy/   крупные фичи — подмодули (SellInventory и т.п.)
+src/client/core/      рендер мира, SoundManager, контроллеры (НЕ React)
+src/client/ui/        React: components/, panels/, hooks/, fx/
+```
+
+`init.server.luau` и `init.client.luau` — **только boot** (≤100 строк). Без бизнес-логики.
+
+## Паттерн фичи (обязательный)
+
+Каждая система = 4 части:
+
+1. **`shared/util/XLogic`** — формулы, pure, тест
+2. **`shared/data/XDatabase`** — если есть таблицы баланса
+3. **`server/core/XManager`** — `XManager.new(deps)`, валидация, mutate profile
+4. **`client/ui/`** — React-компоненты, props in → UI out
+
+Сеть — только **Zap** (`net.zap` → codegen). Сырые RemoteEvent запрещены.
+
+## DI (зависимости)
+
+```luau
+-- ✅
+export type Deps = { getProfile: (Player) -> PlayerData?, saveProfile: (...) -> () }
+function XManager.new(deps: Deps): XManager ... end
+
+-- ❌ синглтоны, _G, Knit.GetService, require соседнего менеджера напрямую
+```
+
+Boot-порядок: `ProfileManager` → economy → gameplay managers → Zap handlers.
+
+## Поток данных
+
+```
+Действие: Client intent (Zap) → Manager.validate → Logic.compute → profile.save → notify/sync → Client UI
+Загрузка: PlayerAdded → ProfileStore → buildHudPayload → Zap sync → React state
+```
+
+- Клиент получает **HudPayload** (проекция), не сырой профиль.
+- Производные значения (множители, DPS) — считай из `*Logic`, не храни в профиле.
+
+## Размер файлов
+
+≤300 строк (ориентир), ≤500 (предел). `init.*` ≤100. Перевалил — дроби в этой же задаче.
+
+## UI vs Core на клиенте
+
+| | `client/ui/` | `client/core/` |
+|---|-------------|----------------|
+| Технология | React-Lua | Instance/Trove |
+| Знает про | props, layout | workspace, визуал |
+| Бизнес-логика | **запрещена** | тонкий glue к shared |
+
+FX-моменты — `client/ui/fx/`, imperative, вне React-дерева.
+
+## Чеклист новой фичи
+
+0. **Визуал в мире?** Другие игроки видят? → `client-server-split.mdc`; если неясно — спроси пользователя
+1. Scope/BACKLOG (`workflow.mdc`)
+2. `shared/types` — поля PlayerData + TEMPLATE
+3. `shared/data` — конфиги
+4. `shared/util/*Logic` + тест
+5. `server/core/*Manager` + Zap
+6. `client/ui` компоненты
+7. Wire в `init.server` / `init.client`
+8. CI зелёный + playtest
+
+## Связанные rules
+
+- Сеть: `networking.mdc` | Client/Server видимость: `client-server-split.mdc`
+- Профиль: `data-persistence.mdc`
+- Безопасность: `security.mdc` | Тесты: `testing.mdc`
+- UI: `ui-react.mdc`, `professional-ui.mdc` | Адаптив: `docs/UI_ADAPTIVITY.md`
+- Scope: `workflow.mdc` | Индекс: `template.mdc` | AI: `AGENTS.md`
+- Аналитика: `analytics.mdc` | Звук: `audio.mdc` | Перф: `performance.mdc`
+- Монетизация: `monetization.mdc` | A11y: `accessibility.mdc`
+- FX: `fx.mdc` | Локализация: `localization.mdc`
+- Типы: `luau.mdc` | CI: `git-ci.mdc`
+
+## Антипаттерны (reject)
+
+- Бизнес-логика в `init.server` / RemoteEvent handler / React component
+- Дублирование формул на клиенте и сервере
+- Client-trusted coins/depth/inventory
+- LocalPlayer-only 3D без серверной репликации (петы, aura) — см. `client-server-split.mdc`
+- `any` на границах модулей
+- God-файлы 500+ строк
+- Мёртвые поля в профиле «на будущее»
+- Синглтоны и `_G`

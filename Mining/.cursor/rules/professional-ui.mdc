@@ -1,0 +1,392 @@
+---
+description: Спецификация профессионального UI/FX для Roblox — поэлементные требования. Используй при запросе «профессиональный UI», «polish», «как в топ-играх».
+globs: src/client/ui/**
+alwaysApply: false
+---
+
+# Professional UI Spec (Roblox / Deep Digger)
+
+Когда пользователь просит **профессиональный UI** — следуй этому документу **полностью**. Не «улучшай по ощущениям» — проверяй каждый пункт Definition of Done в конце.
+
+## Обязательный стек (не изобретать своё)
+
+| Задача | Модуль |
+|--------|--------|
+| Цвета, шрифты, радиусы, rarity | `src/client/ui/hud/theme.lua` |
+| Размеры, тиры phone/tablet/desktop | `src/client/ui/util/ViewportLayout.lua` |
+| Текст в модалках | `src/client/ui/hud/PanelScale.lua` (`text`, `gsc`, `modalText`) |
+| ScreenGui слои | `src/client/ui/util/UiScreen.lua` (hud=20, modal=92, toast=100, fx=200) |
+| Анимации HUD | `src/client/ui/util/UiMotion.lua` — **только** эти пресеты |
+| Hover/press кнопок | `src/client/ui/util/UiInteract.lua` или `UiMotion.bindHoverPress` |
+| Иконки | `UiIcon.create` / `UiAssets` |
+| Локализация | `Localization.t("key")` — **никакого** хардкода текста |
+| Звук клика/действия | `SoundManager.play(eventId)` |
+| Fusion-компонент | `ScopeFactory` scope, `export type Props`, `Component.create(s, props)` |
+| Числа с count-up | `AnimatedNumber` + отдельный authoritative value |
+| FX-моменты | отдельный `*FX.lua`, ScreenGui profile `fx`, `pcall`, `Debris` |
+
+**Запрещено:** хардкод `Color3.fromRGB` вне theme, свои `TweenInfo` вместо `UiMotion.*`, размеры без `ViewportLayout`/`PanelScale`, бизнес-логика внутри visual-компонента.
+
+---
+
+## Универсальные правила (каждый элемент)
+
+### Визуальная иерархия
+1. **Один главный акцент** на экране/секции — остальное приглушено (`C.textMuted`, `ICON.inactiveAlpha`).
+2. **Контраст текста:** main `C.textMain`, подписи `C.textSub`, второстепенное `C.textMuted`.
+3. **Воздух:** padding кратен 4/8/12/16. Между секциями ≥ 12px (через `sc()`/`chromePx()`).
+4. **Глубина:** фон `bg2/bg3` → карточка `panelBody` → hover `bg4`. Обводка `UIStroke` + опционально `UIGradient` (белый→серый, rotation 90, transparency 0.7–0.92).
+
+### Геометрия
+- Размеры **кратны 2**. `BorderSizePixel = 0` везде, обводка через `UIStroke`.
+- `ApplyStrokeMode = Border` (default). Толщины: `theme.STROKE.thin/medium/thick`.
+- Радиусы: `theme.RADIUS.chip/btn/panel/navBtn` — не выдумывать.
+- Touch-target **минимум 44×44px** на phone (`ViewportLayout` уже учитывает — не уменьшать).
+- `TextTruncate = AtEnd` для однострочных подписей в узких ячейках.
+
+### Анимация (motion design)
+Все тайминги — из `UiMotion`:
+- Hover: `HOVER` (120ms Quad Out), scale **1.04–1.07**
+- Press: `PRESS` (80ms Back Out), scale **0.93–0.95**
+- Pop-награда: `POP` (320ms Back Out)
+- Modal in: `MODAL_IN` (280ms Back Out)
+- Modal out: `MODAL_OUT` (150ms Quad In) — **быстрее**, чем вход
+- Fade: `FADE` (180ms)
+
+**Правило:** появление = ease out, исчезновение = ease in. Stagger дочерних элементов: 40–80ms между слоями.
+
+### Отзывчивость (обязательно)
+Любое действие игрока:
+1. **0ms** — локальный фидбек (scale press / звук `ui_click` / визуальное подтверждение)
+2. **До ответа сервера** — не пустой экран (disabled state, spinner, или optimistic UI)
+3. **Успех** — pop + звук + опционально FX
+4. **Ошибка** — shake (`UiMotion.shake`) + toast + звук `*_fail`
+
+### Адаптив
+- Подписка на resize: `layoutEpoch` + `ViewportLayout.subscribe()` в Computed.
+- Модалки: `PanelScale.modalText/modalGsc` с `fitScale`.
+- Desktop: текст ×2 (`textMult`), хром ×2 (`chromeMult`), док ×1.5 (`dockMult`) — **не дублировать** вручную.
+
+### Cleanup
+- Fusion: `UiInteract.attachScoped(s, ...)` или `table.insert(s, cleanupFn)`.
+- Imperative FX: `Debris:AddItem`, `handle.destroy()`, `pcall` на play.
+
+---
+
+## Спецификация по элементам
+
+### 1. Кнопка (Button)
+
+**Типы:** Primary CTA | Secondary | Icon-only | Dock nav | Hero CTA (Shop)
+
+**Структура (слои):**
+```
+TextButton (transparent bg, Text="")
+└─ Face (Frame, accent/bg3)
+   ├─ UICorner (RADIUS.btn)
+   ├─ UIStroke (outlineDark или accent, thickness 1.5–2)
+   ├─ UIGradient (блик сверху, опционально)
+   ├─ Icon (ImageLabel, ICON.tint)
+   └─ Label (TextLabel, FONT.title/body)
+```
+
+**Состояния (все обязательны):**
+| State | Визуал | Motion |
+|-------|--------|--------|
+| Default | bg + stroke | scale 1 |
+| Hover (desktop) | stroke ярче (−0.25 transparency) | scale 1.05–1.07, `HOVER` |
+| Press | — | scale 0.93–0.95, `PRESS` |
+| Disabled | `BackgroundTransparency` +0.3, текст `textMuted` | scale 1, `Active=false` логика |
+| Active/Selected | accent bar / glow / `C.tabActive` | `SNAP` transition |
+
+**Звук:** `ui_click` на Activated. CTA (sell/shop/buy): `ui_confirm`.
+
+**Референс:** `DockIcon.lua` (sell/shop/nav), `TabBtn.lua` (active+gradient).
+
+**Hero CTA (центр дока):** glow-рамка сзади (`pulseStroke` 1.6s loop), gradient face, ZIndex выше соседей.
+
+---
+
+### 2. Модальное окно (Modal / Panel)
+
+**Структура:**
+```
+ScreenGui (profile "modal", UiScreen.apply)
+├─ Backdrop (Frame, full screen, bg1, Transparency 0.35–0.5, Active=true)
+│  └─ клик = закрыть (опционально)
+└─ HudModalChrome.shell (accent, gradientTop, closeButton)
+   ├─ AccentBar (3px сверху)
+   ├─ CloseBtn (46×46 design, touch-friendly)
+   └─ Content (UIScale fitScale для phone)
+```
+
+**Анимация входа/выхода:**
+- Backdrop: transparency 1→0.45 (`FADE`)
+- Panel: scale 0.88→1 (`MODAL_IN`, anchor 0.5,0.5)
+- Выход: обратно, `MODAL_OUT` + backdrop fade
+
+**Обязательно:**
+- `ClipsDescendants = true` на shell
+- Заголовок: `FONT.title`, `PanelScale.text(18–22)`
+- Close: `UiIcon "icon_close"`, hover через `UiInteract`
+- Контент не перекрывает close (правый margin ≥ CLOSE_BTN + CLOSE_MARGIN)
+- `AutoButtonColor = false` на всех кнопках
+
+**Референс:** `HudModalChrome.lua`, `MainPanel.lua`.
+
+---
+
+### 3. Карточка (Card)
+
+**Типы:** Shop card | Pet card | Upgrade row | Reward preview | Featured
+
+**Структура:**
+```
+Frame (bg3/panelBody)
+├─ UICorner (RADIUS.panel или btn)
+├─ UIStroke (dockBorder, thickness 1)
+├─ [опционально] левый accent bar 3px (rarity/категория)
+├─ Icon/Preview (фиксированный квадрат, ScaleType.Fit)
+├─ Title (textMain, FONT.title)
+├─ Subtitle (textSub)
+└─ Action area (цена / кнопка Buy)
+```
+
+**Состояния:**
+- Hover (если кликабельна): лёгкий scale 1.02 или bg→`bg4`
+- Owned/Equipped: badge «Equipped» + приглушённый фон
+- Locked: overlay `BackgroundTransparency=0.4`, иконка замка, `Active=false` на action
+- Rarity: цвет из `theme.RARITY_COLOR[rarity]` на bar/stroke/glow
+
+**Featured card:** увеличенный размер, gradient border, glow pulse, ZIndex+1.
+
+**Референс:** `ShopCard.lua`, `PetCard.lua`, `UpgRow.lua`.
+
+---
+
+### 4. Чип / Badge (Chip)
+
+**Типы:** Resource (coins/gems) | Boost | Streak | Buff | Notification dot
+
+**Resource chip:**
+- Фон `C.bgChip`, stroke `dockBorder`
+- Левый accent bar 3px (gold для монет)
+- Иконка 28px (`chromePx`) + число `Formatters.shortNumber`
+- При изменении значения: `UiMotion.pop(chip, 1.08)` + count-up через `AnimatedNumber`
+- `registerCoinIcon` для FX-привязки (coin fly target)
+
+**Badge (уведомление):**
+- 11×11px круг, `C.mythic` или accent
+- `UIStroke` контрастный к фону (dockBg/outlineDark)
+- Появление: scale 0→1 `POP`
+- Скрытие: не удалять — `Visible=false` после анимации
+
+**Boost/Streak:** иконка + короткий текст, timer если есть (`textSub`).
+
+**Референс:** `ResourceChip.lua`, `BoostChip.lua`, `StreakChip.lua`.
+
+---
+
+### 5. Таб / Навигация (Tab / Dock)
+
+**Bottom dock:**
+- Высота из `ViewportLayout.dockMetrics()`
+- Фон `C.dockBg`, верхняя граница `dockBorder`
+- Кнопки через `DockIcon` — **не дублировать** логику
+- Active: top accent bar 3px + `ActiveBg` transparency 0.88 + icon alpha 0
+- Inactive: icon `ICON.inactiveAlpha`, label `textMuted`
+
+**In-panel tabs:**
+- `TabBtn` или аналог: stroke gold когда active, gradient face
+- Переключение контента: crossfade `FADE` 180ms, не мгновенно
+- Badge на табе если есть unclaimed rewards
+
+**Референс:** `BottomDock.lua`, `TabBar.lua`, `DockIcon.lua`.
+
+---
+
+### 6. Строка списка (List Row)
+
+**Типы:** StatRow | LeaderRow | OreEntry | UpgRow | Quest row
+
+**Структура:**
+```
+Frame (высота gsc(52–64))
+├─ [слева] Icon 32–40px или rank #
+├─ [центр] Title + optional subtitle (UIListLayout vertical)
+├─ [справа] Value / Action button
+└─ UIStroke bottom 1px transparency 0.7 (разделитель)
+```
+
+**Поведение:**
+- Alternate row bg: чётные `bg3`, нечётные transparent (опционально)
+- Value highlight: accent color для положительных изменений
+- Upgrade row: после покупки → `UpgradeFanfareFX` at row position
+- Scroll: `ScrollingFrame` + `UIPadding`, `AutomaticCanvasSize`
+
+**Референс:** `StatRow.lua`, `UpgRow.lua`, `LeaderRow.lua`.
+
+---
+
+### 7. Прогресс-бар (Progress Bar)
+
+**Типы:** Depth bar | XP | Quest progress | Loading
+
+**Структура:**
+```
+Frame (track, bg/depthBg, height 8–14px, UICorner full)
+└─ Fill (accent/depthFill, UICorner full)
+   └─ [опционально] UIGradient на fill
+```
+
+**Анимация:**
+- Изменение значения: tween `Size` `Quad Out` 300–500ms — **не** мгновенный скачок
+- Пульс при milestone: `pulseStroke` на fill 1s
+- Текст поверх: процент/число, `FONT.body`, контрастный
+
+**Loading bar:** indeterminate = looping gradient slide; determinate = реальный прогресс если есть.
+
+**Референс:** `DepthBar.lua`, `LoadingScreen.lua`.
+
+---
+
+### 8. Текст и числа (Typography)
+
+| Роль | Font | Размер (design px) | Цвет |
+|------|------|-------------------|------|
+| Заголовок модалки | FONT.title | 20–24 | textMain |
+| Секция | FONT.title | 16–18 | textMain |
+| Body | FONT.body | 13–15 | textMain |
+| Caption | FONT.body | 11–12 | textSub |
+| Muted | FONT.body | 11–12 | textMuted |
+| Цена | FONT.title | priceText() | gold |
+| CTA label | FONT.title | 14–16 | white |
+
+**Числа:**
+- Валюта: `Formatters.shortNumber` (1.2K, 3.4M)
+- Анимация: `AnimatedNumber` для отображения, authoritative value для логики покупки
+- Крупные награды: `FONT.title` + `UIStroke` outlineDark для читаемости на ярком фоне
+
+**Запрещено:** `TextScaled` без `UITextSizeConstraint` (min/max).
+
+---
+
+### 9. Тултип (Tooltip)
+
+- ScreenGui profile `tooltip` (DisplayOrder 110)
+- Появление: 300ms delay после hover, fade+scale 0.95→1 (`FADE`+`HOVER`)
+- Фон `bg4`, stroke `dockBorder`, padding 8px, max width 200px
+- `TextWrapped = true`, `FONT.body`, `textSub`
+- Исчезновение при MouseLeave немедленно (fade 100ms)
+- На mobile: **не показывать** (нет hover) — использовать long-press или info icon
+
+**Референс:** `Tooltip.lua`.
+
+---
+
+### 10. Тост / Уведомление (Toast)
+
+- ScreenGui profile `toast`
+- Позиция: top-center или top-right, stack снизу вверх
+- Структура: icon + text + optional accent bar
+- Вход: slide from top 20px + fade (`SLIDE`+`FADE`)
+- Выход: fade 150ms
+- Длительность: 2–3s обычное, 4s важное
+- Не блокирует input (`Active=false`)
+
+**Референс:** `Notification.lua`.
+
+---
+
+### 11. Поле ввода (Input)
+
+- Фон `bg3`, stroke `dockBorder`, focus stroke → `primary`
+- Placeholder: `textMuted`
+- `FONT.body`, padding 12px horizontal
+- Submit: кнопка справа или Enter
+- Ошибка: stroke красный/orange, shake, toast
+- Успех: stroke `sell`, pop
+
+**Референс:** `PromoCodeCard.lua`.
+
+---
+
+### 12. Пустое состояние (Empty State)
+
+- Центрированная иконка 48–64px (`textMuted` tint)
+- Заголовок: «Nothing here yet» (локализовано)
+- Подзаголовок: что делать дальше (`textSub`)
+- CTA кнопка если есть очевидное действие
+- **Не** оставлять пустой ScrollFrame без контента
+
+---
+
+### 13. FX-моменты (связь UI ↔ эффекты)
+
+| Момент | Intensity | Блокирует? | Модули |
+|--------|-----------|------------|--------|
+| Клик/покупка | Низкая | Нет | sound + pop |
+| Продажа | Средняя | Нет | SellCoinFlyFX + sound |
+| Апгрейд | Средняя | Нет | UpgradeFanfareFX |
+| Discovery | Средняя | **Нет** | OreDiscoveryFX |
+| Hatch/Legendary | Высокая | Да (skip) | PetHatchFX + shake + haptics |
+| Robux purchase | Высокая | Кратко | RobuxPurchaseFX |
+
+**Правило слоёв для HIGH intensity:**
+1. Screen flash (ColorCorrection 0.1s) — TODO
+2. Camera shake (preset по rarity)
+3. Shockwave ring (UIStroke tween)
+4. Sparkle burst (radial)
+5. Sound stinger (уникальный per tier)
+6. Haptics (mobile)
+
+**Рутина — не блокирует геймплей. Пик — fullscreen с skip.**
+
+---
+
+## Антипаттерны (автоматический reject)
+
+- [ ] Хардкод цветов/размеров вне theme/ViewportLayout/PanelScale
+- [ ] Кнопка без hover/press/sound
+- [ ] Модалка без анимации входа/выхода
+- [ ] Действие без фидбека до ответа сервера
+- [ ] Число прыгает мгновенно вместо count-up (где сумма меняется часто)
+- [ ] `AutoButtonColor = true`
+- [ ] Текст на английском без Localization
+- [ ] Компонент >300 строк без разбиения
+- [ ] FX без `pcall` и cleanup
+- [ ] Дублирование RARITY_COLOR вне theme
+- [ ] ScrollFrame без padding/margin
+- [ ] Touch target <44px на phone
+
+---
+
+## Definition of Done (проверить перед завершением)
+
+При создании/изменении **любого** UI-элемента:
+
+1. **Визуал:** цвета из `theme.C`, радиусы из `theme.RADIUS`, шрифты из `theme.FONT`
+2. **Размеры:** через `ViewportLayout` / `PanelScale`, подписка на resize
+3. **Интерактив:** hover + press + звук (если кликабельно)
+4. **Состояния:** default, hover, press, disabled, active/selected — все реализованы
+5. **Анимация:** только `UiMotion` пресеты, stagger для составных
+6. **Отзывчивость:** локальный фидбек 0ms, ошибка = shake+toast
+7. **Локализация:** все строки через `L("key")`
+8. **Слои:** правильный `UiScreen` profile
+9. **Cleanup:** destroy/disconnect при unmount
+10. **Мобилка:** проверить на phone tier — читаемость, touch targets
+11. **Файл:** ≤300 строк, `--!strict`, `export type Props`
+
+---
+
+## Как вызывать в Cursor
+
+Пользователь может написать:
+> «Сделай профессиональный [элемент]» / «Professional UI for [panel]»
+
+Агент обязан:
+1. Прочитать этот rule
+2. Найти референс-компонент в `src/client/ui/hud/components/`
+3. Реализовать по спецификации выше
+4. Пройти Definition of Done checklist
+5. Не отклоняться от существующего стека

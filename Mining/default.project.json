@@ -1,0 +1,49 @@
+{
+    "name": "deep-digger",
+    "globIgnorePaths": [
+        "**/node_modules/*",
+        "**/__pycache__/**",
+        "**/*.py",
+        "assets/ui/__pycache__/**",
+        "assets/ui/ores/_raw/**",
+        "assets/ui/ores/README.md",
+        "assets/ui/ores/capture_positions.json"
+    ],
+    "tree": {
+        "$className": "DataModel",
+        "ReplicatedStorage": {
+            "$className": "ReplicatedStorage",
+            "$ignoreUnknownInstances": true,
+            "Packages": {
+                "$path": "Packages"
+            },
+            "shared": {
+                "$path": "src/shared"
+            },
+            "uiAssets": {
+                "$path": "assets/ui"
+            }
+        },
+        "ServerScriptService": {
+            "$className": "ServerScriptService",
+            "$ignoreUnknownInstances": true,
+            "server": {
+                "$path": "src/server"
+            }
+        },
+        "StarterGui": {
+            "$className": "StarterGui",
+            "$ignoreUnknownInstances": true,
+            "client": {
+                "$path": "src/client"
+            }
+        },
+        "Workspace": {
+            "$className": "Workspace",
+            "$ignoreUnknownInstances": true,
+            "$properties": {
+                "FilteringEnabled": true
+            }
+        }
+    }
+}
