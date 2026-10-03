@@ -116,10 +116,10 @@ src/
 --!strict
 -- НЕ трогает game/workspace/Players
 
-export type UpgradeId = "pickaxe" | "backpack"
+export type UpgradeId = "base" | "luck" | "cash" | "time" | "speed"
 
 function UpgradeLogic.cost(level: number, baseCost: number): number
-    return math.floor(baseCost * 1.15 ^ level)
+    return math.floor(baseCost * 1.45 ^ level)
 end
 
 function UpgradeLogic.canAfford(coins: number, cost: number): boolean

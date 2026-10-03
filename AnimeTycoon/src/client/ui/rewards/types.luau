@@ -10,6 +10,12 @@ export type RewardItem = {
     unlockAt: number,
     icon: string?,
     claimed: boolean?,
+    --- case: show 3D box instead of money icon
+    rewardType: "money" | "case"?,
+    mutation: string?,
+    boxModelName: string?,
+    --- money grant amount (for FX / Hoarcekat mock claim)
+    coins: number?,
 }
 
 return {}

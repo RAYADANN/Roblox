@@ -6,7 +6,6 @@ local GuiService = game:GetService("GuiService")
 local TweenService = game:GetService("TweenService")
 
 local FxOverlay = require(script.Parent.FxOverlay)
-local SettingsManager = require(script.Parent.Parent.Parent.core.SettingsManager)
 local theme = require(script.Parent.Parent.theme)
 
 export type FloatTextOptions = {
@@ -22,6 +21,23 @@ export type FloatTextOptions = {
 }
 
 local FloatText = {}
+
+local function isReduceMotion(): boolean
+    local root = script.Parent.Parent.Parent
+    local core = root:FindFirstChild("core")
+    if core == nil then
+        return false
+    end
+    local mod = core:FindFirstChild("SettingsManager")
+    if mod == nil then
+        return false
+    end
+    local ok, settings = pcall(require, mod)
+    if ok and settings ~= nil and typeof(settings.isReduceMotion) == "function" then
+        return settings.isReduceMotion() == true
+    end
+    return false
+end
 
 local function toScale(abs: Vector2): UDim2
     local cam = workspace.CurrentCamera
@@ -39,7 +55,7 @@ function FloatText.play(opts: FloatTextOptions)
     local start = opts.position or Vector2.new(vp.X * 0.5, vp.Y * 0.45)
     local duration = opts.duration or 0.85
     local rise = opts.risePx or 56
-    local reduce = SettingsManager.isReduceMotion()
+    local reduce = isReduceMotion()
 
     local label = Instance.new("TextLabel")
     label.Name = "FloatText"

@@ -1,5 +1,6 @@
 --!strict
 -- Pure mutation + rarity rolls for stand offers. CI-tested.
+-- Mutations: at most ONE, only from buying a mutated offer (never on unpack).
 
 local RarityDatabase
 local MutationDatabase
@@ -19,69 +20,80 @@ function MutationLogic.formatLabel(mutationIds: { string }): string
     if #mutationIds == 0 then
         return ""
     end
-    local names: { string } = {}
-    for _, id in mutationIds do
-        local def = MutationDatabase.get(id)
-        table.insert(names, if def then def.displayName else id)
-    end
-    return table.concat(names, "-")
+    -- Single mutation only — take first known id.
+    local id = mutationIds[1]
+    local def = MutationDatabase.get(id)
+    return if def then def.displayName else id
 end
 
-function MutationLogic.pickRarity(rng01: number): RarityId
+--- Clamp profile/offer stacks to at most one mutation.
+function MutationLogic.normalizeStack(mutationIds: { string }?): { string }
+    if not mutationIds or #mutationIds == 0 then
+        return {}
+    end
+    local id = mutationIds[1]
+    if typeof(id) == "string" and id ~= "" and MutationDatabase.get(id) then
+        return { id }
+    end
+    for _, candidate in mutationIds do
+        if typeof(candidate) == "string" and MutationDatabase.get(candidate) then
+            return { candidate }
+        end
+    end
+    return {}
+end
+
+function MutationLogic.pickRarity(rng01: number, luckBias: number?, luckMult: number?): RarityId
+    local bias = math.max(0, luckBias or 0)
+    local rareMult = math.max(1, luckMult or 1)
     local total = 0
-    for _, id in RarityDatabase.ordered() do
+    local weighted: { { id: RarityId, w: number } } = {}
+    local order = RarityDatabase.ordered()
+    for i, id in order do
         local e = RarityDatabase.ById[id]
-        total += e.weight
+        -- Higher index = rarer; luckBias scales rarer weights up; pass mult boosts non-common.
+        local w = e.weight * (1 + bias * (i - 1))
+        if i > 1 then
+            w *= rareMult
+        end
+        table.insert(weighted, { id = id, w = w })
+        total += w
     end
     local roll = math.clamp(rng01, 0, 0.999999) * total
     local acc = 0
-    for _, id in RarityDatabase.ordered() do
-        local e = RarityDatabase.ById[id]
-        acc += e.weight
+    for _, row in weighted do
+        acc += row.w
         if roll < acc then
-            return id
+            return row.id
         end
     end
     return "common"
 end
 
-local function pickMutationId(rng01: number, owned: { string }): string?
-    if #owned >= MutationDatabase.MAX_STACKS then
-        return nil
-    end
-    local pool = MutationDatabase.all()
-    local eligible = {}
+local function pickMutationId(rng01: number): string?
+    local pool = MutationDatabase.rollPool()
     local total = 0
     for _, m in pool do
-        local taken = false
-        for _, id in owned do
-            if id == m.id then
-                taken = true
-                break
-            end
-        end
-        if not taken then
-            table.insert(eligible, m)
-            total += m.weight
-        end
+        total += m.weight
     end
-    if total <= 0 or #eligible == 0 then
+    if total <= 0 or #pool == 0 then
         return nil
     end
     local roll = math.clamp(rng01, 0, 0.999999) * total
     local acc = 0
-    for _, m in eligible do
+    for _, m in pool do
         acc += m.weight
         if roll < acc then
             return m.id
         end
     end
-    return eligible[#eligible].id
+    return pool[#pool].id
 end
 
 -- Chance fraction of rarity.mutationChance so offers stay special.
 local OFFER_MUTATION_FACTOR = 0.45
 
+--- At most one mutation, rolled when the offer is created (buy carries it).
 function MutationLogic.rollOfferMutations(
     rarity: string,
     rngChance: number,
@@ -94,28 +106,11 @@ function MutationLogic.rollOfferMutations(
     if rngChance >= entry.mutationChance * OFFER_MUTATION_FACTOR then
         return {}
     end
-    local id = pickMutationId(rngPick, {})
+    local id = pickMutationId(rngPick)
     if id then
         return { id }
     end
     return {}
-end
-
--- Optional second stack during unpack (end roll).
-function MutationLogic.rollUnpackMutation(
-    rarity: string,
-    owned: { string },
-    rngChance: number,
-    rngPick: number
-): string?
-    local entry = RarityDatabase.get(rarity)
-    if not entry then
-        return nil
-    end
-    if rngChance >= entry.mutationChance then
-        return nil
-    end
-    return pickMutationId(rngPick, owned)
 end
 
 return MutationLogic

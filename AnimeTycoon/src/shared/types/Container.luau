@@ -23,7 +23,11 @@ export type ContainerInstance = {
     slotIndex: number?, -- 1..10 when on Ramp
     unpackProgress: number, -- 0..1
     unpacked: boolean,
-    incomeRate: number, -- payout per mini (display)
+    incomeRate: number, -- payout per mini (display), already scaled by level
+    --- Placed hero level. Nil until open; 1 = fresh hero. Max is Constants.HERO_MAX_LEVEL.
+    level: number?,
+    --- First-ever purchase: unpack in 3s (FTUE). Cleared after use.
+    fastUnpack: boolean?,
 }
 
 export type StandOffer = {

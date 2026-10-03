@@ -1,11 +1,12 @@
 --!strict
--- Reward card: live timer + hover.
+-- Reward card: money icon or 3D case + live timer + hover.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local React = require(ReplicatedStorage:WaitForChild("Packages").React)
 
 local MockData = require(script.Parent.Parent.MockData)
+local RewardCaseViewport = require(script.Parent.RewardCaseViewport)
 local RewardTimerLogic =
     require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("util").RewardTimerLogic)
 local SG = require(script.Parent.Parent.layout)
@@ -21,7 +22,7 @@ export type Props = {
     size: UDim2?,
     claimable: boolean,
     layoutOrder: number?,
-    onClaim: ((id: string) -> ())?,
+    onClaim: ((id: string, from: Vector2) -> ())?,
 }
 
 local function nowSec(): number
@@ -33,6 +34,7 @@ local function RewardCard(props: Props): React.Node
     local item = props.item
     local claimed = item.claimed == true
     local claimable = props.claimable and not claimed
+    local isCase = item.rewardType == "case" and typeof(item.boxModelName) == "string"
 
     local remaining, setRemaining = React.useState(function()
         return RewardTimerLogic.remaining(item.unlockAt, nowSec())
@@ -61,7 +63,6 @@ local function RewardCard(props: Props): React.Node
         hoverScale = if claimable then 1.1 else 1.05,
         disabled = claimed,
     })
-    -- Claimed cards must stay at 1 (hover can stick if claim fires while scaled up).
     local visualScale = if claimed then 1 else hoverScale
 
     local subtitleText = if claimed
@@ -71,6 +72,31 @@ local function RewardCard(props: Props): React.Node
 
     local strokeColor = if claimable then tokens.claimGlow else tokens.titleShadow
     local strokeThickness = if claimable then tokens.strokeCardClaimable else tokens.strokeCard
+
+    local visual: React.Node
+    if isCase then
+        visual = React.createElement(RewardCaseViewport, {
+            boxModelName = item.boxModelName :: string,
+            mutation = item.mutation,
+            size = C.case.size,
+            position = C.case.pos,
+            anchorPoint = C.case.anchor,
+            zIndex = 2,
+            dimmed = claimed,
+        })
+    else
+        visual = React.createElement("ImageLabel", {
+            Size = C.icon.size,
+            Position = C.icon.pos,
+            AnchorPoint = C.icon.anchor,
+            BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            Image = item.icon or assets.cardIcon,
+            ImageTransparency = if claimed then 0.3 else 0,
+            ScaleType = Enum.ScaleType.Fit,
+            ZIndex = 2,
+        })
+    end
 
     return React.createElement("ImageButton", {
         Size = props.size or SG.grid.cardSize,
@@ -84,8 +110,10 @@ local function RewardCard(props: Props): React.Node
         LayoutOrder = props.layoutOrder,
         Active = claimable,
         [React.Event.Activated] = if claimable and props.onClaim
-            then function()
-                props.onClaim(item.id)
+            then function(rbx: ImageButton)
+                local pos = rbx.AbsolutePosition
+                local size = rbx.AbsoluteSize
+                props.onClaim(item.id, Vector2.new(pos.X + size.X * 0.5, pos.Y + size.Y * 0.5))
             end
             else nil,
         [React.Event.MouseEnter] = handlers.onMouseEnter,
@@ -114,17 +142,7 @@ local function RewardCard(props: Props): React.Node
                     StrokeSizingMode = Enum.StrokeSizingMode.ScaledSize,
                 }),
             }),
-            Icon = React.createElement("ImageLabel", {
-                Size = C.icon.size,
-                Position = C.icon.pos,
-                AnchorPoint = C.icon.anchor,
-                BackgroundTransparency = 1,
-                BorderSizePixel = 0,
-                Image = item.icon or assets.cardIcon,
-                ImageTransparency = if claimed then 0.3 else 0,
-                ScaleType = Enum.ScaleType.Fit,
-                ZIndex = 2,
-            }),
+            Visual = visual,
             Value = React.createElement(StrokeText, {
                 text = item.valueText,
                 strokeThickness = tokens.strokeText,

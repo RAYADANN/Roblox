@@ -2,10 +2,13 @@
 -- UI FX primitives. Copy/skin per game — not a second VfxEngine.
 -- See docs/VFX_ENGINE.md «UI FX» and .cursor/rules/fx.mdc.
 
-local CoinRain = require(script.CoinRain)
-local FloatText = require(script.FloatText)
-local FlyBurst = require(script.FlyBurst)
-local FxOverlay = require(script.FxOverlay)
+local CoinRain = require(script.Parent.CoinRain)
+local Confetti = require(script.Parent.Confetti)
+local FloatText = require(script.Parent.FloatText)
+local FlyBurst = require(script.Parent.FlyBurst)
+local FxOverlay = require(script.Parent.FxOverlay)
+local MoneyGainFx = require(script.Parent.MoneyGainFx)
+local MoneyPop = require(script.Parent.MoneyPop)
 
 local Debris = game:GetService("Debris")
 local TweenService = game:GetService("TweenService")
@@ -16,6 +19,9 @@ FxKit.overlay = FxOverlay
 FxKit.floatText = FloatText
 FxKit.flyBurst = FlyBurst
 FxKit.coinRain = CoinRain
+FxKit.confetti = Confetti
+FxKit.moneyGain = MoneyGainFx
+FxKit.moneyPop = MoneyPop
 
 function FxKit.shockwave(parent: Instance, color: Color3, size: number, duration: number?)
     local dur = duration or 0.4

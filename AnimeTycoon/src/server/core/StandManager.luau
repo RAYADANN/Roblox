@@ -4,10 +4,11 @@
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local BoxVisualLogic = require(ReplicatedStorage.shared.util.BoxVisualLogic)
 local Constants = require(ReplicatedStorage.shared.data.Constants)
-local ContainerCatalog = require(ReplicatedStorage.shared.data.ContainerCatalog)
 local ContainerLogic = require(ReplicatedStorage.shared.util.ContainerLogic)
 local ContainerModule = require(ReplicatedStorage.shared.types.Container)
+local HeroCatalog = require(ReplicatedStorage.shared.data.HeroCatalog)
 local MutationLogic = require(ReplicatedStorage.shared.util.MutationLogic)
 local PlayerDataModule = require(ReplicatedStorage.shared.types.PlayerData)
 local ProfileManager = require(script.Parent.ProfileManager)
@@ -24,20 +25,27 @@ export type Deps = {
 local StandManager = {}
 StandManager.__index = StandManager
 
-local function makeOffer(): StandOffer
-    local rarity = MutationLogic.pickRarity(math.random())
-    local templateId = ContainerLogic.pickTemplateId(math.random())
-    local template = ContainerCatalog.get(templateId)
+local function makeOffer(
+    luckBias: number?,
+    luckLevel: number?,
+    luckMult: number?,
+    _offerIndex: number
+): StandOffer
+    local rarity = MutationLogic.pickRarity(math.random(), luckBias, luckMult)
+    local standLevel = BoxVisualLogic.standLevelFromLuck(luckLevel or 0)
+    local boxModelName = ContainerLogic.pickBoxModelName(standLevel, math.random())
     local entry = RarityDatabase.get(rarity)
-    local heroId = ContainerLogic.pickHeroId(templateId, math.random())
-    local mutations = MutationLogic.rollOfferMutations(rarity, math.random(), math.random())
+    local heroId = ContainerLogic.pickHeroId(rarity, math.random())
+    local mutations = MutationLogic.normalizeStack(
+        MutationLogic.rollOfferMutations(rarity, math.random(), math.random())
+    )
     return {
         uid = HttpService:GenerateGUID(false),
-        templateId = templateId,
-        boxModelName = if template then template.boxModelName else "Box1",
+        templateId = "stand" .. tostring(standLevel),
+        boxModelName = boxModelName,
         rarity = rarity,
         heroId = heroId,
-        displayName = if template then template.displayName else "Toy Box",
+        displayName = HeroCatalog.displayName(heroId),
         baseIncome = if entry then entry.baseIncomePerMini else 5,
         mutations = mutations,
     }
@@ -57,7 +65,7 @@ local function emptyOfferSlot(): StandOffer
 end
 
 local function offerToInstance(offer: StandOffer): ContainerInstance
-    local mutations = offer.mutations or {}
+    local mutations = MutationLogic.normalizeStack(offer.mutations)
     return {
         uid = offer.uid,
         templateId = offer.templateId,
@@ -66,7 +74,7 @@ local function offerToInstance(offer: StandOffer): ContainerInstance
         heroId = offer.heroId,
         displayName = offer.displayName,
         baseIncome = offer.baseIncome,
-        mutations = table.clone(mutations),
+        mutations = mutations,
         placedAt = nil,
         slotIndex = nil,
         unpackProgress = 0,
@@ -82,9 +90,19 @@ end
 function StandManager:refreshOffers(player: Player): boolean
     local pm = (self :: any)._deps.profileManager
     return pm:mutate(player, function(data: PlayerData)
+        local UpgradeLogic = require(ReplicatedStorage.shared.util.UpgradeLogic)
+        local BoostOfferLogic = require(ReplicatedStorage.shared.util.BoostOfferLogic)
+        local luckBias = UpgradeLogic.luckBias(data.upgrades)
+        local luckMult = BoostOfferLogic.luckMultiplier(data)
+        local luckLevel = if data.upgrades then (data.upgrades.luck or 0) else 0
+        local unlocked = UpgradeLogic.unlockedPads(data.upgrades)
         local offers: { StandOffer } = table.create(Constants.OFFER_COUNT)
         for i = 1, Constants.OFFER_COUNT do
-            offers[i] = makeOffer()
+            if i <= unlocked then
+                offers[i] = makeOffer(luckBias, luckLevel, luckMult, i)
+            else
+                offers[i] = emptyOfferSlot()
+            end
         end
         data.offers = offers
         data.offersGeneratedAt = os.time()
@@ -125,6 +143,11 @@ function StandManager:buyOfferByIndex(player: Player, offerIndex: number): (bool
 
     local failReason: string? = nil
     local ok = pm:mutate(player, function(d: PlayerData)
+        local UpgradeLogic = require(ReplicatedStorage.shared.util.UpgradeLogic)
+        if not UpgradeLogic.isPadUnlocked(d.upgrades, idx) then
+            failReason = "pad_locked"
+            return
+        end
         if not d.inventory then
             d.inventory = {}
         end
@@ -137,13 +160,18 @@ function StandManager:buyOfferByIndex(player: Player, offerIndex: number): (bool
             failReason = "empty_offer"
             return
         end
-        local price = ContainerLogic.buyPrice(offer.rarity, #(offer.mutations or {}))
+        local price =
+            ContainerLogic.buyPrice(offer.rarity, #(MutationLogic.normalizeStack(offer.mutations)))
         if d.coins < price then
             failReason = "cannot_afford"
             return
         end
         d.coins -= price
         local instance = offerToInstance(offer)
+        if d.firstContainerBought ~= true then
+            instance.fastUnpack = true
+            d.firstContainerBought = true
+        end
         table.insert(d.inventory, instance)
         if d.handUid == nil or d.handUid == "" then
             d.handUid = instance.uid
@@ -156,6 +184,58 @@ function StandManager:buyOfferByIndex(player: Player, offerIndex: number): (bool
     end
     if failReason then
         return false, failReason
+    end
+    return true, nil
+end
+
+--- Set / clear equipped inventory uid (Place uses handUid).
+function StandManager:setHand(player: Player, uid: string): (boolean, string?)
+    local pm = self._deps.profileManager
+    local data = pm:get(player)
+    if not data then
+        return false, "no_profile"
+    end
+
+    if uid == "" then
+        local cleared = pm:mutate(player, function(d: PlayerData)
+            d.handUid = nil
+        end)
+        if not cleared then
+            return false, "no_profile"
+        end
+        return true, nil
+    end
+
+    local found = false
+    for _, item in data.inventory or {} do
+        if item.uid == uid then
+            found = true
+            break
+        end
+    end
+    if not found then
+        return false, "not_in_inventory"
+    end
+
+    local ok = pm:mutate(player, function(d: PlayerData)
+        local stillThere = false
+        for _, item in d.inventory or {} do
+            if item.uid == uid then
+                stillThere = true
+                break
+            end
+        end
+        if not stillThere then
+            return
+        end
+        d.handUid = uid
+    end)
+    if not ok then
+        return false, "no_profile"
+    end
+    local after = pm:get(player)
+    if after == nil or after.handUid ~= uid then
+        return false, "not_in_inventory"
     end
     return true, nil
 end

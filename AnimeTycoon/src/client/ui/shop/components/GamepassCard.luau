@@ -30,7 +30,7 @@ local function GamepassCard(props: Props): React.Node
             SortOrder = Enum.SortOrder.LayoutOrder,
         }),
     }
-    for i, perk in offer.perks do
+    for i, perk in offer.perks or {} do
         perkChildren["P" .. i] = React.createElement("Frame", {
             Size = UDim2.new(1, 0, 0, layout.px(20)),
             BackgroundTransparency = 1,
@@ -60,7 +60,7 @@ local function GamepassCard(props: Props): React.Node
 
     return React.createElement(StudPanel, {
         size = UDim2.new(1, 0, 0, h),
-        color = offer.accent,
+        color = offer.accent or theme.Colors.gold,
         layoutOrder = props.layoutOrder,
     }, {
         Padding = React.createElement("UIPadding", {

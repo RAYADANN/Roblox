@@ -1,6 +1,7 @@
 --!strict
 
-export type IndexTier = "normal" | "golden" | "diamond" | "galaxy" | "secret"
+-- Tabs = Normal (no mutation) + MutationDatabase ids.
+export type IndexTier = "normal" | "golden" | "diamond" | "galaxy" | "secret" | "prismatic"
 
 export type IndexItem = {
     id: string,
@@ -11,6 +12,8 @@ export type IndexItem = {
     tier: IndexTier,
     unlocked: boolean,
     image: string?,
+    heroId: string?,
+    rarity: string?,
 }
 
 export type IndexTab = {

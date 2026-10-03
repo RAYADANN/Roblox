@@ -25,6 +25,15 @@ MotionPresets.HOVER_SCALE = 1.06
 MotionPresets.PRESS_SCALE = 0.94
 MotionPresets.POP_PEAK = 1.14
 
+-- Right-rail boost offer carousel (Lucky / Money), mirrors Tycoon ExclusiveOffers.
+MotionPresets.BOOST_SWAY = { periodSec = 2.6, amplitudeDeg = 3.5 }
+MotionPresets.BOOST_CAROUSEL = {
+    dwellSec = 12,
+    fadeOut = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+    fadeIn = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+    scaleFrom = 0.55,
+}
+
 function MotionPresets.tween(instance: Instance, props: { [string]: any }, info: TweenInfo): Tween
     local tween = TweenService:Create(instance, info, props)
     tween:Play()

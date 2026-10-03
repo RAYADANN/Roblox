@@ -1,0 +1,47 @@
+return {
+    ["normalizeMutationId maps Prysmatic"] = function(expect)
+        local LimitedLogic = require("../src/shared/util/LimitedLogic")
+        expect(LimitedLogic.normalizeMutationId("Prysmatic")).toEqual("prismatic")
+        expect(LimitedLogic.normalizeMutationId("Galaxy")).toEqual("galaxy")
+        expect(LimitedLogic.normalizeMutationId("nope")).toEqual(nil)
+    end,
+    ["buildContainer is unpacked with stand income"] = function(expect)
+        local LimitedLogic = require("../src/shared/util/LimitedLogic")
+        local LimitedOfferDatabase = require("../src/shared/data/LimitedOfferDatabase")
+        local offer = LimitedOfferDatabase.get("RobStand1")
+        expect(offer ~= nil).toBeTruthy()
+        local c = LimitedLogic.buildContainer(offer :: any, "uid-1")
+        expect(c.unpacked).toEqual(true)
+        expect(c.heroId).toEqual("Orcalero Orcala")
+        expect(c.mutations[1]).toEqual("secret")
+        expect(c.incomeRate).toEqual(1_500_000)
+        expect(c.displayName).toEqual("Orcalero Orcala")
+        expect(c.templateId).toEqual("limited_RobStand1")
+    end,
+    ["standIdFromTemplateId and Dragon Null rarity"] = function(expect)
+        local LimitedLogic = require("../src/shared/util/LimitedLogic")
+        local LimitedOfferDatabase = require("../src/shared/data/LimitedOfferDatabase")
+        expect(LimitedLogic.standIdFromTemplateId("limited_RobStand3")).toEqual("RobStand3")
+        expect(LimitedLogic.standIdFromTemplateId("stand1")).toEqual(nil)
+        local offer = LimitedOfferDatabase.get("RobStand3")
+        expect(offer ~= nil).toBeTruthy()
+        expect((offer :: any).rarity).toEqual("null")
+        expect((offer :: any).heroId).toEqual("Dragon Cannelloni")
+        local fromTpl = LimitedLogic.offerFromTemplateId("limited_RobStand3")
+        expect(fromTpl ~= nil).toBeTruthy()
+        expect((fromTpl :: any).standId).toEqual("RobStand3")
+    end,
+    ["syncContainerFromOffer rewrites Null + income"] = function(expect)
+        local LimitedLogic = require("../src/shared/util/LimitedLogic")
+        local LimitedOfferDatabase = require("../src/shared/data/LimitedOfferDatabase")
+        local offer = LimitedOfferDatabase.get("RobStand3")
+        expect(offer ~= nil).toBeTruthy()
+        local item = LimitedLogic.buildContainer(offer :: any, "uid-d")
+        item.rarity = "legendary" :: any
+        item.incomeRate = 1
+        LimitedLogic.syncContainerFromOffer(item, offer :: any)
+        expect(item.rarity).toEqual("null")
+        expect(item.incomeRate).toEqual((offer :: any).incomePerMini)
+        expect(item.mutations[1]).toEqual("prismatic")
+    end,
+}

@@ -1,17 +1,25 @@
 --!strict
--- Ramp slots: place container, unpack tick, spawn minis, grant coins.
+-- Ramp slots: place container, unpack tick, spawn minis → SellBox deposit.
 
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local BoxVisualLogic = require(ReplicatedStorage.shared.util.BoxVisualLogic)
 local Constants = require(ReplicatedStorage.shared.data.Constants)
 local ContainerLogic = require(ReplicatedStorage.shared.util.ContainerLogic)
 local ContainerModule = require(ReplicatedStorage.shared.types.Container)
+local ContainerPlacementLogic = require(ReplicatedStorage.shared.util.ContainerPlacementLogic)
 local ConveyorLogic = require(ReplicatedStorage.shared.util.ConveyorLogic)
+local HeroCatalog = require(ReplicatedStorage.shared.data.HeroCatalog)
+local HeroLevelLogic = require(ReplicatedStorage.shared.util.HeroLevelLogic)
+local IndexLogic = require(ReplicatedStorage.shared.util.IndexLogic)
+local LimitedLogic = require(ReplicatedStorage.shared.util.LimitedLogic)
 local MutationLogic = require(ReplicatedStorage.shared.util.MutationLogic)
 local PlayerDataModule = require(ReplicatedStorage.shared.types.PlayerData)
 local ProfileManager = require(script.Parent.ProfileManager)
+local SlotMap = require(ReplicatedStorage.shared.util.SlotMap)
+local UpgradeLogic = require(ReplicatedStorage.shared.util.UpgradeLogic)
 
 type PlayerData = PlayerDataModule.PlayerData
 type ContainerInstance = ContainerModule.ContainerInstance
@@ -36,6 +44,7 @@ export type Deps = {
         payout: number,
         travelSec: number
     ) -> (),
+    depositSellBox: (player: Player, amount: number) -> (),
 }
 
 local RampManager = {}
@@ -83,6 +92,10 @@ function RampManager:place(player: Player, slotIndex: number): (boolean, string?
         return false, "no_profile"
     end
 
+    if not UpgradeLogic.isSlotUnlocked(data.upgrades, idx) then
+        return false, "slot_locked"
+    end
+
     local handUid = data.handUid
     if typeof(handUid) ~= "string" or handUid == "" then
         return false, "no_hand"
@@ -93,7 +106,8 @@ function RampManager:place(player: Player, slotIndex: number): (boolean, string?
         if not d.slots then
             d.slots = PlayerDataModule.emptySlots()
         end
-        if d.slots[idx] ~= nil then
+        d.slots = SlotMap.normalize(d.slots)
+        if SlotMap.get(d.slots, idx) ~= nil then
             failReason = "slot_occupied"
             return
         end
@@ -104,12 +118,20 @@ function RampManager:place(player: Player, slotIndex: number): (boolean, string?
         end
         local item = d.inventory[invIdx]
         table.remove(d.inventory, invIdx)
-        item.placedAt = os.time()
-        item.slotIndex = idx
-        item.unpackProgress = 0
-        item.unpacked = false
-        item.incomeRate = ContainerLogic.incomePerMini(item.rarity, item.mutations)
-        d.slots[idx] = item
+        local limitedOffer = LimitedLogic.offerFromTemplateId(item.templateId)
+        if limitedOffer then
+            LimitedLogic.syncContainerFromOffer(item, limitedOffer)
+        end
+        ContainerPlacementLogic.applyPlace(item, idx, os.time())
+        if
+            item.unpacked ~= true
+            or typeof(item.incomeRate) ~= "number"
+            or (item.incomeRate :: number) <= 0
+        then
+            item.incomeRate = ContainerLogic.incomePerMini(item.rarity, item.mutations)
+        end
+        HeroLevelLogic.syncIncome(item)
+        SlotMap.set(d.slots, idx, item)
         -- Equip next inventory item if any.
         if #d.inventory > 0 then
             d.handUid = d.inventory[1].uid
@@ -140,8 +162,31 @@ function RampManager:buildWorldPayload(): string
         local data = pm:get(player)
         if data and data.slots then
             for i = 1, Constants.SLOT_COUNT do
-                local slot = data.slots[i]
+                local slot = SlotMap.get(data.slots, i)
                 if slot then
+                    local timeMult = UpgradeLogic.unpackTimeMultiplier(data.upgrades)
+                    local placedAt = tonumber(slot.placedAt) or os.time()
+                    local fast = slot.fastUnpack == true
+                    local unpackEndsAt = if slot.unpacked
+                        then 0
+                        else ContainerLogic.unpackEndsAt(placedAt, slot.rarity, timeMult, fast)
+                    local limitedOffer = LimitedLogic.offerFromTemplateId(slot.templateId)
+                    if limitedOffer then
+                        LimitedLogic.syncContainerFromOffer(slot, limitedOffer)
+                    end
+                    local muts = MutationLogic.normalizeStack(slot.mutations)
+                    HeroLevelLogic.syncIncome(slot)
+                    local level = HeroLevelLogic.normalize(slot.level)
+                    local levelCost = 0
+                    if slot.unpacked == true then
+                        local base =
+                            HeroLevelLogic.basePerMini(slot.rarity, slot.mutations, slot.baseIncome)
+                        levelCost = HeroLevelLogic.upgradeCost(
+                            base,
+                            ContainerLogic.produceInterval(slot.rarity),
+                            level
+                        ) or 0
+                    end
                     table.insert(rows, {
                         ownerUserId = player.UserId,
                         slotIndex = slot.slotIndex or i,
@@ -150,12 +195,17 @@ function RampManager:buildWorldPayload(): string
                         boxModelName = slot.boxModelName,
                         rarity = slot.rarity,
                         heroId = slot.heroId,
-                        displayName = slot.displayName,
+                        displayName = if slot.unpacked
+                            then HeroCatalog.displayName(slot.displayName or slot.heroId or "")
+                            else BoxVisualLogic.formatCaseDisplayName(slot.boxModelName or ""),
                         unpackProgress = slot.unpackProgress,
                         unpacked = slot.unpacked,
-                        mutations = slot.mutations,
-                        mutationLabel = MutationLogic.formatLabel(slot.mutations or {}),
+                        unpackEndsAt = unpackEndsAt,
+                        mutations = muts,
+                        mutationLabel = MutationLogic.formatLabel(muts),
                         incomeRate = slot.incomeRate,
+                        level = level,
+                        levelCost = levelCost,
                     })
                 end
             end
@@ -170,37 +220,78 @@ function RampManager:buildWorldPayload(): string
     return "[]"
 end
 
--- Per pad index: occupied / ready-to-open (any player on shared HeroPlace).
-function RampManager:buildPromptStates(): { [number]: { occupied: boolean, ready: boolean } }
+-- Per-owner pad prompts: occupied / ready / packing / holding.
+function RampManager:buildPromptStates(): {
+    [number]: {
+        [number]: {
+            occupied: boolean,
+            ready: boolean,
+            packing: boolean,
+            holding: boolean,
+        },
+    },
+}
     local deps = (self :: any)._deps
     local pm = deps.profileManager
     local Players = game:GetService("Players")
-    local states: { [number]: { occupied: boolean, ready: boolean } } = {}
-    for i = 1, Constants.SLOT_COUNT do
-        states[i] = { occupied = false, ready = false }
-    end
+    local byOwner: {
+        [number]: {
+            [number]: {
+                occupied: boolean,
+                ready: boolean,
+                packing: boolean,
+                holding: boolean,
+            },
+        },
+    } =
+        {}
+
     for _, player in Players:GetPlayers() do
         local data = pm:get(player)
-        if not data or not data.slots then
-            continue
-        end
+        local states: {
+            [number]: {
+                occupied: boolean,
+                ready: boolean,
+                packing: boolean,
+                holding: boolean,
+            },
+        } =
+            {}
         for i = 1, Constants.SLOT_COUNT do
-            local slot = data.slots[i]
-            if not slot then
-                continue
-            end
-            local idx = slot.slotIndex or i
-            if idx < 1 or idx > Constants.SLOT_COUNT then
-                continue
-            end
-            local state = states[idx]
-            state.occupied = true
-            if not slot.unpacked and (tonumber(slot.unpackProgress) or 0) >= 0.999 then
-                state.ready = true
+            states[i] = {
+                occupied = false,
+                ready = false,
+                packing = false,
+                holding = false,
+            }
+        end
+        if data and data.slots then
+            for i = 1, Constants.SLOT_COUNT do
+                local slot = SlotMap.get(data.slots, i)
+                if not slot then
+                    continue
+                end
+                local idx = slot.slotIndex or i
+                if idx < 1 or idx > Constants.SLOT_COUNT then
+                    continue
+                end
+                local state = states[idx]
+                state.occupied = true
+                if slot.unpacked then
+                    state.holding = true
+                else
+                    local progress = tonumber(slot.unpackProgress) or 0
+                    if progress >= 0.999 then
+                        state.ready = true
+                    else
+                        state.packing = true
+                    end
+                end
             end
         end
+        byOwner[player.UserId] = states
     end
-    return states
+    return byOwner
 end
 
 function RampManager:_tickUnpack(now: number)
@@ -216,13 +307,19 @@ function RampManager:_tickUnpack(now: number)
         end
         local changed = false
         pm:mutate(player, function(d: PlayerData)
+            local timeMult = UpgradeLogic.unpackTimeMultiplier(d.upgrades)
             for i = 1, Constants.SLOT_COUNT do
-                local slot = d.slots[i]
+                local slot = SlotMap.get(d.slots, i)
                 if not slot or slot.unpacked or not slot.placedAt then
                     continue
                 end
                 local elapsed = math.max(0, now - slot.placedAt)
-                local progress = ContainerLogic.unpackProgress(elapsed, slot.rarity)
+                local progress = ContainerLogic.unpackProgress(
+                    elapsed,
+                    slot.rarity,
+                    timeMult,
+                    slot.fastUnpack == true
+                )
                 if progress >= 1 then
                     if slot.unpackProgress < 1 then
                         slot.unpackProgress = 1
@@ -250,7 +347,8 @@ function RampManager:_tickUnpack(now: number)
 end
 
 -- Player confirms Open on a ready (progress=1) container.
-function RampManager:open(player: Player, slotIndex: number): (boolean, string?)
+-- force=true: Robux skip — open while still packing.
+function RampManager:open(player: Player, slotIndex: number, force: boolean?): (boolean, string?)
     if typeof(slotIndex) ~= "number" then
         return false, "invalid_slot"
     end
@@ -271,6 +369,7 @@ function RampManager:open(player: Player, slotIndex: number): (boolean, string?)
         heroId: string,
         displayName: string,
         rarity: string,
+        mutations: { string },
         mutationLabel: string,
         slotIndex: number,
         incomeRate: number,
@@ -282,7 +381,7 @@ function RampManager:open(player: Player, slotIndex: number): (boolean, string?)
             failReason = "empty_slot"
             return
         end
-        local slot = d.slots[idx]
+        local slot = SlotMap.get(d.slots, idx)
         if not slot then
             failReason = "empty_slot"
             return
@@ -291,30 +390,32 @@ function RampManager:open(player: Player, slotIndex: number): (boolean, string?)
             failReason = "already_open"
             return
         end
-        if (slot.unpackProgress or 0) < 1 then
+        if force ~= true and (slot.unpackProgress or 0) < 1 then
             failReason = "not_ready"
             return
         end
 
         slot.unpacked = true
         slot.unpackProgress = 1
-        local extra = MutationLogic.rollUnpackMutation(
-            slot.rarity,
-            slot.mutations,
-            math.random(),
-            math.random()
-        )
-        if extra then
-            table.insert(slot.mutations, extra)
+        -- Mutation only from purchase — never rolled on open.
+        slot.mutations = MutationLogic.normalizeStack(slot.mutations)
+        if slot.level == nil then
+            slot.level = 1
         end
-        slot.incomeRate = ContainerLogic.incomePerMini(slot.rarity, slot.mutations)
+        HeroLevelLogic.syncIncome(slot)
+        if d.indexFound == nil then
+            d.indexFound = {}
+        end
+        local mutId: string? = if #slot.mutations > 0 then slot.mutations[1] else nil
+        IndexLogic.addFound(d.indexFound, slot.heroId or "", mutId)
         local key = produceKey(player.UserId, slot.slotIndex or idx);
         (self :: any)._produce[key] = { lastProduceAt = os.clock() }
 
         reveal = {
             heroId = slot.heroId,
-            displayName = slot.displayName,
+            displayName = HeroCatalog.displayName(slot.displayName or slot.heroId or ""),
             rarity = slot.rarity,
+            mutations = table.clone(slot.mutations),
             mutationLabel = MutationLogic.formatLabel(slot.mutations),
             slotIndex = slot.slotIndex or idx,
             incomeRate = slot.incomeRate,
@@ -340,11 +441,123 @@ function RampManager:open(player: Player, slotIndex: number): (boolean, string?)
             heroId = reveal.heroId,
             displayName = reveal.displayName,
             rarity = reveal.rarity,
+            mutations = reveal.mutations,
             mutationLabel = reveal.mutationLabel,
             slotIndex = reveal.slotIndex,
             incomeRate = reveal.incomeRate,
         })
     )
+    return true, nil
+end
+
+--- Robux / Studio skip: open while still packing.
+function RampManager:skipUnpack(player: Player, slotIndex: number): (boolean, string?)
+    if typeof(slotIndex) ~= "number" then
+        return false, "invalid_slot"
+    end
+    local idx = math.floor(slotIndex)
+    if idx < 1 or idx > Constants.SLOT_COUNT then
+        return false, "invalid_slot"
+    end
+    local deps = (self :: any)._deps
+    local data = deps.profileManager:get(player)
+    if not data or not data.slots then
+        return false, "no_profile"
+    end
+    local slot = SlotMap.get(data.slots, idx)
+    if not slot then
+        return false, "empty_slot"
+    end
+    if slot.unpacked then
+        return false, "already_open"
+    end
+    -- Already ready → normal open; still packing → force.
+    if (slot.unpackProgress or 0) >= 0.999 then
+        return self:open(player, idx, false)
+    end
+    return self:open(player, idx, true)
+end
+
+--- Pick up an unpacked hero → inventory + hand (can Place elsewhere).
+function RampManager:pickup(player: Player, slotIndex: number): (boolean, string?)
+    if typeof(slotIndex) ~= "number" then
+        return false, "invalid_slot"
+    end
+    local idx = math.floor(slotIndex)
+    if idx < 1 or idx > Constants.SLOT_COUNT then
+        return false, "invalid_slot"
+    end
+
+    local deps = (self :: any)._deps
+    local pm = deps.profileManager
+    local data = pm:get(player)
+    if not data then
+        return false, "no_profile"
+    end
+
+    local slot = data.slots and SlotMap.get(data.slots, idx)
+    if not slot then
+        return false, "empty_slot"
+    end
+    local invCount = if data.inventory then #data.inventory else 0
+    local can, why =
+        ContainerPlacementLogic.canPickup(slot.unpacked == true, invCount, Constants.INVENTORY_MAX)
+    if not can then
+        return false, why
+    end
+
+    local failReason: string? = nil
+    local pickedUid: string? = nil
+    local ok = pm:mutate(player, function(d: PlayerData)
+        if not d.slots then
+            failReason = "empty_slot"
+            return
+        end
+        local s = SlotMap.get(d.slots, idx)
+        if not s then
+            failReason = "empty_slot"
+            return
+        end
+        local count = if d.inventory then #d.inventory else 0
+        local allowed, reason =
+            ContainerPlacementLogic.canPickup(s.unpacked == true, count, Constants.INVENTORY_MAX)
+        if not allowed then
+            failReason = reason
+            return
+        end
+        if not d.inventory then
+            d.inventory = {}
+        end
+        ContainerPlacementLogic.toInventory(s)
+        table.insert(d.inventory, s)
+        d.handUid = s.uid
+        pickedUid = s.uid
+        SlotMap.set(d.slots, idx, nil)
+    end)
+
+    if not ok then
+        return false, "no_profile"
+    end
+    if failReason then
+        return false, failReason
+    end
+
+    -- Stop producing / in-flight minis for this pad.
+    local selfAny = self :: any
+    local key = produceKey(player.UserId, idx)
+    selfAny._produce[key] = nil
+    local remaining: { PendingDelivery } = {}
+    for _, delivery in selfAny._pending do
+        if delivery.ownerUserId == player.UserId and delivery.slotIndex == idx then
+            continue
+        end
+        table.insert(remaining, delivery)
+    end
+    selfAny._pending = remaining
+
+    deps.syncHud(player)
+    deps.publishWorld()
+    deps.notify(player, "picked_up", pickedUid or tostring(idx))
     return true, nil
 end
 
@@ -360,7 +573,7 @@ function RampManager:_tickProduce(now: number)
             continue
         end
         for i = 1, Constants.SLOT_COUNT do
-            local slot = data.slots[i]
+            local slot = SlotMap.get(data.slots, i)
             if not slot or not slot.unpacked then
                 continue
             end
@@ -376,7 +589,11 @@ function RampManager:_tickProduce(now: number)
                 continue
             end
             state.lastProduceAt = now
-            local payout = ContainerLogic.incomePerMini(slot.rarity, slot.mutations)
+            HeroLevelLogic.syncIncome(slot)
+            local payout = slot.incomeRate
+            if typeof(payout) ~= "number" or (payout :: number) <= 0 then
+                payout = ContainerLogic.incomePerMini(slot.rarity, slot.mutations)
+            end
             local travel = ConveyorLogic.travelDuration(slotIndex)
             table.insert(selfAny._pending, {
                 ownerUserId = player.UserId,
@@ -392,7 +609,6 @@ end
 
 function RampManager:_tickDeliveries(now: number)
     local deps = (self :: any)._deps
-    local pm = deps.profileManager
     local Players = game:GetService("Players")
     local selfAny = self :: any
     local remaining: { PendingDelivery } = {}
@@ -409,12 +625,8 @@ function RampManager:_tickDeliveries(now: number)
 
     for userId, amount in credited do
         local player = Players:GetPlayerByUserId(userId)
-        if player then
-            pm:mutate(player, function(d: PlayerData)
-                d.coins += amount
-            end)
-            deps.syncHud(player)
-            deps.notify(player, "income", tostring(math.floor(amount + 0.5)))
+        if player and deps.depositSellBox then
+            deps.depositSellBox(player, amount)
         end
     end
 end

@@ -85,27 +85,39 @@ local function BoostCard(props: Props): React.Node
             anchorPoint = L.desc.anchor,
             zIndex = 3,
         }),
-        Buy = React.createElement(RobuxButton, {
-            price = offer.offer.price,
-            originalPrice = offer.offer.originalPrice,
-            variant = buyVariant,
-            size = L.buy.size,
-            position = L.buy.pos,
-            anchorPoint = L.buy.anchor,
-            onActivated = function()
-                props.onBuy(offer.offer.productId)
-            end,
-        }),
-        Gift = React.createElement(GiftButton, {
-            size = L.gift.size,
-            position = L.gift.pos,
-            anchorPoint = L.gift.anchor,
-            onActivated = if props.onGift
-                then function()
-                    props.onGift(offer.offer.productId)
-                end
-                else nil,
-        }),
+        Buy = if offer.owned == true
+            then React.createElement(StrokeText, {
+                text = "Owned",
+                strokeThickness = tokens.strokeText,
+                size = L.buy.size,
+                position = L.buy.pos,
+                anchorPoint = L.buy.anchor,
+                zIndex = 3,
+                color = tokens.titleWhite,
+            })
+            else React.createElement(RobuxButton, {
+                price = offer.offer.price,
+                originalPrice = offer.offer.originalPrice,
+                variant = buyVariant,
+                size = L.buy.size,
+                position = L.buy.pos,
+                anchorPoint = L.buy.anchor,
+                onActivated = function()
+                    props.onBuy(offer.offer.productId)
+                end,
+            }),
+        Gift = if offer.owned == true
+            then nil
+            else React.createElement(GiftButton, {
+                size = L.gift.size,
+                position = L.gift.pos,
+                anchorPoint = L.gift.anchor,
+                onActivated = if props.onGift
+                    then function()
+                        props.onGift(offer.offer.productId)
+                    end
+                    else nil,
+            }),
     })
 end
 

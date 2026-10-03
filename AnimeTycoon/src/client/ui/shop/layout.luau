@@ -109,6 +109,48 @@ local SG = {
         },
     },
 
+    -- SpecialPack (GamePass) — ширина 0.98; высота как у Luck, чтобы gap к Boosts = Boosts→Cash
+    specialPack = {
+        size = UDim2.fromScale(0.98, 0.45 / 0.62),
+        pos = UDim2.fromScale(0.5, 0.5),
+        anchor = Vector2.new(0.5, 0.5),
+        icon1 = {
+            size = UDim2.fromScale(0.2, 0.8),
+            pos = UDim2.fromScale(0.1, 0.35),
+            anchor = Vector2.new(0.5, 0.5),
+        },
+        icon2 = {
+            size = UDim2.fromScale(0.2, 0.8),
+            pos = UDim2.fromScale(0.23, 0.62),
+            anchor = Vector2.new(0.5, 0.5),
+        },
+        icon3 = {
+            size = UDim2.fromScale(0.2, 0.8),
+            pos = UDim2.fromScale(0.37, 0.35),
+            anchor = Vector2.new(0.5, 0.5),
+        },
+        title = {
+            size = UDim2.fromScale(0.5, 0.5),
+            pos = UDim2.fromScale(0.75, 0.18),
+            anchor = Vector2.new(0.5, 0.5),
+        },
+        desc = {
+            size = UDim2.fromScale(0.5, 0.3),
+            pos = UDim2.fromScale(0.75, 0.5),
+            anchor = Vector2.new(0.5, 0.5),
+        },
+        buy = {
+            size = UDim2.fromScale(0.3, 0.35),
+            pos = UDim2.fromScale(0.7, 0.8),
+            anchor = Vector2.new(0.5, 0.5),
+        },
+        gift = {
+            size = UDim2.fromScale(0.1, 0.35),
+            pos = UDim2.fromScale(0.92, 0.8),
+            anchor = Vector2.new(0.5, 0.5),
+        },
+    },
+
     -- Отдельная строка НАД контентом секции (внутри блока, не через list gap)
     sectionLabel = {
         height = 0.1,

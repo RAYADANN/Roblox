@@ -1,7 +1,9 @@
 --!strict
 -- Container idle wiggle + buy-focus (smooth scale + outline Highlight).
 
-local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local ContentRoots = require(ReplicatedStorage.shared.util.ContentRoots)
 
 export type Handle = {
     stop: () -> (),
@@ -32,15 +34,7 @@ local function smoothstep(t: number): number
 end
 
 local function getHighlightTemplate(): Highlight?
-    local box2 = Workspace:FindFirstChild("Box2")
-    if not box2 then
-        return nil
-    end
-    local hl = box2:FindFirstChildWhichIsA("Highlight")
-    if hl and hl:IsA("Highlight") then
-        return hl
-    end
-    return nil
+    return ContentRoots.boxHighlightTemplate()
 end
 
 local function ensureFocusHighlight(model: Model): Highlight
@@ -180,7 +174,7 @@ function BoxPresence.start(model: Model, opts: Opts?): Handle
                 local oz = wave2 * SHAKE_POS * 0.85 * amp
                 local rx = math.rad(wave2 * SHAKE_DEG * amp)
                 local ry = math.rad(wave * SHAKE_DEG * 0.65 * amp)
-                local rz = math.rad((-wave) * SHAKE_DEG * 0.8 * amp)
+                local rz = math.rad(-wave * SHAKE_DEG * 0.8 * amp)
                 model:PivotTo(restCf * CFrame.new(ox, oy, oz) * CFrame.Angles(rx, ry, rz))
                 task.wait()
             end

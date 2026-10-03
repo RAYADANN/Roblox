@@ -45,7 +45,7 @@ local Rarity = {
     rare = Color3.fromRGB(80, 160, 255),
     epic = Color3.fromRGB(180, 100, 255),
     legendary = Color3.fromRGB(255, 180, 40),
-    mythic = Color3.fromRGB(255, 80, 120),
+    mythic = Color3.fromRGB(170, 0, 20),
 }
 
 local Font = {

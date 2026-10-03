@@ -51,17 +51,22 @@ local SG = {
     card = {
         stroke = 0.03,
         value = {
-            size = UDim2.fromScale(1, 0.3),
-            pos = UDim2.fromScale(0.5, 0.15),
+            size = UDim2.fromScale(1, 0.28),
+            pos = UDim2.fromScale(0.5, 0.14),
             anchor = Vector2.new(0.5, 0.5),
         },
         subtitle = {
-            size = UDim2.fromScale(1, 0.3),
-            pos = UDim2.fromScale(0.5, 0.85),
+            size = UDim2.fromScale(1, 0.28),
+            pos = UDim2.fromScale(0.5, 0.88),
             anchor = Vector2.new(0.5, 0.5),
         },
         icon = {
-            size = UDim2.fromScale(1, 1),
+            size = UDim2.fromScale(1.35, 1.033),
+            pos = UDim2.fromScale(0.5, 0.52),
+            anchor = Vector2.new(0.5, 0.5),
+        },
+        case = {
+            size = UDim2.fromScale(0.8, 0.8),
             pos = UDim2.fromScale(0.5, 0.5),
             anchor = Vector2.new(0.5, 0.5),
         },

@@ -1,8 +1,20 @@
 --!strict
 -- Mock offers — данные + ассеты из StarterGui-основы.
+-- Lucky X2/X4 prices mirror HUD BoostOfferDatabase + sale window.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local assets = require(script.Parent.assets)
 local types = require(script.Parent.types)
+
+local BoostOfferDatabase = require(ReplicatedStorage.shared.data.BoostOfferDatabase)
+local BoostOfferLogic = require(ReplicatedStorage.shared.util.BoostOfferLogic)
+
+export type BoostsOpts = {
+    saleActive: boolean?,
+    ownsLuckyX2: boolean?,
+    ownsLuckyX4: boolean?,
+}
 
 local MockData = {}
 
@@ -64,55 +76,50 @@ function MockData.packs(): { types.PackOffer }
     }
 end
 
-function MockData.boosts(): { types.BoostOffer }
+function MockData.boosts(opts: BoostsOpts?): { types.BoostOffer }
+    local saleActive = if opts and opts.saleActive ~= nil then opts.saleActive == true else true
+    local ownsX2 = opts ~= nil and opts.ownsLuckyX2 == true
+    local ownsX4 = opts ~= nil and opts.ownsLuckyX4 == true
+
+    local dbX2 = BoostOfferDatabase.get("lucky_x2")
+    local dbX4 = BoostOfferDatabase.get("lucky_x4")
+    local priceX2 = if dbX2
+        then BoostOfferLogic.displayPrice(dbX2, saleActive)
+        else { price = 10, originalPrice = 49 :: number? }
+    local priceX4 = if dbX4
+        then BoostOfferLogic.displayPrice(dbX4, saleActive)
+        else { price = 10, originalPrice = 49 :: number? }
+
     return {
         {
-            id = "super_luck",
+            id = "lucky_x2",
             title = "Super Luck",
             description = "Get 2x more luck on Conveyor Pack",
             multiplierText = "2x",
             image = assets.luckYellowBg,
             iconImage = assets.luckYellowIcon,
             buyVariant = "yellow",
-            offer = { productId = "boost_super_luck", price = 1499 },
+            owned = ownsX2,
+            offer = {
+                productId = "lucky_x2",
+                price = priceX2.price,
+                originalPrice = priceX2.originalPrice,
+            },
         },
         {
-            id = "ultra_luck",
+            id = "lucky_x4",
             title = "Ultra Luck",
             description = "Get 4x more luck on Conveyor Pack",
             multiplierText = "4x",
             image = assets.luckPinkBg,
             iconImage = assets.luckPinkIcon,
             buyVariant = "pink",
+            owned = ownsX4,
             offer = {
-                productId = "boost_ultra_luck",
-                price = 499,
-                originalPrice = 799,
+                productId = "lucky_x4",
+                price = priceX4.price,
+                originalPrice = priceX4.originalPrice,
             },
-        },
-        {
-            id = "cash_boost",
-            title = "Cash Boost",
-            description = "Permanently 2x Cash",
-            multiplierText = "2x",
-            image = assets.luckYellowBg,
-            iconImage = assets.luckYellowIcon,
-            buyVariant = "yellow",
-            offer = {
-                productId = "boost_cash",
-                price = 119,
-                originalPrice = 249,
-            },
-        },
-        {
-            id = "offline_boost",
-            title = "Offline Boost",
-            description = "Permanently 2x Offline Cash",
-            multiplierText = "2x",
-            image = assets.luckPinkBg,
-            iconImage = assets.luckPinkIcon,
-            buyVariant = "pink",
-            offer = { productId = "boost_offline", price = 79 },
         },
     }
 end
@@ -156,6 +163,19 @@ end
 
 function MockData.gamepasses(): { types.GamepassOffer }
     return {
+        {
+            id = "mega_pack",
+            title = "Mega Pack",
+            description = "Limited Collection",
+            image = assets.specialPackBg,
+            icons = {
+                assets.specialPackIcon1,
+                assets.specialPackIcon2,
+                assets.specialPackIcon3,
+            },
+            buyVariant = "special",
+            offer = { productId = "gp_mega_pack", price = 4500 },
+        },
         {
             id = "vip",
             title = "V.I.P",

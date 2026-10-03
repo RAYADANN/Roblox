@@ -1,12 +1,10 @@
 --!strict
--- HUD: money bar + left icon dock (Shop / Rebirth / Gift / Index).
+-- HUD: left icon dock (Shop / Rebirth / Gift / Index). Money — в HudShell выше FX.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage:WaitForChild("Packages").React)
 
 local HudIcon = require(script.Parent.components.HudIcon)
-local MockData = require(script.Parent.MockData)
-local MoneyDisplay = require(script.Parent.components.MoneyDisplay)
 local SG = require(script.Parent.layout)
 local assets = require(script.Parent.assets)
 local types = require(script.Parent.types)
@@ -17,10 +15,12 @@ export type Props = {
     onIndex: (() -> ())?,
     onGift: (() -> ())?,
     onRebirth: (() -> ())?,
+    onUpgrades: (() -> ())?,
+    --- Pulse REWARDS icon when a timed reward can be claimed.
+    giftAttention: boolean?,
 }
 
 local function HudPanel(props: Props): React.Node
-    local data = props.data or MockData.hud()
     local I = SG.icons
 
     return React.createElement("Frame", {
@@ -28,9 +28,6 @@ local function HudPanel(props: Props): React.Node
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
     }, {
-        Money = React.createElement(MoneyDisplay, {
-            text = data.moneyText,
-        }),
         Icons = React.createElement("Frame", {
             Size = I.size,
             Position = I.pos,
@@ -46,16 +43,17 @@ local function HudPanel(props: Props): React.Node
                 onActivated = props.onShop,
             }),
             Rebirth = React.createElement(HudIcon, {
-                image = assets.rebirth,
-                label = "REBIRTH",
+                image = assets.upgrades,
+                label = "UPGRADES",
                 position = I.rebirth.pos,
-                onActivated = props.onRebirth,
+                onActivated = props.onUpgrades or props.onRebirth,
             }),
             Gift = React.createElement(HudIcon, {
                 image = assets.gift,
                 label = "REWARDS",
                 position = I.gift.pos,
                 onActivated = props.onGift,
+                attention = props.giftAttention == true,
             }),
             Index = React.createElement(HudIcon, {
                 image = assets.index,

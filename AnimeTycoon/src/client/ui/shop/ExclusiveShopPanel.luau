@@ -8,6 +8,7 @@ local BoostCard = require(script.Parent.components.BoostCard)
 local CashCard = require(script.Parent.components.CashCard)
 local SG = require(script.Parent.layout)
 local ShopWindow = require(script.Parent.ShopWindow)
+local SpecialPackCard = require(script.Parent.components.SpecialPackCard)
 local StrokeText = require(script.Parent.components.StrokeText)
 local tokens = require(script.Parent.tokens)
 local types = require(script.Parent.types)
@@ -15,6 +16,7 @@ local types = require(script.Parent.types)
 export type Props = {
     boosts: { types.BoostOffer },
     cash: { types.CashOffer },
+    gamepasses: { types.GamepassOffer }?,
     onBuy: (productId: string) -> (),
     onGift: ((productId: string) -> ())?,
     onClose: () -> (),
@@ -82,9 +84,12 @@ local function sectionBlock(
 end
 
 local function ExclusiveShopPanel(props: Props): React.Node
-    local b1, b2, b3, b4 = props.boosts[1], props.boosts[2], props.boosts[3], props.boosts[4]
+    local b1, b2 = props.boosts[1], props.boosts[2]
     local L = SG.luck
     local M = SG.money
+    local P = SG.specialPack
+    local gamepasses = props.gamepasses or {}
+    local special = gamepasses[1]
 
     local metricsB, setMetrics = React.useBinding({
         blockH = 0,
@@ -170,7 +175,20 @@ local function ExclusiveShopPanel(props: Props): React.Node
                 HorizontalAlignment = Enum.HorizontalAlignment.Center,
             }),
 
-            Boosts = sectionBlock(1, "Boosts", blockHB, {
+            GamePass = sectionBlock(1, "GamePass", blockHB, {
+                Pack = if special
+                    then React.createElement(SpecialPackCard, {
+                        offer = special,
+                        onBuy = props.onBuy,
+                        onGift = props.onGift,
+                        size = P.size,
+                        position = P.pos,
+                        anchorPoint = P.anchor,
+                    })
+                    else nil,
+            }, SG.sectionLabel.cashPos),
+
+            Boosts = sectionBlock(2, "Boosts", blockHB, {
                 Yellow = if b1
                     then React.createElement(BoostCard, {
                         offer = b1,
@@ -191,32 +209,9 @@ local function ExclusiveShopPanel(props: Props): React.Node
                         anchorPoint = L.anchor,
                     })
                     else nil,
-            }),
+            }, SG.sectionLabel.cashPos),
 
-            Cash = sectionBlock(2, "Cash", blockHB, cashChildren, SG.sectionLabel.cashPos),
-
-            More = sectionBlock(3, "More Boosts", blockHB, {
-                Left = if b3
-                    then React.createElement(BoostCard, {
-                        offer = b3,
-                        onBuy = props.onBuy,
-                        onGift = props.onGift,
-                        size = L.size,
-                        position = L.leftPos,
-                        anchorPoint = L.anchor,
-                    })
-                    else nil,
-                Right = if b4
-                    then React.createElement(BoostCard, {
-                        offer = b4,
-                        onBuy = props.onBuy,
-                        onGift = props.onGift,
-                        size = L.size,
-                        position = L.rightPos,
-                        anchorPoint = L.anchor,
-                    })
-                    else nil,
-            }),
+            Cash = sectionBlock(3, "Cash", blockHB, cashChildren, SG.sectionLabel.cashPos),
         }),
     })
 end

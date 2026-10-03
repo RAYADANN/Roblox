@@ -30,6 +30,9 @@ export type Props = {
         color: ColorSequence,
         rotation: number?,
     }?,
+    strokeColor: Color3?,
+    labelRef: ((TextLabel?) -> ())?,
+    gradientRef: ((UIGradient?) -> ())?,
     oversizedFit: boolean?,
     -- Эталон для min(sx,sy) по AbsoluteSize хоста (напр. "REWARDS" / "Rewards")
     uniformFitRef: string?,
@@ -75,15 +78,17 @@ local function StrokeText(props: Props): React.Node
     end
 
     local stroke = React.createElement("UIStroke", {
-        Color = tokens.titleShadow,
+        Color = props.strokeColor or tokens.titleShadow,
         Thickness = strokeThickness,
         StrokeSizingMode = Enum.StrokeSizingMode.ScaledSize,
         ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
+        LineJoinMode = Enum.LineJoinMode.Bevel,
     })
     local gradient = if props.gradient
         then React.createElement("UIGradient", {
             Color = props.gradient.color,
             Rotation = props.gradient.rotation or 0,
+            ref = props.gradientRef,
         })
         else nil
 
@@ -112,6 +117,7 @@ local function StrokeText(props: Props): React.Node
                 AnchorPoint = Vector2.new(0.5, 0.5),
                 BackgroundTransparency = 1,
                 BorderSizePixel = 0,
+                ref = props.labelRef,
                 Text = props.text,
                 TextScaled = false,
                 TextSize = MAX_TEXT_SIZE,
@@ -138,6 +144,7 @@ local function StrokeText(props: Props): React.Node
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         AutomaticSize = props.automaticSize,
+        ref = props.labelRef,
         Text = props.text,
         TextScaled = useScaled,
         TextSize = if useScaled then 14 else layout.text(props.textSize or 16),

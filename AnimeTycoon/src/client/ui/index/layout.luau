@@ -18,13 +18,15 @@ local SG = {
         pos = UDim2.fromScale(0.5, 0.06),
         anchor = Vector2.new(0.5, 0.5),
     },
+    -- 0.3 как Rewards: uniformFitRef="Rewards" жмёт кегль под бокс;
+    -- узкий 0.2 из StarterGui делал «Index» визуально крошечным.
     titleShadow = {
-        size = UDim2.fromScale(0.2, 1),
+        size = UDim2.fromScale(0.3, 1),
         pos = UDim2.fromScale(0.27, 0.5),
         anchor = Vector2.new(0.5, 0.5),
     },
     titleText = {
-        size = UDim2.fromScale(0.2, 1),
+        size = UDim2.fromScale(0.3, 1),
         pos = UDim2.fromScale(0.27, 0.4),
         anchor = Vector2.new(0.5, 0.5),
     },
@@ -42,9 +44,12 @@ local SG = {
 
     tab = {
         size = UDim2.fromScale(0.16, 0.09),
+        --- высота скролла табов (больше кнопки, чтобы не резало stroke/scale)
+        scrollHeight = 0.13,
         y = 0.2,
         firstX = 0.14,
         stepX = 0.18,
+        gap = 0.02,
         anchor = Vector2.new(0.5, 0.5),
         labelSize = UDim2.fromScale(0.9, 0.9),
         labelPos = UDim2.fromScale(0.5, 0.45),
@@ -66,23 +71,28 @@ local SG = {
         bottomPad = 0.04,
         anchor = Vector2.new(0.5, 0.5),
         name = {
-            size = UDim2.fromScale(1, 0.2),
-            pos = UDim2.fromScale(0.5, 0.1),
+            size = UDim2.fromScale(1, 0.16),
+            pos = UDim2.fromScale(0.5, 0.09),
+            anchor = Vector2.new(0.5, 0.5),
+        },
+        hero = {
+            size = UDim2.fromScale(0.88, 0.75),
+            pos = UDim2.fromScale(0.5, 0.5),
             anchor = Vector2.new(0.5, 0.5),
         },
         value = {
-            size = UDim2.fromScale(1, 0.15),
-            pos = UDim2.fromScale(0.5, 0.65),
+            size = UDim2.fromScale(1, 0.12),
+            pos = UDim2.fromScale(0.5, 0.66),
             anchor = Vector2.new(0.5, 0.5),
         },
         mutation = {
-            size = UDim2.fromScale(1, 0.15),
+            size = UDim2.fromScale(1, 0.12),
             pos = UDim2.fromScale(0.5, 0.78),
             anchor = Vector2.new(0.5, 0.5),
         },
         rare = {
-            size = UDim2.fromScale(1, 0.15),
-            pos = UDim2.fromScale(0.5, 0.92),
+            size = UDim2.fromScale(1, 0.12),
+            pos = UDim2.fromScale(0.5, 0.9),
             anchor = Vector2.new(0.5, 0.5),
         },
         lock = {

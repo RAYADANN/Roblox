@@ -14,6 +14,7 @@ local function Story(): React.Node
     return React.createElement(ExclusiveShopPanel, {
         boosts = MockData.boosts(),
         cash = MockData.cash(),
+        gamepasses = MockData.gamepasses(),
         onBuy = function(productId: string)
             print(`[Shop] buy {productId}`)
         end,

@@ -1,18 +1,23 @@
 --!strict
--- Minis: SpawnPartN → LeftSlideN/RightSlideN (one segment) → Center → exit.
+-- Minis: SpawnPartN → LeftSlideN/RightSlideN → Center → exit.
+-- Path points = belt TOP; mini WorldPivot (origin/feet) sits on that surface.
+-- Paths are per owner base (Base1..Base6).
 
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
+local BaseLayout = require(ReplicatedStorage.shared.util.BaseLayout)
+local Constants = require(ReplicatedStorage.shared.data.Constants)
 local HeroModel = require(script.Parent.HeroModel)
-local RampWorldRenderer = require(script.Parent.RampWorldRenderer)
+local HeroPlaceLayout = require(ReplicatedStorage.shared.util.HeroPlaceLayout)
+local HeroScaleLogic = require(ReplicatedStorage.shared.util.HeroScaleLogic)
+local SellBoxVisual = require(script.Parent.SellBoxVisual)
 
 local ConveyorVisual = {}
 
-local Y_OFF = 1.15
-local MID_X = 64 -- left pads/spawns < mid, right >
-
 local _folder: Folder? = nil
-local _paths: { [number]: { Vector3 } } = {}
+local _pathsByOwner: { [number]: { [number]: { Vector3 } } } = {}
 
 local function ensureFolder(): Folder
     if _folder and _folder.Parent then
@@ -43,8 +48,10 @@ local function partsIn(folder: Instance?): { BasePart }
     return out
 end
 
-local function lift(pos: Vector3): Vector3
-    return pos + Vector3.new(0, Y_OFF, 0)
+--- World point on the top face of a belt part (origin sits here).
+local function topPoint(part: BasePart, x: number?, z: number?): Vector3
+    local topY = part.Position.Y + part.Size.Y * 0.5
+    return Vector3.new(x or part.Position.X, topY, z or part.Position.Z)
 end
 
 local function nearestByZ(parts: { BasePart }, z: number): BasePart?
@@ -60,25 +67,21 @@ local function nearestByZ(parts: { BasePart }, z: number): BasePart?
     return best
 end
 
---[[
-  Path per slot (one row only):
-  SpawnPartN → LeftSlideN / RightSlideN → join Center at that Z → exit along Center
-  Example: SpawnPart1 → LeftSlide1 → Center → exit
-]]
 local function buildPathForSlot(
     place: BasePart,
     spawns: { BasePart },
     leftSlide: { BasePart },
     rightSlide: { BasePart },
-    center: BasePart
+    center: BasePart,
+    midX: number
 ): { Vector3 }
-    local sameLeft = place.Position.X < MID_X
+    local sameLeft = place.Position.X < midX
     local lane = if sameLeft then leftSlide else rightSlide
 
     local leftSpawns: { BasePart } = {}
     local rightSpawns: { BasePart } = {}
     for _, s in spawns do
-        if s.Position.X < MID_X then
+        if s.Position.X < midX then
             table.insert(leftSpawns, s)
         else
             table.insert(rightSpawns, s)
@@ -86,49 +89,110 @@ local function buildPathForSlot(
     end
     local spawnPool = if sameLeft then leftSpawns else rightSpawns
     local spawn = nearestByZ(spawnPool, place.Position.Z)
+    -- Rotated / mirrored plots: fall back to the full spawn list.
     if not spawn then
-        return { lift(place.Position) }
+        spawn = nearestByZ(spawns, place.Position.Z)
+    end
+    if not spawn then
+        -- Last resort: place → center row → center exit (always ≥2 points).
+        local rowZ = place.Position.Z
+        local halfZ = center.Size.Z * 0.5
+        local exitXZ = center.Position - center.CFrame.LookVector * halfZ
+        return {
+            topPoint(place),
+            topPoint(center, center.Position.X, rowZ),
+            topPoint(center, exitXZ.X, exitXZ.Z),
+        }
     end
 
     local slide = nearestByZ(lane, spawn.Position.Z)
-    local path: { Vector3 } = { lift(spawn.Position) }
+    if not slide then
+        slide = nearestByZ(if sameLeft then rightSlide else leftSlide, spawn.Position.Z)
+    end
+    local path: { Vector3 } = { topPoint(spawn) }
     if slide then
-        table.insert(path, lift(slide.Position))
+        table.insert(path, topPoint(slide))
     end
 
-    -- Turn onto Center at this row's Z, then ride Center the other way to exit.
     local rowZ = if slide then slide.Position.Z else spawn.Position.Z
-    table.insert(path, lift(Vector3.new(center.Position.X, center.Position.Y, rowZ)))
+    table.insert(path, topPoint(center, center.Position.X, rowZ))
 
     local halfZ = center.Size.Z * 0.5
-    -- Opposite of Center.LookVector (was going the wrong way along Center).
-    local exitPos = center.Position - center.CFrame.LookVector * halfZ
-    table.insert(path, lift(exitPos))
+    local exitXZ = center.Position - center.CFrame.LookVector * halfZ
+    table.insert(path, topPoint(center, exitXZ.X, exitXZ.Z))
     return path
 end
 
-local function buildPaths()
-    table.clear(_paths)
-    local ramp = Workspace:FindFirstChild("Ramp")
-    if not ramp then
-        return
-    end
-    local center = ramp:FindFirstChild("Center")
-    if not center or not center:IsA("BasePart") then
-        warn("[ConveyorVisual] Ramp.Center missing")
-        return
-    end
-
-    local leftSlide = partsIn(ramp:FindFirstChild("LeftSlide"))
-    local rightSlide = partsIn(ramp:FindFirstChild("RightSlide"))
-    local spawns = partsIn(ramp:FindFirstChild("Spawnparts"))
-
-    for i = 1, 10 do
-        local place = RampWorldRenderer.getPlacePart(i)
-        if place then
-            _paths[i] = buildPathForSlot(place, spawns, leftSlide, rightSlide, center)
+local function buildPathsForOwner(ownerUserId: number): { [number]: { Vector3 } }
+    local paths: { [number]: { Vector3 } } = {}
+    local base = BaseLayout.getForUserId(ownerUserId)
+    if not base then
+        local lp = Players.LocalPlayer
+        if lp and lp.UserId == ownerUserId then
+            base = BaseLayout.getLocal()
         end
     end
+    if not base then
+        return paths
+    end
+    local primaryRamp = BaseLayout.getRamp(base)
+    -- Resolve place parts from the base directly (don't depend on RampWorldRenderer cache).
+    local placeParts = HeroPlaceLayout.getOrderedPlaceParts(base)
+
+    for i, place in placeParts do
+        if i > Constants.SLOT_COUNT then
+            break
+        end
+        local ramp: Instance? = place:FindFirstAncestor("Ramp2")
+            or place:FindFirstAncestor("Ramp3")
+            or place:FindFirstAncestor("Ramp")
+            or primaryRamp
+        if not ramp then
+            continue
+        end
+        local center = ramp:FindFirstChild("Center")
+        if not center or not center:IsA("BasePart") then
+            center = primaryRamp and primaryRamp:FindFirstChild("Center")
+            ramp = primaryRamp
+        end
+        if not center or not center:IsA("BasePart") or not ramp then
+            continue
+        end
+        local midX = center.Position.X
+        local leftSlide = partsIn(ramp:FindFirstChild("LeftSlide"))
+        local rightSlide = partsIn(ramp:FindFirstChild("RightSlide"))
+        local spawns = partsIn(ramp:FindFirstChild("Spawnparts"))
+        if #spawns == 0 and ramp ~= primaryRamp and primaryRamp then
+            leftSlide = partsIn(primaryRamp:FindFirstChild("LeftSlide"))
+            rightSlide = partsIn(primaryRamp:FindFirstChild("RightSlide"))
+            spawns = partsIn(primaryRamp:FindFirstChild("Spawnparts"))
+            local c2 = primaryRamp:FindFirstChild("Center")
+            if c2 and c2:IsA("BasePart") then
+                center = c2
+                midX = center.Position.X
+            end
+        end
+        paths[i] = buildPathForSlot(place, spawns, leftSlide, rightSlide, center, midX)
+    end
+    return paths
+end
+
+local _warnedMissing: { [string]: boolean } = {}
+
+local function getPath(ownerUserId: number, slotIndex: number): { Vector3 }?
+    local bucket = _pathsByOwner[ownerUserId]
+    local path = if bucket then bucket[slotIndex] else nil
+    if path and #path >= 2 then
+        return path
+    end
+    -- Rebuild when missing / stale (ownership or plot streaming).
+    bucket = buildPathsForOwner(ownerUserId)
+    _pathsByOwner[ownerUserId] = bucket
+    path = bucket[slotIndex]
+    if path and #path >= 2 then
+        return path
+    end
+    return nil
 end
 
 local function faceFlat(fromPos: Vector3, toPos: Vector3): CFrame
@@ -139,18 +203,29 @@ local function faceFlat(fromPos: Vector3, toPos: Vector3): CFrame
     return CFrame.lookAt(Vector3.zero, face.Unit)
 end
 
-function ConveyorVisual.spawn(slotIndex: number, heroId: string, travelSec: number)
-    if next(_paths) == nil then
-        buildPaths()
-    end
-    local path = _paths[slotIndex]
+function ConveyorVisual.spawn(
+    slotIndex: number,
+    heroId: string,
+    travelSec: number,
+    ownerUserId: number?,
+    forLocalPlayer: boolean?
+)
+    local uid = ownerUserId or 0
+    local path = getPath(uid, slotIndex)
     if not path or #path < 2 then
-        warn(`[ConveyorVisual] no path for slot {slotIndex}`)
+        local key = `{uid}:{slotIndex}`
+        if not _warnedMissing[key] then
+            _warnedMissing[key] = true
+            warn(`[ConveyorVisual] no path for owner={uid} slot={slotIndex}`)
+        end
         return
     end
-    local mini = HeroModel.clone(heroId, 0.35)
+    local mini = HeroModel.clone(heroId, nil, {
+        targetHeight = HeroScaleLogic.MINI_HEIGHT,
+        maxExtent = HeroScaleLogic.MINI_MAX_EXTENT,
+    })
     if not mini then
-        warn("[ConveyorVisual] failed to clone Secret mini")
+        warn("[ConveyorVisual] failed to clone hero mini:", heroId)
         return
     end
     mini.Name = "Mini"
@@ -160,6 +235,7 @@ function ConveyorVisual.spawn(slotIndex: number, heroId: string, travelSec: numb
     mini:PivotTo(CFrame.new(start) * faceFlat(path[1], path[2]))
 
     local segmentTime = travelSec / math.max(1, #path - 1)
+    local creditLocal = forLocalPlayer == true
     task.spawn(function()
         for i = 2, #path do
             if not mini.Parent then
@@ -183,13 +259,21 @@ function ConveyorVisual.spawn(slotIndex: number, heroId: string, travelSec: numb
         end
         if mini.Parent then
             mini:Destroy()
+            if creditLocal then
+                SellBoxVisual.deposit(1)
+            end
         end
     end)
 end
 
+function ConveyorVisual.invalidatePaths()
+    table.clear(_pathsByOwner)
+end
+
 function ConveyorVisual.start()
-    buildPaths()
+    table.clear(_pathsByOwner)
     ensureFolder()
+    SellBoxVisual.start()
 end
 
 return ConveyorVisual

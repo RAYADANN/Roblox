@@ -6,7 +6,7 @@ local MockData = {}
 
 function MockData.hud(): types.HudData
     return {
-        moneyText = "$100M",
+        coins = 100_000_000,
     }
 end
 

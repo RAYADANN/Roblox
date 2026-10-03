@@ -1,12 +1,12 @@
 --!strict
 -- Generic "fly icons from A → B" burst. Skin via texture/color/count (coins, gems, XP…).
+-- Positions are AbsolutePosition screen px; converted to layer-local Offset
+-- so FX works both in PlayerGui (Play) and Hoarcekat preview ScreenGui.
 
 local Debris = game:GetService("Debris")
-local GuiService = game:GetService("GuiService")
 local TweenService = game:GetService("TweenService")
 
 local FxOverlay = require(script.Parent.FxOverlay)
-local SettingsManager = require(script.Parent.Parent.Parent.core.SettingsManager)
 local theme = require(script.Parent.Parent.theme)
 
 export type FlyBurstOptions = {
@@ -25,16 +25,33 @@ export type FlyBurstOptions = {
 
 local FlyBurst = {}
 
-local function toScale(abs: Vector2): UDim2
-    local cam = workspace.CurrentCamera
-    local inset = GuiService:GetGuiInset()
-    local vp = if cam then cam.ViewportSize else Vector2.new(1280, 720)
-    return UDim2.fromScale(abs.X / vp.X, (abs.Y - inset.Y) / math.max(1, vp.Y))
+local function isReduceMotion(): boolean
+    -- client.core есть в Play; в Hoarcekat UI лежит в ReplicatedStorage без core
+    local root = script.Parent.Parent.Parent
+    local core = root:FindFirstChild("core")
+    if core == nil then
+        return false
+    end
+    local mod = core:FindFirstChild("SettingsManager")
+    if mod == nil then
+        return false
+    end
+    local ok, settings = pcall(require, mod)
+    if ok and settings ~= nil and typeof(settings.isReduceMotion) == "function" then
+        return settings.isReduceMotion() == true
+    end
+    return false
+end
+
+--- Absolute screen px → Offset relative to FX layer (Hoarcekat-safe).
+local function toLayerPos(abs: Vector2, layer: GuiObject): UDim2
+    local origin = layer.AbsolutePosition
+    return UDim2.fromOffset(abs.X - origin.X, abs.Y - origin.Y)
 end
 
 local function clampCount(requested: number, maxCount: number?): number
     local cap = maxCount or 24
-    if SettingsManager.isReduceMotion() then
+    if isReduceMotion() then
         cap = math.min(cap, 3)
     end
     return math.clamp(math.floor(requested + 0.5), 1, cap)
@@ -67,7 +84,7 @@ function FlyBurst.play(opts: FlyBurstOptions)
             bit.Image = opts.texture or ""
             bit.ImageColor3 = color
             bit.AnchorPoint = Vector2.new(0.5, 0.5)
-            bit.Position = toScale(start)
+            bit.Position = toLayerPos(start, layer)
             bit.Size = UDim2.fromOffset(sizePx, sizePx)
             bit.ZIndex = 15
             bit.BorderSizePixel = 0
@@ -84,7 +101,7 @@ function FlyBurst.play(opts: FlyBurstOptions)
                 TweenInfo.new(duration * 0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
             local mid = start:Lerp(opts.to, 0.45) + Vector2.new(0, -28 - (i % 3) * 6)
             TweenService:Create(bit, arc, {
-                Position = toScale(mid),
+                Position = toLayerPos(mid, layer),
                 Size = UDim2.fromOffset(sizePx * 1.15, sizePx * 1.15),
             }):Play()
             task.delay(duration * 0.45, function()
@@ -92,7 +109,7 @@ function FlyBurst.play(opts: FlyBurstOptions)
                     return
                 end
                 TweenService:Create(bit, land, {
-                    Position = toScale(opts.to),
+                    Position = toLayerPos(opts.to, layer),
                     Size = UDim2.fromOffset(sizePx * 0.55, sizePx * 0.55),
                     ImageTransparency = 0.35,
                     BackgroundTransparency = 1,

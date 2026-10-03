@@ -11,12 +11,17 @@ local UserInputService = game:GetService("UserInputService")
 
 local FxOverlay = require(script.Parent.FxOverlay)
 local HeroModel = require(script.Parent.Parent.Parent.core.HeroModel)
+local MutationFxAttach = require(script.Parent.Parent.Parent.core.MutationFxAttach)
 local WorldBillboard = require(script.Parent.Parent.Parent.core.WorldBillboard)
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HeroScaleLogic = require(ReplicatedStorage.shared.util.HeroScaleLogic)
 
 export type RevealPayload = {
     heroId: string,
     displayName: string,
     rarity: string,
+    mutations: { string }?,
     mutationLabel: string?,
     incomeRate: number?,
 }
@@ -41,44 +46,17 @@ local function smoothstep(t: number): number
 end
 
 --[[
-  Setup camera + hero facing the camera (flat yaw only).
-  Returns faceYaw (radians) used as the "look at player" rest pose.
+  Reveal framing: stand every hero on the same origin/feet baseline.
+  (Visual-center framing sank models whose WorldPivot≠mesh center.)
+  Returns faceYaw + feetY (world Y of pivot in the viewport WorldModel).
 ]]
-local function setupHeroShot(hero: Model, viewport: ViewportFrame): (number, Vector3)
-    local world = Instance.new("WorldModel")
-    world.Parent = viewport
-    hero.Parent = world
-
-    local cam = Instance.new("Camera")
-    cam.Parent = viewport
-    viewport.CurrentCamera = cam
-
-    local bbCf, bbSize = hero:GetBoundingBox()
-    local extent = math.max(bbSize.X, bbSize.Y, bbSize.Z)
-    local center = bbCf.Position
-    -- Pivot hero so bounding-box center sits near origin for stable framing.
-    local pivot = hero:GetPivot()
-    local offset = center - pivot.Position
-    hero:PivotTo(CFrame.new(-offset) * (pivot - pivot.Position))
-
-    bbCf, bbSize = hero:GetBoundingBox()
-    center = bbCf.Position
-    extent = math.max(bbSize.X, bbSize.Y, bbSize.Z)
-    local dist = math.max(4.5, extent * 2.05)
-    local camPos = center + Vector3.new(0, extent * 0.05, dist)
-    cam.CFrame = CFrame.lookAt(camPos, center)
-    cam.FieldOfView = 32
-
-    -- Face camera on XZ (Secret LookVector often points away; lookAt cam).
-    local faceTarget = Vector3.new(camPos.X, center.Y, camPos.Z)
-    local faceCf = CFrame.lookAt(center, faceTarget)
-    local _rx, faceYaw, _rz = faceCf:ToOrientation()
-    hero:PivotTo(CFrame.new(center) * CFrame.Angles(0, faceYaw, 0))
-    return faceYaw, center
+local function setupHeroShot(hero: Model, viewport: ViewportFrame): (number, number)
+    return HeroModel.frameInViewport(hero, viewport)
 end
 
-local function setHeroYaw(hero: Model, center: Vector3, yaw: number)
-    hero:PivotTo(CFrame.new(center) * CFrame.Angles(0, yaw, 0))
+local function setHeroYaw(hero: Model, feetY: number, yaw: number)
+    hero:PivotTo(CFrame.new(0, feetY, 0) * CFrame.Angles(0, yaw, 0))
+    MutationFxAttach.recenter(hero)
 end
 
 local function ensureBlur(): BlurEffect
@@ -155,8 +133,8 @@ function HeroReveal.show(payload: RevealPayload)
     local viewport = Instance.new("ViewportFrame")
     viewport.Name = "HeroViewport"
     viewport.AnchorPoint = Vector2.new(0.5, 0.5)
-    viewport.Position = UDim2.fromScale(0.5, 0.4)
-    viewport.Size = UDim2.fromScale(0.14, 0.18)
+    viewport.Position = UDim2.fromScale(0.5, 0.42)
+    viewport.Size = UDim2.fromScale(0.28, 0.34)
     viewport.BackgroundTransparency = 1
     viewport.BorderSizePixel = 0
     viewport.Ambient = Color3.fromRGB(180, 180, 200)
@@ -165,11 +143,20 @@ function HeroReveal.show(payload: RevealPayload)
     viewport.ZIndex = 52
     viewport.Parent = root
 
-    local hero = HeroModel.clone(payload.heroId, 1)
+    local hero = HeroModel.clone(payload.heroId, nil, {
+        rarity = payload.rarity,
+        mutations = payload.mutations,
+        mutationLabel = payload.mutationLabel,
+        viewportSafe = true,
+        targetHeight = HeroScaleLogic.REVEAL_HEIGHT,
+        maxExtent = HeroScaleLogic.REVEAL_MAX_EXTENT,
+        deferMutationFx = true,
+    })
     local faceYaw = 0
-    local center = Vector3.zero
+    local feetY = 0
     if hero then
-        faceYaw, center = setupHeroShot(hero, viewport)
+        faceYaw, feetY = setupHeroShot(hero, viewport)
+        HeroModel.applyMutationFx(hero, nil, true)
     end
 
     -- Same visual language as world BillboardGui (fonts / strokes / gradients).
@@ -232,7 +219,7 @@ function HeroReveal.show(payload: RevealPayload)
         tweenBlur(0, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In), true)
         TweenService:Create(dim, TweenInfo.new(0.22), { BackgroundTransparency = 1 }):Play()
         TweenService:Create(viewport, TweenInfo.new(0.22), {
-            Size = UDim2.fromScale(0.08, 0.1),
+            Size = UDim2.fromScale(0.16, 0.2),
         }):Play()
         TweenService:Create(backdrop, TweenInfo.new(0.22), {
             Size = UDim2.fromOffset(40, 40),
@@ -300,7 +287,7 @@ function HeroReveal.show(payload: RevealPayload)
             while root.Parent and not closed and os.clock() - t0 < SPIN_SEC do
                 local a = (os.clock() - t0) / SPIN_SEC
                 local spins = 3.0 * a -- 3 full turns during spin phase
-                setHeroYaw(hero, center, faceYaw + math.rad(360 * spins))
+                setHeroYaw(hero, feetY, faceYaw + math.rad(360 * spins))
                 task.wait()
             end
             if not root.Parent or closed then
@@ -311,7 +298,7 @@ function HeroReveal.show(payload: RevealPayload)
             local zoomTween = TweenService:Create(
                 viewport,
                 TweenInfo.new(ZOOM_SEC, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-                { Size = UDim2.fromScale(0.46, 0.56) }
+                { Size = UDim2.fromScale(0.52, 0.62) }
             )
             zoomTween:Play()
             local tZoom = os.clock()
@@ -319,13 +306,13 @@ function HeroReveal.show(payload: RevealPayload)
             while root.Parent and not closed and os.clock() - tZoom < ZOOM_SEC do
                 local a = smoothstep((os.clock() - tZoom) / ZOOM_SEC)
                 local yaw = startYaw + (faceYaw - startYaw) * a
-                setHeroYaw(hero, center, yaw)
+                setHeroYaw(hero, feetY, yaw)
                 task.wait()
             end
             if not root.Parent or closed then
                 return
             end
-            setHeroYaw(hero, center, faceYaw)
+            setHeroYaw(hero, feetY, faceYaw)
 
             -- Labels after zoom (billboard style panel)
             local textInfo = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
@@ -358,7 +345,7 @@ function HeroReveal.show(payload: RevealPayload)
             while root.Parent and not closed do
                 local sway = math.sin((os.clock() - tIdle) * IDLE_SWAY_SPEED)
                     * math.rad(IDLE_SWAY_DEG)
-                setHeroYaw(hero, center, faceYaw + sway)
+                setHeroYaw(hero, feetY, faceYaw + sway)
                 task.wait()
             end
         end)
@@ -388,9 +375,45 @@ function HeroReveal.showFromNotifyPayload(payloadJson: string)
         heroId = tostring(row.heroId or ""),
         displayName = tostring(row.displayName or "Hero"),
         rarity = tostring(row.rarity or "common"),
+        mutations = if typeof(row.mutations) == "table" then row.mutations :: { string } else nil,
         mutationLabel = if typeof(row.mutationLabel) == "string" then row.mutationLabel else nil,
         incomeRate = if typeof(row.incomeRate) == "number" then row.incomeRate else nil,
     })
+end
+
+--- Studio/debug: H → reveal a random catalog hero.
+function HeroReveal.bindDebugHotkey()
+    local HeroCatalog = require(ReplicatedStorage.shared.data.HeroCatalog)
+    local MutationLogic = require(ReplicatedStorage.shared.util.MutationLogic)
+    local RarityDatabase = require(ReplicatedStorage.shared.data.RarityDatabase)
+
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then
+            return
+        end
+        if input.KeyCode ~= Enum.KeyCode.H then
+            return
+        end
+        if _busy then
+            return
+        end
+        local rarities = RarityDatabase.ordered()
+        local rarity = rarities[math.random(1, #rarities)]
+        local pool = HeroCatalog.pool(rarity)
+        if #pool == 0 then
+            return
+        end
+        local heroId = pool[math.random(1, #pool)]
+        local mutations = MutationLogic.rollOfferMutations(rarity, math.random(), math.random())
+        HeroReveal.show({
+            heroId = heroId,
+            displayName = HeroCatalog.displayName(heroId),
+            rarity = rarity,
+            mutations = mutations,
+            mutationLabel = MutationLogic.formatLabel(mutations),
+            incomeRate = 12,
+        })
+    end)
 end
 
 return HeroReveal

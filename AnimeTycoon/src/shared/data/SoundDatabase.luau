@@ -1,16 +1,36 @@
 --!strict
--- Звуковые события. VFX ids — рабочие Roblox free sounds; ui_* = 0 до Creator Hub.
+-- Sound events. Ids mirrored from Tycoon Workspace templates / SoundDatabase.
+
+export type SoundCategory = "sfx" | "ui" | "music"
 
 export type SoundEntry = {
     id: string,
     volume: number,
+    loop: boolean?,
+    category: SoundCategory?,
 }
 
 local SoundDatabase: { [string]: SoundEntry } = {
-    ui_click = { id = "rbxassetid://0", volume = 0.5 },
-    ui_confirm = { id = "rbxassetid://0", volume = 0.6 },
-    sell_success = { id = "rbxassetid://0", volume = 0.7 },
+    -- Tycoon Workspace.Background
+    bg_music = {
+        id = "rbxassetid://1840383905",
+        volume = 0.8,
+        loop = true,
+        category = "music",
+    },
+
+    -- Tycoon Workspace.ButtonClickPhysic — HUD / buttons
+    ui_click = { id = "rbxassetid://8755541422", volume = 0.5, category = "ui" },
+    ui_confirm = { id = "rbxassetid://8755541422", volume = 0.55, category = "ui" },
+
+    -- Tycoon SellItems / Coin Collect
+    sell_success = { id = "rbxassetid://136993031050456", volume = 0.65 },
+    coin_collect = { id = "rbxassetid://80977935658780", volume = 0.65 },
+
     sell_fail = { id = "rbxassetid://0", volume = 0.5 },
+
+    -- Workspace.confetti-pop-sound — Robux purchase celebrate
+    confetti_pop = { id = "rbxassetid://76586276648178", volume = 0.55, category = "ui" },
 
     -- World VFX (Roblox catalog / classic; pcall-safe if revoked)
     vfx_impact = { id = "rbxassetid://9114224577", volume = 0.55 },

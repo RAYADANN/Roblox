@@ -30,6 +30,15 @@ type GridMetrics = {
     canvasY: number,
 }
 
+type TabMetrics = {
+    tabW: number,
+    tabH: number,
+    gapPx: number,
+    padPx: number,
+    canvasX: number,
+    canvasY: number,
+}
+
 local function IndexPanel(props: Props): React.Node
     local tabs = props.tabs or MockData.tabs()
     local items = props.items or MockData.items()
@@ -52,7 +61,18 @@ local function IndexPanel(props: Props): React.Node
         canvasY = 0,
     } :: GridMetrics)
     local lastKeyRef = React.useRef("")
+    local lastTabKeyRef = React.useRef("")
     local scrollRef = React.useRef(nil :: ScrollingFrame?)
+    local tabScrollRef = React.useRef(nil :: ScrollingFrame?)
+
+    local tabMetricsB, setTabMetrics = React.useBinding({
+        tabW = 0,
+        tabH = 0,
+        gapPx = 0,
+        padPx = 0,
+        canvasX = 0,
+        canvasY = 0,
+    } :: TabMetrics)
 
     local function syncMetrics(scroll: ScrollingFrame)
         local ax = scroll.AbsoluteSize.X
@@ -94,6 +114,35 @@ local function IndexPanel(props: Props): React.Node
         })
     end
 
+    local function syncTabMetrics(scroll: ScrollingFrame)
+        local ax = scroll.AbsoluteSize.X
+        local ay = scroll.AbsoluteSize.Y
+        if ax <= 1 or ay <= 1 then
+            return
+        end
+
+        local tabW = ax * SG.tab.size.X.Scale
+        local tabH = ay * (SG.tab.size.Y.Scale / SG.tab.scrollHeight)
+        local gapPx = ax * SG.tab.gap
+        local padPx = ax * SG.tab.gap
+        local n = #tabs
+        local canvasX = 2 * padPx + n * tabW + math.max(0, n - 1) * gapPx
+
+        local key = string.format("%.1f:%.1f:%d", tabW, canvasX, n)
+        if lastTabKeyRef.current == key then
+            return
+        end
+        lastTabKeyRef.current = key
+        setTabMetrics({
+            tabW = tabW,
+            tabH = tabH,
+            gapPx = gapPx,
+            padPx = padPx,
+            canvasX = canvasX,
+            canvasY = ay,
+        })
+    end
+
     React.useEffect(function()
         lastKeyRef.current = ""
         local scroll = scrollRef.current
@@ -103,15 +152,41 @@ local function IndexPanel(props: Props): React.Node
         return nil
     end, { selected, #filtered } :: { any })
 
-    local tabChildren: { [string]: React.Node } = {}
+    React.useEffect(function()
+        lastTabKeyRef.current = ""
+        local tabScroll = tabScrollRef.current
+        if tabScroll ~= nil then
+            syncTabMetrics(tabScroll)
+        end
+        return nil
+    end, { #tabs } :: { any })
+
+    local tabItems: { [string]: React.Node } = {
+        Layout = React.createElement("UIListLayout", {
+            FillDirection = Enum.FillDirection.Horizontal,
+            Padding = tabMetricsB:map(function(m: TabMetrics): UDim
+                return UDim.new(0, m.gapPx)
+            end),
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            VerticalAlignment = Enum.VerticalAlignment.Center,
+        }),
+        Pad = React.createElement("UIPadding", {
+            PaddingLeft = tabMetricsB:map(function(m: TabMetrics): UDim
+                return UDim.new(0, m.padPx)
+            end),
+            PaddingRight = tabMetricsB:map(function(m: TabMetrics): UDim
+                return UDim.new(0, m.padPx)
+            end),
+        }),
+    }
     for i, tab in tabs do
-        local x = SG.tab.firstX + (i - 1) * SG.tab.stepX
-        tabChildren["T" .. tab.id] = React.createElement("Frame", {
-            Size = SG.tab.size,
-            Position = UDim2.fromScale(x, SG.tab.y),
-            AnchorPoint = SG.tab.anchor,
+        tabItems["T" .. tab.id] = React.createElement("Frame", {
+            Size = tabMetricsB:map(function(m: TabMetrics): UDim2
+                return UDim2.fromOffset(m.tabW, m.tabH)
+            end),
             BackgroundTransparency = 1,
             BorderSizePixel = 0,
+            LayoutOrder = i,
             ZIndex = 3,
         }, {
             Btn = React.createElement(TabButton, {
@@ -173,33 +248,60 @@ local function IndexPanel(props: Props): React.Node
         })
     end
 
-    local children: { [string]: React.Node } = table.clone(tabChildren)
-    children.CardScroll = React.createElement("ScrollingFrame", {
-        Size = UDim2.new(1, 0, 1 - SG.content.top - SG.content.bottom, 0),
-        Position = UDim2.fromScale(0.5, SG.content.top),
-        AnchorPoint = Vector2.new(0.5, 0),
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        ScrollBarThickness = 6,
-        ScrollBarImageColor3 = tokens.titleWhite,
-        ScrollingDirection = Enum.ScrollingDirection.Y,
-        CanvasSize = metricsB:map(function(m: GridMetrics): UDim2
-            return UDim2.fromOffset(0, m.canvasY)
-        end),
-        AutomaticCanvasSize = Enum.AutomaticSize.None,
-        ElasticBehavior = Enum.ElasticBehavior.Always,
-        ClipsDescendants = true,
-        ZIndex = 2,
-        ref = function(scroll: ScrollingFrame?)
-            scrollRef.current = scroll
-            if scroll ~= nil then
+    local children: { [string]: React.Node } = {
+        TabScroll = React.createElement("ScrollingFrame", {
+            Size = UDim2.fromScale(1, SG.tab.scrollHeight),
+            Position = UDim2.fromScale(0.5, SG.tab.y),
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            ScrollBarThickness = 0,
+            ScrollBarImageTransparency = 1,
+            ScrollingDirection = Enum.ScrollingDirection.X,
+            CanvasSize = tabMetricsB:map(function(m: TabMetrics): UDim2
+                return UDim2.fromOffset(m.canvasX, m.canvasY)
+            end),
+            AutomaticCanvasSize = Enum.AutomaticSize.None,
+            ElasticBehavior = Enum.ElasticBehavior.Always,
+            ClipsDescendants = false,
+            ZIndex = 3,
+            ref = function(scroll: ScrollingFrame?)
+                tabScrollRef.current = scroll
+                if scroll ~= nil then
+                    syncTabMetrics(scroll)
+                end
+            end,
+            [React.Change.AbsoluteSize] = function(scroll: ScrollingFrame)
+                syncTabMetrics(scroll)
+            end,
+        }, tabItems),
+        CardScroll = React.createElement("ScrollingFrame", {
+            Size = UDim2.new(1, 0, 1 - SG.content.top - SG.content.bottom, 0),
+            Position = UDim2.fromScale(0.5, SG.content.top),
+            AnchorPoint = Vector2.new(0.5, 0),
+            BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            ScrollBarThickness = 6,
+            ScrollBarImageColor3 = tokens.titleWhite,
+            ScrollingDirection = Enum.ScrollingDirection.Y,
+            CanvasSize = metricsB:map(function(m: GridMetrics): UDim2
+                return UDim2.fromOffset(0, m.canvasY)
+            end),
+            AutomaticCanvasSize = Enum.AutomaticSize.None,
+            ElasticBehavior = Enum.ElasticBehavior.Always,
+            ClipsDescendants = true,
+            ZIndex = 2,
+            ref = function(scroll: ScrollingFrame?)
+                scrollRef.current = scroll
+                if scroll ~= nil then
+                    syncMetrics(scroll)
+                end
+            end,
+            [React.Change.AbsoluteSize] = function(scroll: ScrollingFrame)
                 syncMetrics(scroll)
-            end
-        end,
-        [React.Change.AbsoluteSize] = function(scroll: ScrollingFrame)
-            syncMetrics(scroll)
-        end,
-    }, gridChildren)
+            end,
+        }, gridChildren),
+    }
 
     return React.createElement(IndexWindow, {
         title = "Index",

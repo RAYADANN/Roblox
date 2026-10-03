@@ -12,12 +12,15 @@ local Assets = {
     tabDiamond = "rbxassetid://123667877402686",
     tabGalaxy = "rbxassetid://97259888575875",
     tabSecret = "rbxassetid://99954394505040",
+    -- пока нет отдельной картинки — diamond (prism-like)
+    tabPrismatic = "rbxassetid://123667877402686",
 
     cardNormal = "rbxassetid://124156133483882",
     cardGolden = "rbxassetid://75833303085802",
     cardDiamond = "rbxassetid://106024648803798",
     cardGalaxy = "rbxassetid://110636355572976",
     cardSecret = "rbxassetid://113108699423273",
+    cardPrismatic = "rbxassetid://106024648803798",
 }
 
 return Assets

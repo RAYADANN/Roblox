@@ -30,7 +30,7 @@ local function GamepassRow(props: {
             SortOrder = Enum.SortOrder.LayoutOrder,
         }),
     }
-    for i, perk in offer.perks do
+    for i, perk in offer.perks or {} do
         perks["P" .. i] = React.createElement(StrokeText, {
             text = perk.text,
             strokeThickness = tokens.strokeText,
@@ -46,7 +46,7 @@ local function GamepassRow(props: {
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         Image = assets.luckYellowBg,
-        ImageColor3 = offer.accent,
+        ImageColor3 = offer.accent or Color3.fromRGB(255, 170, 40),
         ScaleType = Enum.ScaleType.Stretch,
         LayoutOrder = props.layoutOrder,
     }, {

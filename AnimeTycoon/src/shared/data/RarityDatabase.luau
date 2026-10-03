@@ -1,7 +1,8 @@
 --!strict
 -- Rarity: unpack duration, income, buy weight. UI must not hardcode seconds.
+-- Align with GameAssets.Rarity (Common / Uncommon / Rare / Legendary / Mythic).
 
-export type RarityId = "common" | "uncommon" | "rare" | "epic" | "legendary"
+export type RarityId = "common" | "uncommon" | "rare" | "legendary" | "mythic"
 
 export type RarityEntry = {
     id: RarityId,
@@ -23,7 +24,7 @@ local ById: { [RarityId]: RarityEntry } = {
         produceIntervalSec = 4,
         mutationChance = 0.35,
         buyMult = 1,
-        weight = 50,
+        weight = 48,
     },
     uncommon = {
         id = "uncommon",
@@ -33,7 +34,7 @@ local ById: { [RarityId]: RarityEntry } = {
         produceIntervalSec = 3.5,
         mutationChance = 0.45,
         buyMult = 1.6,
-        weight = 28,
+        weight = 26,
     },
     rare = {
         id = "rare",
@@ -45,29 +46,29 @@ local ById: { [RarityId]: RarityEntry } = {
         buyMult = 2.5,
         weight = 14,
     },
-    epic = {
-        id = "epic",
-        rank = 4,
-        unpackDurationSec = 40,
-        baseIncomePerMini = 28,
-        produceIntervalSec = 2.5,
-        mutationChance = 0.65,
-        buyMult = 4,
-        weight = 6,
-    },
     legendary = {
         id = "legendary",
+        rank = 4,
+        unpackDurationSec = 48,
+        baseIncomePerMini = 40,
+        produceIntervalSec = 2.2,
+        mutationChance = 0.7,
+        buyMult = 5.5,
+        weight = 8,
+    },
+    mythic = {
+        id = "mythic",
         rank = 5,
-        unpackDurationSec = 55,
-        baseIncomePerMini = 50,
-        produceIntervalSec = 2,
-        mutationChance = 0.75,
-        buyMult = 7,
-        weight = 2,
+        unpackDurationSec = 60,
+        baseIncomePerMini = 70,
+        produceIntervalSec = 1.8,
+        mutationChance = 0.8,
+        buyMult = 9,
+        weight = 4,
     },
 }
 
-local ORDER: { RarityId } = { "common", "uncommon", "rare", "epic", "legendary" }
+local ORDER: { RarityId } = { "common", "uncommon", "rare", "legendary", "mythic" }
 
 local RarityDatabase = {
     ById = ById,

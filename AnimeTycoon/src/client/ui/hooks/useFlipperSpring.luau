@@ -7,11 +7,12 @@ local React = require(ReplicatedStorage:WaitForChild("Packages").React)
 export type SpringConfig = { frequency: number, dampingRatio: number }
 
 local function useFlipperSpring(target: number, config: SpringConfig): number
-    local value, setValue = React.useState(target)
+    local safeTarget = target or 0
+    local value, setValue = React.useState(safeTarget)
     local motorRef = React.useRef(nil :: Flipper.SingleMotor?)
 
     React.useEffect(function()
-        local motor = Flipper.SingleMotor.new(target, false)
+        local motor = Flipper.SingleMotor.new(safeTarget, false)
         motorRef.current = motor
         local conn = motor:onStep(function(v)
             setValue(v)
@@ -27,12 +28,12 @@ local function useFlipperSpring(target: number, config: SpringConfig): number
     React.useEffect(function()
         local motor = motorRef.current
         if motor then
-            motor:setGoal(Flipper.Spring.new(target, {
+            motor:setGoal(Flipper.Spring.new(safeTarget, {
                 frequency = config.frequency,
                 dampingRatio = config.dampingRatio,
             }))
         end
-    end, { target, config.frequency, config.dampingRatio })
+    end, { safeTarget, config.frequency, config.dampingRatio })
 
     return value
 end

@@ -1,18 +1,35 @@
 --!strict
+-- Index catalog: tabs + cards from HeroCatalog × mutations (IndexLogic).
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Formatters = require(script.Parent.Parent.util.Formatters)
+local IndexLogic = require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("util").IndexLogic)
+local MutationDatabase =
+    require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("data").MutationDatabase)
 local assets = require(script.Parent.assets)
 local types = require(script.Parent.types)
 
 local MockData = {}
 
+function MockData.tierOrder(): { types.IndexTier }
+    return IndexLogic.tierOrder() :: { types.IndexTier }
+end
+
 function MockData.tabs(): { types.IndexTab }
-    return {
-        { id = "normal", label = "Normal" },
-        { id = "golden", label = "Golden" },
-        { id = "diamond", label = "Diamond" },
-        { id = "galaxy", label = "Galaxy" },
-        { id = "secret", label = "Secret" },
-    }
+    local tabs: { types.IndexTab } = {}
+    for _, id in IndexLogic.tierOrder() do
+        if id == "normal" then
+            table.insert(tabs, { id = id :: types.IndexTier, label = "Normal" })
+        else
+            local def = MutationDatabase.get(id)
+            table.insert(tabs, {
+                id = id :: types.IndexTier,
+                label = if def then def.displayName else id,
+            })
+        end
+    end
+    return tabs
 end
 
 function MockData.tabImage(tier: types.IndexTier): string
@@ -24,6 +41,8 @@ function MockData.tabImage(tier: types.IndexTier): string
         return assets.tabGalaxy
     elseif tier == "secret" then
         return assets.tabSecret
+    elseif tier == "prismatic" then
+        return assets.tabPrismatic
     end
     return assets.tabNormal
 end
@@ -37,75 +56,43 @@ function MockData.cardImage(tier: types.IndexTier): string
         return assets.cardGalaxy
     elseif tier == "secret" then
         return assets.cardSecret
+    elseif tier == "prismatic" then
+        return assets.cardPrismatic
     end
     return assets.cardNormal
 end
 
-local TIER_META: {
-    [types.IndexTier]: {
-        prefix: string,
-        mutation: string,
-        rares: { string },
-        values: { string },
-        count: number,
-    },
-} =
-    {
-        normal = {
-            prefix = "Toy",
-            mutation = "None",
-            rares = { "Common", "Uncommon", "Common", "Uncommon" },
-            values = { "$100/Toy", "$250/Toy", "$400/Toy", "$600/Toy" },
-            count = 10,
-        },
-        golden = {
-            prefix = "Gold",
-            mutation = "Golden",
-            rares = { "Rare", "Rare", "Epic", "Rare" },
-            values = { "$1.2K/Toy", "$2K/Toy", "$3.5K/Toy", "$5K/Toy" },
-            count = 10,
-        },
-        diamond = {
-            prefix = "Crystal",
-            mutation = "Diamond",
-            rares = { "Epic", "Epic", "Legendary", "Epic" },
-            values = { "$8K/Toy", "$12K/Toy", "$18K/Toy", "$25K/Toy" },
-            count = 10,
-        },
-        galaxy = {
-            prefix = "Nebula",
-            mutation = "Galaxy",
-            rares = { "Legendary", "Legendary", "Mythic", "Legendary" },
-            values = { "$40K/Toy", "$55K/Toy", "$70K/Toy", "$90K/Toy" },
-            count = 10,
-        },
-        secret = {
-            prefix = "Void",
-            mutation = "Secret",
-            rares = { "Secret", "Secret", "Secret", "Secret" },
-            values = { "$100K/Toy", "$150K/Toy", "$200K/Toy", "$300K/Toy" },
-            count = 10,
-        },
-    }
+export type ItemsOpts = {
+    foundKeys: { string }?,
+    unlockAll: boolean?,
+}
 
-local SUFFIXES = { "Bot", "Pup", "Drone", "Cube", "Pet", "Core", "Unit", "Buddy", "Orb", "Kit" }
-
-function MockData.items(): { types.IndexItem }
-    local list: { types.IndexItem } = {}
-    for _, tier in { "normal", "golden", "diamond", "galaxy", "secret" } :: { types.IndexTier } do
-        local meta = TIER_META[tier]
-        for i = 1, meta.count do
-            local unlocked = i <= 4
-            table.insert(list, {
-                id = string.sub(tier, 1, 1) .. tostring(i),
-                name = `{meta.prefix} {SUFFIXES[((i - 1) % #SUFFIXES) + 1]}`,
-                valueText = meta.values[((i - 1) % #meta.values) + 1],
-                mutationText = meta.mutation,
-                rareText = meta.rares[((i - 1) % #meta.rares) + 1],
-                tier = tier,
-                unlocked = unlocked,
-            })
+function MockData.items(opts: ItemsOpts?): { types.IndexItem }
+    local foundKeys = if opts then opts.foundKeys else nil
+    local unlockAll = if opts then opts.unlockAll == true else false
+    local entries = IndexLogic.buildEntries(if unlockAll then nil else foundKeys)
+    if unlockAll then
+        -- Rebuild with every key unlocked for Hoarcekat / preview.
+        local allKeys: { string } = {}
+        for _, e in entries do
+            table.insert(allKeys, e.id)
         end
+        entries = IndexLogic.buildEntries(allKeys)
+    end
+
+    local list: { types.IndexItem } = {}
+    for _, e in entries do
+        table.insert(list, {
+            id = e.id,
+            name = e.name,
+            valueText = "$" .. Formatters.shortNumber(e.incomePerMini) .. "/Toy",
+            mutationText = e.mutationText,
+            rareText = e.rareText,
+            tier = e.tier :: types.IndexTier,
+            unlocked = e.unlocked,
+            heroId = e.heroId,
+            rarity = e.rarity,
+        })
     end
     return list
 end

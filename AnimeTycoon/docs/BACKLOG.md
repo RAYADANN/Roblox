@@ -14,15 +14,15 @@ Cursor не реализует без явного запроса.
 
 ---
 
-## Multi-plot claim
-- **Зачем:** несколько игроков со своими Ramp
-- **Приоритет:** после MVP
-- **Зависимости:** soft launch одной площадки
+## Stand tier → box shape (wired via Luck)
+- **Зачем:** Luck Boost 0/3/6 → `Boxes/1|2|3` + rarity bias (`BoxVisualLogic.standLevelFromLuck`)
+- **Приоритет:** done (MVP)
+- **Контракт:** rarity не красит меш; hero из `Герои/<Rarity>`; mutation FX на героя 1.1×; max 1 mutation from buy only
 
-## Sell / remove from Ramp
-- **Зачем:** освободить слот, продать контейнер
+## Sell from Ramp
+- **Зачем:** продать героя/контейнер с Ramp за монеты (pickup → inventory уже есть)
 - **Приоритет:** 1.1
-- **Зависимости:** RampManager place
+- **Зависимости:** RampManager pickup/place
 
 ## Hero attack animations
 - **Зачем:** juice при спавне мини
@@ -30,7 +30,7 @@ Cursor не реализует без явного запроса.
 - **Зависимости:** Units meshes
 
 ## Rebirth window (HUD кнопка)
-- **Зачем:** кнопка REBIRTH на HUD уже есть, окна в StarterGui/React ещё нет
+- **Зачем:** отдельное окно Rebirth; слот HUD временно открывает **Upgrades**
 - **Приоритет:** после MVP / 1.1
 - **Зависимости:** дизайн окна в StarterGui, RebirthLogic уже есть
 

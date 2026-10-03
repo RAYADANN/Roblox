@@ -1,6 +1,6 @@
 --!strict
 -- Hoarcekat: Hud + окна + blur/zoom. Path: ReplicatedStorage.UI.stories.Hud
--- sync: HUD labels uniformFitRef REWARDS + adaptive v5
+-- sync: 2x HUD icons + Rewards attention v12
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage:WaitForChild("Packages").React)
@@ -10,7 +10,7 @@ local mount = require(script.Parent.mount)
 
 local function Story(): React.Node
     return React.createElement(HudShell, {
-        moneyText = "$100M",
+        coins = 100_000_000,
         onRebirth = function()
             print("[Hud] rebirth (no window yet)")
         end,

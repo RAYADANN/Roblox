@@ -1,7 +1,11 @@
 --!strict
--- Clone Workspace.Box1.BillboardGui as-is; only fill text fields.
+-- Clone ReplicatedStorage.GameAssets.Boxes.Box1.BillboardGui.
 
-local Workspace = game:GetService("Workspace")
+local MutationShine = require(script.Parent.MutationShine)
+local RarityShine = require(script.Parent.RarityShine)
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ContentRoots = require(ReplicatedStorage.shared.util.ContentRoots)
 
 export type BillboardProps = {
     displayName: string,
@@ -12,16 +16,18 @@ export type BillboardProps = {
 
 local WorldBillboard = {}
 
+local BILLBOARD_MAX_DISTANCE = 50
+local _cachedTemplate: BillboardGui? = nil
+
 local function findTemplate(): BillboardGui?
-    local box1 = Workspace:FindFirstChild("Box1")
-    if not box1 then
-        return nil
+    if _cachedTemplate and _cachedTemplate.Parent then
+        return _cachedTemplate
     end
-    local bb = box1:FindFirstChildWhichIsA("BillboardGui", true)
-    if bb and bb:IsA("BillboardGui") then
-        return bb
+    local bb = ContentRoots.boxBillboardTemplate()
+    if bb then
+        _cachedTemplate = bb
     end
-    return nil
+    return bb
 end
 
 local function titleCase(s: string): string
@@ -29,6 +35,17 @@ local function titleCase(s: string): string
         return s
     end
     return string.upper(string.sub(s, 1, 1)) .. string.lower(string.sub(s, 2))
+end
+
+local function unbindShineLabels(root: Instance)
+    local rare = WorldBillboard.findLabel(root, "Rare")
+    local mutation = WorldBillboard.findLabel(root, "Mutation")
+    if rare then
+        RarityShine.unbind(rare)
+    end
+    if mutation then
+        MutationShine.unbind(mutation)
+    end
 end
 
 function WorldBillboard.shortMoney(n: number): string
@@ -45,14 +62,11 @@ function WorldBillboard.shortMoney(n: number): string
     return string.format("$%.1fB", v / 1_000_000_000)
 end
 
---[[
-  Exact clone of Box1.BillboardGui (Size, StudsOffset, children layout, etc.).
-  Only Name / Adornee / Parent are set for runtime use — no layout overrides.
-]]
 function WorldBillboard.attach(adornee: BasePart, name: string?): BillboardGui?
     local existingName = name or "ItemBillboard"
     local old = adornee:FindFirstChild(existingName)
     if old then
+        unbindShineLabels(old)
         old:Destroy()
     end
 
@@ -65,13 +79,11 @@ function WorldBillboard.attach(adornee: BasePart, name: string?): BillboardGui?
     local bb = template:Clone()
     bb.Name = existingName
     bb.Adornee = adornee
+    bb.MaxDistance = BILLBOARD_MAX_DISTANCE
     bb.Parent = adornee
     return bb
 end
 
---[[
-  Screen UI panel: clone BillboardGui.Frame (same fonts/strokes/gradients as world).
-]]
 function WorldBillboard.clonePanel(parent: Instance, name: string?): Frame?
     local template = findTemplate()
     if not template then
@@ -98,6 +110,16 @@ local function findLabel(root: Instance, name: string): TextLabel?
     return nil
 end
 
+local function ensureBlackStroke(label: TextLabel)
+    local stroke = label:FindFirstChildOfClass("UIStroke")
+    if stroke == nil then
+        stroke = Instance.new("UIStroke")
+        stroke.Parent = label
+    end
+    stroke.Color = Color3.new(0, 0, 0)
+    stroke.LineJoinMode = Enum.LineJoinMode.Bevel
+end
+
 function WorldBillboard.set(root: Instance, props: BillboardProps)
     local nameLabel = findLabel(root, "NameLabel")
     local rare = findLabel(root, "Rare")
@@ -106,14 +128,23 @@ function WorldBillboard.set(root: Instance, props: BillboardProps)
 
     if nameLabel then
         nameLabel.Text = props.displayName
+        ensureBlackStroke(nameLabel)
     end
     if rare then
         rare.Text = titleCase(props.rarity)
+        RarityShine.apply(rare, props.rarity)
+        ensureBlackStroke(rare)
     end
     if mutation then
         local mut = props.mutationText or ""
         mutation.Text = mut
         mutation.Visible = mut ~= ""
+        if mut ~= "" then
+            MutationShine.apply(mutation, mut)
+            ensureBlackStroke(mutation)
+        else
+            MutationShine.unbind(mutation)
+        end
     end
     if price then
         local p = props.priceText
@@ -128,6 +159,25 @@ end
 
 function WorldBillboard.findLabel(root: Instance, name: string): TextLabel?
     return findLabel(root, name)
+end
+
+local HERO_BB_NAMES: { [string]: boolean } = {
+    SlotBillboard = true,
+    ItemBillboard = true,
+}
+
+--- Cap distance only for hero slot billboards. All other world UI keeps unlimited range.
+function WorldBillboard.applyMaxDistance(root: Instance?)
+    local scope = root or game:GetService("Workspace")
+    for _, d in scope:GetDescendants() do
+        if d:IsA("BillboardGui") then
+            if HERO_BB_NAMES[d.Name] == true then
+                d.MaxDistance = BILLBOARD_MAX_DISTANCE
+            else
+                d.MaxDistance = 0
+            end
+        end
+    end
 end
 
 return WorldBillboard

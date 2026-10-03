@@ -15,9 +15,9 @@ function CoinRain.play(opts: Options)
         count = opts.count or 14,
         texture = opts.texture,
         color = opts.color or theme.Colors.gold,
-        sizePx = opts.sizePx or 16,
+        sizePx = opts.sizePx or 80,
         duration = opts.duration or 0.6,
-        spreadPx = opts.spreadPx or 40,
+        spreadPx = opts.spreadPx or 140,
         stagger = opts.stagger or 0.025,
         maxCount = opts.maxCount or 20,
     }

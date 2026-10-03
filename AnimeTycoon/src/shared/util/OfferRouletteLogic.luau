@@ -13,7 +13,8 @@ export type Config = {
 local DEFAULT_STEPS = 9
 local DEFAULT_START = 0.2
 local DEFAULT_END = 0.48
-local DEFAULT_STAGGER = 0.14
+--- All pads start together (far stands used to lag and finish mid-spin).
+local DEFAULT_STAGGER = 0
 
 function OfferRouletteLogic.stepDelays(config: Config?): { number }
     local steps = if config and config.steps then config.steps else DEFAULT_STEPS

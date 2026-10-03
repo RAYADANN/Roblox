@@ -1,16 +1,29 @@
 --!strict
 
 local function shortNumber(n: number): string
-    if n < 1000 then
-        return tostring(math.floor(n))
+    local v = math.floor(n + 0.5)
+    if v < 1000 then
+        return tostring(v)
     end
-    if n < 1_000_000 then
-        return string.format("%.1fK", n / 1000)
+    local suffixes = {
+        { 1e15, "Qd" },
+        { 1e12, "T" },
+        { 1e9, "B" },
+        { 1e6, "M" },
+        { 1e3, "K" },
+    }
+    for _, pair in suffixes do
+        local div = pair[1] :: number
+        local suf = pair[2] :: string
+        if v >= div then
+            return string.format("%.1f%s", v / div, suf)
+        end
     end
-    if n < 1_000_000_000 then
-        return string.format("%.1fM", n / 1_000_000)
-    end
-    return string.format("%.1fB", n / 1_000_000_000)
+    return tostring(v)
 end
 
-return { shortNumber = shortNumber }
+local function money(n: number): string
+    return "$" .. shortNumber(n)
+end
+
+return { shortNumber = shortNumber, money = money }

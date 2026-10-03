@@ -46,6 +46,8 @@ local function buyImage(variant: string?): string
         return assets.buyPink
     elseif variant == "money" then
         return assets.buyMoney
+    elseif variant == "special" then
+        return assets.buySpecial
     end
     return assets.buttonFace
 end

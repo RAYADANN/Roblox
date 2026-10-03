@@ -1,7 +1,13 @@
 --!strict
--- 3×4: green=Money, blue=Golden, purple=Diamond, yellow=Galaxy.
--- unlockAt — реальные unix-таймеры от «сейчас».
+-- Rewards cards from RewardTrackDatabase (12 slots).
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Formatters = require(script.Parent.Parent.util.Formatters)
+local RewardTrackDatabase =
+    require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("data").RewardTrackDatabase)
+local RewardTrackLogic =
+    require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("util").RewardTrackLogic)
 local assets = require(script.Parent.assets)
 local types = require(script.Parent.types)
 
@@ -28,92 +34,51 @@ local function nowSec(): number
     return os.time()
 end
 
---- offsetsSec: отрицательный = уже открыт; claimed задаётся отдельно.
-function MockData.items(now: number?): { types.RewardItem }
-    local t = now or nowSec()
-    return {
-        -- Row 1
-        {
-            id = "r1",
-            kind = "money",
-            valueText = "$320,000",
-            unlockAt = t - 600,
-            claimed = true,
-        },
-        {
-            id = "r2",
-            kind = "money",
-            valueText = "$650,000",
-            unlockAt = t - 300,
-            claimed = true,
-        },
-        {
-            id = "r3",
-            kind = "golden",
-            valueText = "Sulfur Crystal",
-            unlockAt = t, -- сразу claimable после двух CLAIMED
-        },
-        {
-            id = "r4",
-            kind = "money",
-            valueText = "$1,300,000",
-            unlockAt = t + 886,
-        },
-        -- Row 2
-        {
-            id = "r5",
-            kind = "galaxy",
-            valueText = "Gold Ore",
-            unlockAt = t + 1786,
-        },
-        {
-            id = "r6",
-            kind = "money",
-            valueText = "$1,900,000",
-            unlockAt = t + 2986,
-        },
-        {
-            id = "r7",
-            kind = "money",
-            valueText = "$2,600,000",
-            unlockAt = t + 3586,
-        },
-        {
-            id = "r8",
-            kind = "diamond",
-            valueText = "Amethyst Ore",
-            unlockAt = t + 4186,
-        },
-        -- Row 3
-        {
-            id = "r9",
-            kind = "galaxy",
-            valueText = "Sunstone Ore",
-            unlockAt = t + 4786,
-        },
-        {
-            id = "r10",
-            kind = "money",
-            valueText = "$3,200,000",
-            unlockAt = t + 5386,
-        },
-        {
-            id = "r11",
-            kind = "money",
-            valueText = "$3,900,000",
-            unlockAt = t + 5986,
-        },
-        {
-            id = "r12",
-            kind = "golden",
-            valueText = "Lunar Crystal",
-            unlockAt = t + 6586,
-        },
-    }
+export type ItemsOpts = {
+    --- Unix start of track. Default: now (first slot claimable).
+    trackStartedAt: number?,
+    --- Mark first N slots claimed for story/demo.
+    claimedCount: number?,
+    --- Explicit claimed reward ids from server session.
+    claimedIds: { string }?,
+}
+
+function MockData.items(opts: ItemsOpts?): { types.RewardItem }
+    local started = if opts and opts.trackStartedAt then opts.trackStartedAt else nowSec()
+    local claimedCount = if opts and opts.claimedCount then opts.claimedCount else 0
+    local claimedSet: { [string]: boolean } = {}
+    if opts and opts.claimedIds then
+        for _, id in opts.claimedIds do
+            claimedSet[id] = true
+        end
+    end
+    local rows = RewardTrackLogic.buildItems(started)
+    local list: { types.RewardItem } = {}
+    for i, row in rows do
+        local valueText: string
+        if row.rewardType == "case" then
+            valueText = row.caseLabel or "Case"
+        else
+            valueText = Formatters.money(row.coins or 0)
+        end
+        local claimed = claimedSet[row.id] == true or i <= claimedCount
+        table.insert(list, {
+            id = row.id,
+            kind = row.kind :: types.RewardKind,
+            valueText = valueText,
+            unlockAt = row.unlockAt,
+            claimed = claimed,
+            rewardType = row.rewardType :: any,
+            mutation = row.mutation,
+            boxModelName = row.boxModelName,
+            coins = row.coins,
+        })
+    end
+    return list
 end
 
 function MockData.skipPrice(): number
-    return 119
+    return RewardTrackDatabase.skipRobuxPrice()
 end
 
 return MockData

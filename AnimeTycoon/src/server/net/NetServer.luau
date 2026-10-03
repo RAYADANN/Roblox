@@ -141,6 +141,12 @@ if not RunService:IsRunning() then
 			FireList = noop,
 			FireSet = noop
 		}),
+		SetHand = table.freeze({
+			SetCallback = noop
+		}),
+		ResetTutorial = table.freeze({
+			SetCallback = noop
+		}),
 		RequestHudSync = table.freeze({
 			SetCallback = noop
 		}),
@@ -164,6 +170,9 @@ if not RunService:IsRunning() then
 		PlaceContainer = table.freeze({
 			SetCallback = noop
 		}),
+		PickupContainer = table.freeze({
+			SetCallback = noop
+		}),
 		OpenContainer = table.freeze({
 			SetCallback = noop
 		}),
@@ -181,10 +190,43 @@ if not RunService:IsRunning() then
 			FireList = noop,
 			FireSet = noop
 		}),
+		LevelHero = table.freeze({
+			SetCallback = noop
+		}),
+		CompleteTutorial = table.freeze({
+			SetCallback = noop
+		}),
+		ClaimTimedReward = table.freeze({
+			SetCallback = noop
+		}),
+		ClaimOfflineEarnings = table.freeze({
+			SetCallback = noop
+		}),
+		BuyUpgradeRobux = table.freeze({
+			SetCallback = noop
+		}),
 		BuyUpgrade = table.freeze({
 			SetCallback = noop
 		}),
+		BuySkipAllRewards = table.freeze({
+			SetCallback = noop
+		}),
+		BuyOfflineDouble = table.freeze({
+			SetCallback = noop
+		}),
 		BuyOfferIndex = table.freeze({
+			SetCallback = noop
+		}),
+		BuyMegaPack = table.freeze({
+			SetCallback = noop
+		}),
+		BuyCoinPack = table.freeze({
+			SetCallback = noop
+		}),
+		BuyBoostOffer = table.freeze({
+			SetCallback = noop
+		}),
+		BoostOfferSeen = table.freeze({
 			SetCallback = noop
 		}),
 	}) :: Events
@@ -236,7 +278,7 @@ end
 
 RunService.Heartbeat:Connect(SendEvents)
 
-local reliable_events = table.create(6)
+local reliable_events = table.create(20)
 reliable.OnServerEvent:Connect(function(player, buff, inst)
 	incoming_buff = buff
 	incoming_inst = inst
@@ -245,44 +287,25 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 	local len = buffer.len(buff)
 	while incoming_read < len do
 		local id = buffer.readu8(buff, read(1))
-		if id == 0 then -- RequestHudSync
-			local call_id = buffer.readu8(buff, read(1))
+		if id == 0 then -- BoostOfferSeen
 			local value
+			local bool_1 = buffer.readu8(incoming_buff, read(1))
+			value = bit32.btest(bool_1, 0b0000000000000001)
 			if reliable_events[0] then
-				task.spawn(function(player_2, call_id_2, value_1)
-					local ret_1 = reliable_events[0](player_2, value_1)
-					load_player(player_2)
-					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 5)
-					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
-					local bool_1 = 0
-					local bool_1_pos_1 = alloc(1)
-					if ret_1["success"] then
-						bool_1 = bit32.bor(bool_1, 0b0000000000000001)
-					end
-					if ret_1["error"] ~= nil then
-						bool_1 = bit32.bor(bool_1, 0b0000000000000010)
-						local len_1 = #ret_1["error"]
-						assert(utf8.len(ret_1["error"]) ~= nil, "value is not valid utf-8")
-						alloc(2)
-						buffer.writeu16(outgoing_buff, outgoing_apos, len_1)
-						alloc(len_1)
-						buffer.writestring(outgoing_buff, outgoing_apos, ret_1["error"], len_1)
-					end
-					buffer.writeu8(outgoing_buff, bool_1_pos_1, bool_1)
-					player_map[player_2] = save()
-				end, player, call_id, value)
+				task.spawn(reliable_events[0], player, value)
 			end
-		elseif id == 1 then -- RefreshOffers
+		elseif id == 5 then -- SetHand
 			local call_id = buffer.readu8(buff, read(1))
 			local value
-			if reliable_events[1] then
+			local len_1 = buffer.readu16(incoming_buff, read(2))
+			value = buffer.readstring(incoming_buff, read(len_1), len_1)
+			assert(utf8.len(value) ~= nil, "value is not valid utf-8")
+			if reliable_events[5] then
 				task.spawn(function(player_2, call_id_2, value_1)
-					local ret_1 = reliable_events[1](player_2, value_1)
+					local ret_1 = reliable_events[5](player_2, value_1)
 					load_player(player_2)
 					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 6)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 9)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
 					local bool_2 = 0
@@ -303,16 +326,15 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 					player_map[player_2] = save()
 				end, player, call_id, value)
 			end
-		elseif id == 3 then -- PlaceContainer
+		elseif id == 13 then -- ResetTutorial
 			local call_id = buffer.readu8(buff, read(1))
 			local value
-			value = buffer.readu8(incoming_buff, read(1))
-			if reliable_events[3] then
+			if reliable_events[13] then
 				task.spawn(function(player_2, call_id_2, value_1)
-					local ret_1 = reliable_events[3](player_2, value_1)
+					local ret_1 = reliable_events[13](player_2, value_1)
 					load_player(player_2)
 					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 8)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 17)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
 					local bool_3 = 0
@@ -333,16 +355,15 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 					player_map[player_2] = save()
 				end, player, call_id, value)
 			end
-		elseif id == 4 then -- OpenContainer
+		elseif id == 1 then -- RequestHudSync
 			local call_id = buffer.readu8(buff, read(1))
 			local value
-			value = buffer.readu8(incoming_buff, read(1))
-			if reliable_events[4] then
+			if reliable_events[1] then
 				task.spawn(function(player_2, call_id_2, value_1)
-					local ret_1 = reliable_events[4](player_2, value_1)
+					local ret_1 = reliable_events[1](player_2, value_1)
 					load_player(player_2)
 					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 9)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 5)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
 					local bool_4 = 0
@@ -363,18 +384,15 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 					player_map[player_2] = save()
 				end, player, call_id, value)
 			end
-		elseif id == 5 then -- BuyUpgrade
+		elseif id == 2 then -- RefreshOffers
 			local call_id = buffer.readu8(buff, read(1))
 			local value
-			local len_5 = buffer.readu16(incoming_buff, read(2))
-			value = buffer.readstring(incoming_buff, read(len_5), len_5)
-			assert(utf8.len(value) ~= nil, "value is not valid utf-8")
-			if reliable_events[5] then
+			if reliable_events[2] then
 				task.spawn(function(player_2, call_id_2, value_1)
-					local ret_1 = reliable_events[5](player_2, value_1)
+					local ret_1 = reliable_events[2](player_2, value_1)
 					load_player(player_2)
 					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 10)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 6)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
 					local bool_5 = 0
@@ -384,32 +402,27 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 					end
 					if ret_1["error"] ~= nil then
 						bool_5 = bit32.bor(bool_5, 0b0000000000000010)
-						local len_6 = #ret_1["error"]
+						local len_5 = #ret_1["error"]
 						assert(utf8.len(ret_1["error"]) ~= nil, "value is not valid utf-8")
 						alloc(2)
-						buffer.writeu16(outgoing_buff, outgoing_apos, len_6)
-						alloc(len_6)
-						buffer.writestring(outgoing_buff, outgoing_apos, ret_1["error"], len_6)
-					end
-					if ret_1["coins"] ~= nil then
-						bool_5 = bit32.bor(bool_5, 0b0000000000000100)
-						alloc(8)
-						buffer.writef64(outgoing_buff, outgoing_apos, ret_1["coins"])
+						buffer.writeu16(outgoing_buff, outgoing_apos, len_5)
+						alloc(len_5)
+						buffer.writestring(outgoing_buff, outgoing_apos, ret_1["error"], len_5)
 					end
 					buffer.writeu8(outgoing_buff, bool_5_pos_1, bool_5)
 					player_map[player_2] = save()
 				end, player, call_id, value)
 			end
-		elseif id == 2 then -- BuyOfferIndex
+		elseif id == 4 then -- PlaceContainer
 			local call_id = buffer.readu8(buff, read(1))
 			local value
 			value = buffer.readu8(incoming_buff, read(1))
-			if reliable_events[2] then
+			if reliable_events[4] then
 				task.spawn(function(player_2, call_id_2, value_1)
-					local ret_1 = reliable_events[2](player_2, value_1)
+					local ret_1 = reliable_events[4](player_2, value_1)
 					load_player(player_2)
 					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 7)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 8)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
 					local bool_6 = 0
@@ -419,6 +432,36 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 					end
 					if ret_1["error"] ~= nil then
 						bool_6 = bit32.bor(bool_6, 0b0000000000000010)
+						local len_6 = #ret_1["error"]
+						assert(utf8.len(ret_1["error"]) ~= nil, "value is not valid utf-8")
+						alloc(2)
+						buffer.writeu16(outgoing_buff, outgoing_apos, len_6)
+						alloc(len_6)
+						buffer.writestring(outgoing_buff, outgoing_apos, ret_1["error"], len_6)
+					end
+					buffer.writeu8(outgoing_buff, bool_6_pos_1, bool_6)
+					player_map[player_2] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 7 then -- PickupContainer
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			value = buffer.readu8(incoming_buff, read(1))
+			if reliable_events[7] then
+				task.spawn(function(player_2, call_id_2, value_1)
+					local ret_1 = reliable_events[7](player_2, value_1)
+					load_player(player_2)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 11)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
+					local bool_7 = 0
+					local bool_7_pos_1 = alloc(1)
+					if ret_1["success"] then
+						bool_7 = bit32.bor(bool_7, 0b0000000000000001)
+					end
+					if ret_1["error"] ~= nil then
+						bool_7 = bit32.bor(bool_7, 0b0000000000000010)
 						local len_7 = #ret_1["error"]
 						assert(utf8.len(ret_1["error"]) ~= nil, "value is not valid utf-8")
 						alloc(2)
@@ -426,7 +469,432 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 						alloc(len_7)
 						buffer.writestring(outgoing_buff, outgoing_apos, ret_1["error"], len_7)
 					end
-					buffer.writeu8(outgoing_buff, bool_6_pos_1, bool_6)
+					buffer.writeu8(outgoing_buff, bool_7_pos_1, bool_7)
+					player_map[player_2] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 6 then -- OpenContainer
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			value = buffer.readu8(incoming_buff, read(1))
+			if reliable_events[6] then
+				task.spawn(function(player_2, call_id_2, value_1)
+					local ret_1 = reliable_events[6](player_2, value_1)
+					load_player(player_2)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 10)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
+					local bool_8 = 0
+					local bool_8_pos_1 = alloc(1)
+					if ret_1["success"] then
+						bool_8 = bit32.bor(bool_8, 0b0000000000000001)
+					end
+					if ret_1["error"] ~= nil then
+						bool_8 = bit32.bor(bool_8, 0b0000000000000010)
+						local len_8 = #ret_1["error"]
+						assert(utf8.len(ret_1["error"]) ~= nil, "value is not valid utf-8")
+						alloc(2)
+						buffer.writeu16(outgoing_buff, outgoing_apos, len_8)
+						alloc(len_8)
+						buffer.writestring(outgoing_buff, outgoing_apos, ret_1["error"], len_8)
+					end
+					buffer.writeu8(outgoing_buff, bool_8_pos_1, bool_8)
+					player_map[player_2] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 10 then -- LevelHero
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			value = buffer.readu8(incoming_buff, read(1))
+			if reliable_events[10] then
+				task.spawn(function(player_2, call_id_2, value_1)
+					local ret_1 = reliable_events[10](player_2, value_1)
+					load_player(player_2)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 14)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
+					local bool_9 = 0
+					local bool_9_pos_1 = alloc(1)
+					if ret_1["success"] then
+						bool_9 = bit32.bor(bool_9, 0b0000000000000001)
+					end
+					if ret_1["error"] ~= nil then
+						bool_9 = bit32.bor(bool_9, 0b0000000000000010)
+						local len_9 = #ret_1["error"]
+						assert(utf8.len(ret_1["error"]) ~= nil, "value is not valid utf-8")
+						alloc(2)
+						buffer.writeu16(outgoing_buff, outgoing_apos, len_9)
+						alloc(len_9)
+						buffer.writestring(outgoing_buff, outgoing_apos, ret_1["error"], len_9)
+					end
+					if ret_1["coins"] ~= nil then
+						bool_9 = bit32.bor(bool_9, 0b0000000000000100)
+						alloc(8)
+						buffer.writef64(outgoing_buff, outgoing_apos, ret_1["coins"])
+					end
+					if ret_1["level"] ~= nil then
+						bool_9 = bit32.bor(bool_9, 0b0000000000001000)
+						alloc(4)
+						buffer.writeu32(outgoing_buff, outgoing_apos, ret_1["level"])
+					end
+					buffer.writeu8(outgoing_buff, bool_9_pos_1, bool_9)
+					player_map[player_2] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 12 then -- CompleteTutorial
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			if reliable_events[12] then
+				task.spawn(function(player_2, call_id_2, value_1)
+					local ret_1 = reliable_events[12](player_2, value_1)
+					load_player(player_2)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 16)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
+					local bool_10 = 0
+					local bool_10_pos_1 = alloc(1)
+					if ret_1["success"] then
+						bool_10 = bit32.bor(bool_10, 0b0000000000000001)
+					end
+					if ret_1["error"] ~= nil then
+						bool_10 = bit32.bor(bool_10, 0b0000000000000010)
+						local len_10 = #ret_1["error"]
+						assert(utf8.len(ret_1["error"]) ~= nil, "value is not valid utf-8")
+						alloc(2)
+						buffer.writeu16(outgoing_buff, outgoing_apos, len_10)
+						alloc(len_10)
+						buffer.writestring(outgoing_buff, outgoing_apos, ret_1["error"], len_10)
+					end
+					buffer.writeu8(outgoing_buff, bool_10_pos_1, bool_10)
+					player_map[player_2] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 11 then -- ClaimTimedReward
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			local len_11 = buffer.readu16(incoming_buff, read(2))
+			value = buffer.readstring(incoming_buff, read(len_11), len_11)
+			assert(utf8.len(value) ~= nil, "value is not valid utf-8")
+			if reliable_events[11] then
+				task.spawn(function(player_2, call_id_2, value_1)
+					local ret_1 = reliable_events[11](player_2, value_1)
+					load_player(player_2)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 15)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
+					local bool_11 = 0
+					local bool_11_pos_1 = alloc(1)
+					if ret_1["success"] then
+						bool_11 = bit32.bor(bool_11, 0b0000000000000001)
+					end
+					if ret_1["error"] ~= nil then
+						bool_11 = bit32.bor(bool_11, 0b0000000000000010)
+						local len_12 = #ret_1["error"]
+						assert(utf8.len(ret_1["error"]) ~= nil, "value is not valid utf-8")
+						alloc(2)
+						buffer.writeu16(outgoing_buff, outgoing_apos, len_12)
+						alloc(len_12)
+						buffer.writestring(outgoing_buff, outgoing_apos, ret_1["error"], len_12)
+					end
+					if ret_1["coins"] ~= nil then
+						bool_11 = bit32.bor(bool_11, 0b0000000000000100)
+						alloc(8)
+						buffer.writef64(outgoing_buff, outgoing_apos, ret_1["coins"])
+					end
+					if ret_1["coinsGranted"] ~= nil then
+						bool_11 = bit32.bor(bool_11, 0b0000000000001000)
+						alloc(8)
+						buffer.writef64(outgoing_buff, outgoing_apos, ret_1["coinsGranted"])
+					end
+					buffer.writeu8(outgoing_buff, bool_11_pos_1, bool_11)
+					player_map[player_2] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 15 then -- ClaimOfflineEarnings
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			if reliable_events[15] then
+				task.spawn(function(player_2, call_id_2, value_1)
+					local ret_1 = reliable_events[15](player_2, value_1)
+					load_player(player_2)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 19)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
+					local bool_12 = 0
+					local bool_12_pos_1 = alloc(1)
+					if ret_1["success"] then
+						bool_12 = bit32.bor(bool_12, 0b0000000000000001)
+					end
+					if ret_1["error"] ~= nil then
+						bool_12 = bit32.bor(bool_12, 0b0000000000000010)
+						local len_13 = #ret_1["error"]
+						assert(utf8.len(ret_1["error"]) ~= nil, "value is not valid utf-8")
+						alloc(2)
+						buffer.writeu16(outgoing_buff, outgoing_apos, len_13)
+						alloc(len_13)
+						buffer.writestring(outgoing_buff, outgoing_apos, ret_1["error"], len_13)
+					end
+					if ret_1["coinsGranted"] ~= nil then
+						bool_12 = bit32.bor(bool_12, 0b0000000000000100)
+						alloc(8)
+						buffer.writef64(outgoing_buff, outgoing_apos, ret_1["coinsGranted"])
+					end
+					buffer.writeu8(outgoing_buff, bool_12_pos_1, bool_12)
+					player_map[player_2] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 9 then -- BuyUpgradeRobux
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			local len_14 = buffer.readu16(incoming_buff, read(2))
+			value = buffer.readstring(incoming_buff, read(len_14), len_14)
+			assert(utf8.len(value) ~= nil, "value is not valid utf-8")
+			if reliable_events[9] then
+				task.spawn(function(player_2, call_id_2, value_1)
+					local ret_1 = reliable_events[9](player_2, value_1)
+					load_player(player_2)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 13)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
+					local bool_13 = 0
+					local bool_13_pos_1 = alloc(1)
+					if ret_1["success"] then
+						bool_13 = bit32.bor(bool_13, 0b0000000000000001)
+					end
+					if ret_1["error"] ~= nil then
+						bool_13 = bit32.bor(bool_13, 0b0000000000000010)
+						local len_15 = #ret_1["error"]
+						assert(utf8.len(ret_1["error"]) ~= nil, "value is not valid utf-8")
+						alloc(2)
+						buffer.writeu16(outgoing_buff, outgoing_apos, len_15)
+						alloc(len_15)
+						buffer.writestring(outgoing_buff, outgoing_apos, ret_1["error"], len_15)
+					end
+					buffer.writeu8(outgoing_buff, bool_13_pos_1, bool_13)
+					player_map[player_2] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 8 then -- BuyUpgrade
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			local len_16 = buffer.readu16(incoming_buff, read(2))
+			value = buffer.readstring(incoming_buff, read(len_16), len_16)
+			assert(utf8.len(value) ~= nil, "value is not valid utf-8")
+			if reliable_events[8] then
+				task.spawn(function(player_2, call_id_2, value_1)
+					local ret_1 = reliable_events[8](player_2, value_1)
+					load_player(player_2)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 12)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
+					local bool_14 = 0
+					local bool_14_pos_1 = alloc(1)
+					if ret_1["success"] then
+						bool_14 = bit32.bor(bool_14, 0b0000000000000001)
+					end
+					if ret_1["error"] ~= nil then
+						bool_14 = bit32.bor(bool_14, 0b0000000000000010)
+						local len_17 = #ret_1["error"]
+						assert(utf8.len(ret_1["error"]) ~= nil, "value is not valid utf-8")
+						alloc(2)
+						buffer.writeu16(outgoing_buff, outgoing_apos, len_17)
+						alloc(len_17)
+						buffer.writestring(outgoing_buff, outgoing_apos, ret_1["error"], len_17)
+					end
+					if ret_1["coins"] ~= nil then
+						bool_14 = bit32.bor(bool_14, 0b0000000000000100)
+						alloc(8)
+						buffer.writef64(outgoing_buff, outgoing_apos, ret_1["coins"])
+					end
+					buffer.writeu8(outgoing_buff, bool_14_pos_1, bool_14)
+					player_map[player_2] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 18 then -- BuySkipAllRewards
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			if reliable_events[18] then
+				task.spawn(function(player_2, call_id_2, value_1)
+					local ret_1 = reliable_events[18](player_2, value_1)
+					load_player(player_2)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 22)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
+					local bool_15 = 0
+					local bool_15_pos_1 = alloc(1)
+					if ret_1["success"] then
+						bool_15 = bit32.bor(bool_15, 0b0000000000000001)
+					end
+					if ret_1["error"] ~= nil then
+						bool_15 = bit32.bor(bool_15, 0b0000000000000010)
+						local len_18 = #ret_1["error"]
+						assert(utf8.len(ret_1["error"]) ~= nil, "value is not valid utf-8")
+						alloc(2)
+						buffer.writeu16(outgoing_buff, outgoing_apos, len_18)
+						alloc(len_18)
+						buffer.writestring(outgoing_buff, outgoing_apos, ret_1["error"], len_18)
+					end
+					buffer.writeu8(outgoing_buff, bool_15_pos_1, bool_15)
+					player_map[player_2] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 16 then -- BuyOfflineDouble
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			if reliable_events[16] then
+				task.spawn(function(player_2, call_id_2, value_1)
+					local ret_1 = reliable_events[16](player_2, value_1)
+					load_player(player_2)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 20)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
+					local bool_16 = 0
+					local bool_16_pos_1 = alloc(1)
+					if ret_1["success"] then
+						bool_16 = bit32.bor(bool_16, 0b0000000000000001)
+					end
+					if ret_1["error"] ~= nil then
+						bool_16 = bit32.bor(bool_16, 0b0000000000000010)
+						local len_19 = #ret_1["error"]
+						assert(utf8.len(ret_1["error"]) ~= nil, "value is not valid utf-8")
+						alloc(2)
+						buffer.writeu16(outgoing_buff, outgoing_apos, len_19)
+						alloc(len_19)
+						buffer.writestring(outgoing_buff, outgoing_apos, ret_1["error"], len_19)
+					end
+					buffer.writeu8(outgoing_buff, bool_16_pos_1, bool_16)
+					player_map[player_2] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 3 then -- BuyOfferIndex
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			value = buffer.readu8(incoming_buff, read(1))
+			if reliable_events[3] then
+				task.spawn(function(player_2, call_id_2, value_1)
+					local ret_1 = reliable_events[3](player_2, value_1)
+					load_player(player_2)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 7)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
+					local bool_17 = 0
+					local bool_17_pos_1 = alloc(1)
+					if ret_1["success"] then
+						bool_17 = bit32.bor(bool_17, 0b0000000000000001)
+					end
+					if ret_1["error"] ~= nil then
+						bool_17 = bit32.bor(bool_17, 0b0000000000000010)
+						local len_20 = #ret_1["error"]
+						assert(utf8.len(ret_1["error"]) ~= nil, "value is not valid utf-8")
+						alloc(2)
+						buffer.writeu16(outgoing_buff, outgoing_apos, len_20)
+						alloc(len_20)
+						buffer.writestring(outgoing_buff, outgoing_apos, ret_1["error"], len_20)
+					end
+					buffer.writeu8(outgoing_buff, bool_17_pos_1, bool_17)
+					player_map[player_2] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 17 then -- BuyMegaPack
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			if reliable_events[17] then
+				task.spawn(function(player_2, call_id_2, value_1)
+					local ret_1 = reliable_events[17](player_2, value_1)
+					load_player(player_2)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 21)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
+					local bool_18 = 0
+					local bool_18_pos_1 = alloc(1)
+					if ret_1["success"] then
+						bool_18 = bit32.bor(bool_18, 0b0000000000000001)
+					end
+					if ret_1["error"] ~= nil then
+						bool_18 = bit32.bor(bool_18, 0b0000000000000010)
+						local len_21 = #ret_1["error"]
+						assert(utf8.len(ret_1["error"]) ~= nil, "value is not valid utf-8")
+						alloc(2)
+						buffer.writeu16(outgoing_buff, outgoing_apos, len_21)
+						alloc(len_21)
+						buffer.writestring(outgoing_buff, outgoing_apos, ret_1["error"], len_21)
+					end
+					buffer.writeu8(outgoing_buff, bool_18_pos_1, bool_18)
+					player_map[player_2] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 19 then -- BuyCoinPack
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			local len_22 = buffer.readu16(incoming_buff, read(2))
+			value = buffer.readstring(incoming_buff, read(len_22), len_22)
+			assert(utf8.len(value) ~= nil, "value is not valid utf-8")
+			if reliable_events[19] then
+				task.spawn(function(player_2, call_id_2, value_1)
+					local ret_1 = reliable_events[19](player_2, value_1)
+					load_player(player_2)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 23)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
+					local bool_19 = 0
+					local bool_19_pos_1 = alloc(1)
+					if ret_1["success"] then
+						bool_19 = bit32.bor(bool_19, 0b0000000000000001)
+					end
+					if ret_1["error"] ~= nil then
+						bool_19 = bit32.bor(bool_19, 0b0000000000000010)
+						local len_23 = #ret_1["error"]
+						assert(utf8.len(ret_1["error"]) ~= nil, "value is not valid utf-8")
+						alloc(2)
+						buffer.writeu16(outgoing_buff, outgoing_apos, len_23)
+						alloc(len_23)
+						buffer.writestring(outgoing_buff, outgoing_apos, ret_1["error"], len_23)
+					end
+					buffer.writeu8(outgoing_buff, bool_19_pos_1, bool_19)
+					player_map[player_2] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 14 then -- BuyBoostOffer
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			local len_24 = buffer.readu16(incoming_buff, read(2))
+			value = buffer.readstring(incoming_buff, read(len_24), len_24)
+			assert(utf8.len(value) ~= nil, "value is not valid utf-8")
+			if reliable_events[14] then
+				task.spawn(function(player_2, call_id_2, value_1)
+					local ret_1 = reliable_events[14](player_2, value_1)
+					load_player(player_2)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 18)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
+					local bool_20 = 0
+					local bool_20_pos_1 = alloc(1)
+					if ret_1["success"] then
+						bool_20 = bit32.bor(bool_20, 0b0000000000000001)
+					end
+					if ret_1["error"] ~= nil then
+						bool_20 = bit32.bor(bool_20, 0b0000000000000010)
+						local len_25 = #ret_1["error"]
+						assert(utf8.len(ret_1["error"]) ~= nil, "value is not valid utf-8")
+						alloc(2)
+						buffer.writeu16(outgoing_buff, outgoing_apos, len_25)
+						alloc(len_25)
+						buffer.writestring(outgoing_buff, outgoing_apos, ret_1["error"], len_25)
+					end
+					buffer.writeu8(outgoing_buff, bool_20_pos_1, bool_20)
 					player_map[player_2] = save()
 				end, player, call_id, value)
 			end
@@ -447,12 +915,12 @@ local returns = {
 			load_player(Player)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
-			local len_8 = #Value["payloadJson"]
+			local len_26 = #Value["payloadJson"]
 			assert(utf8.len(Value["payloadJson"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_8)
-			alloc(len_8)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["payloadJson"], len_8)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_26)
+			alloc(len_26)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["payloadJson"], len_26)
 			player_map[Player] = save()
 		end,
 		FireAll = function(Value: ({
@@ -461,12 +929,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
-			local len_9 = #Value["payloadJson"]
+			local len_27 = #Value["payloadJson"]
 			assert(utf8.len(Value["payloadJson"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_9)
-			alloc(len_9)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["payloadJson"], len_9)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_27)
+			alloc(len_27)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["payloadJson"], len_27)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				load_player(player)
@@ -482,12 +950,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
-			local len_10 = #Value["payloadJson"]
+			local len_28 = #Value["payloadJson"]
 			assert(utf8.len(Value["payloadJson"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_10)
-			alloc(len_10)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["payloadJson"], len_10)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_28)
+			alloc(len_28)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["payloadJson"], len_28)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				if player ~= Except then
@@ -505,12 +973,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
-			local len_11 = #Value["payloadJson"]
+			local len_29 = #Value["payloadJson"]
 			assert(utf8.len(Value["payloadJson"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_11)
-			alloc(len_11)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["payloadJson"], len_11)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_29)
+			alloc(len_29)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["payloadJson"], len_29)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in List do
 				load_player(player)
@@ -526,12 +994,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
-			local len_12 = #Value["payloadJson"]
+			local len_30 = #Value["payloadJson"]
 			assert(utf8.len(Value["payloadJson"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_12)
-			alloc(len_12)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["payloadJson"], len_12)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_30)
+			alloc(len_30)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["payloadJson"], len_30)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for player in Set do
 				load_player(player)
@@ -542,18 +1010,29 @@ local returns = {
 			end
 		end,
 	},
-	RequestHudSync = {
+	SetHand = {
+		SetCallback = function(Callback: (Player: Player, uid: (string)) -> (({
+			["success"]: (boolean),
+			["error"]: ((string)?),
+		}))): () -> ()
+			reliable_events[5] = Callback
+			return function()
+				reliable_events[5] = nil
+			end
+		end,
+	},
+	ResetTutorial = {
 		SetCallback = function(Callback: (Player: Player) -> (({
 			["success"]: (boolean),
 			["error"]: ((string)?),
 		}))): () -> ()
-			reliable_events[0] = Callback
+			reliable_events[13] = Callback
 			return function()
-				reliable_events[0] = nil
+				reliable_events[13] = nil
 			end
 		end,
 	},
-	RefreshOffers = {
+	RequestHudSync = {
 		SetCallback = function(Callback: (Player: Player) -> (({
 			["success"]: (boolean),
 			["error"]: ((string)?),
@@ -564,99 +1043,250 @@ local returns = {
 			end
 		end,
 	},
+	RefreshOffers = {
+		SetCallback = function(Callback: (Player: Player) -> (({
+			["success"]: (boolean),
+			["error"]: ((string)?),
+		}))): () -> ()
+			reliable_events[2] = Callback
+			return function()
+				reliable_events[2] = nil
+			end
+		end,
+	},
 	PlayerDataSync = {
 		Fire = function(Player: Player, Value: ({
 			["coins"]: (number),
 			["rebirths"]: (number),
-			["pickaxe"]: (number),
-			["backpack"]: (number),
+			["base"]: (number),
+			["pad"]: (number),
+			["padTier"]: (number),
+			["luck"]: (number),
+			["cash"]: (number),
+			["time"]: (number),
+			["speed"]: (number),
 			["handUid"]: (string),
 			["offersJson"]: (string),
 			["slotsJson"]: (string),
 			["inventoryJson"]: (string),
+			["sellBoxCoins"]: (number),
+			["sellBoxDeposits"]: (number),
+			["sellCratesJson"]: (string),
+			["indexFoundJson"]: (string),
+			["rewardTrackStartedAt"]: (number),
+			["rewardClaimedJson"]: (string),
+			["tutorialCompleted"]: (boolean),
+			["boostOfferEndsAt"]: (number),
+			["ownsLuckyX2"]: (boolean),
+			["ownsLuckyX4"]: (boolean),
+			["ownsMoneyX2"]: (boolean),
+			["pendingOfflineCoins"]: (number),
 		}))
 			load_player(Player)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			local bool_21 = 0
+			local bool_21_pos_1 = alloc(1)
 			alloc(8)
 			buffer.writef64(outgoing_buff, outgoing_apos, Value["coins"])
 			alloc(4)
 			buffer.writeu32(outgoing_buff, outgoing_apos, Value["rebirths"])
 			alloc(4)
-			buffer.writeu32(outgoing_buff, outgoing_apos, Value["pickaxe"])
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["base"])
 			alloc(4)
-			buffer.writeu32(outgoing_buff, outgoing_apos, Value["backpack"])
-			local len_13 = #Value["handUid"]
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["pad"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["padTier"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["luck"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["cash"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["time"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["speed"])
+			local len_31 = #Value["handUid"]
 			assert(utf8.len(Value["handUid"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_13)
-			alloc(len_13)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["handUid"], len_13)
-			local len_14 = #Value["offersJson"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_31)
+			alloc(len_31)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["handUid"], len_31)
+			local len_32 = #Value["offersJson"]
 			assert(utf8.len(Value["offersJson"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_14)
-			alloc(len_14)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["offersJson"], len_14)
-			local len_15 = #Value["slotsJson"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_32)
+			alloc(len_32)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["offersJson"], len_32)
+			local len_33 = #Value["slotsJson"]
 			assert(utf8.len(Value["slotsJson"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_15)
-			alloc(len_15)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["slotsJson"], len_15)
-			local len_16 = #Value["inventoryJson"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_33)
+			alloc(len_33)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["slotsJson"], len_33)
+			local len_34 = #Value["inventoryJson"]
 			assert(utf8.len(Value["inventoryJson"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_16)
-			alloc(len_16)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["inventoryJson"], len_16)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_34)
+			alloc(len_34)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["inventoryJson"], len_34)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["sellBoxCoins"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["sellBoxDeposits"])
+			local len_35 = #Value["sellCratesJson"]
+			assert(utf8.len(Value["sellCratesJson"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_35)
+			alloc(len_35)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["sellCratesJson"], len_35)
+			local len_36 = #Value["indexFoundJson"]
+			assert(utf8.len(Value["indexFoundJson"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_36)
+			alloc(len_36)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["indexFoundJson"], len_36)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["rewardTrackStartedAt"])
+			local len_37 = #Value["rewardClaimedJson"]
+			assert(utf8.len(Value["rewardClaimedJson"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_37)
+			alloc(len_37)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["rewardClaimedJson"], len_37)
+			if Value["tutorialCompleted"] then
+				bool_21 = bit32.bor(bool_21, 0b0000000000000001)
+			end
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["boostOfferEndsAt"])
+			if Value["ownsLuckyX2"] then
+				bool_21 = bit32.bor(bool_21, 0b0000000000000010)
+			end
+			if Value["ownsLuckyX4"] then
+				bool_21 = bit32.bor(bool_21, 0b0000000000000100)
+			end
+			if Value["ownsMoneyX2"] then
+				bool_21 = bit32.bor(bool_21, 0b0000000000001000)
+			end
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["pendingOfflineCoins"])
+			buffer.writeu8(outgoing_buff, bool_21_pos_1, bool_21)
 			player_map[Player] = save()
 		end,
 		FireAll = function(Value: ({
 			["coins"]: (number),
 			["rebirths"]: (number),
-			["pickaxe"]: (number),
-			["backpack"]: (number),
+			["base"]: (number),
+			["pad"]: (number),
+			["padTier"]: (number),
+			["luck"]: (number),
+			["cash"]: (number),
+			["time"]: (number),
+			["speed"]: (number),
 			["handUid"]: (string),
 			["offersJson"]: (string),
 			["slotsJson"]: (string),
 			["inventoryJson"]: (string),
+			["sellBoxCoins"]: (number),
+			["sellBoxDeposits"]: (number),
+			["sellCratesJson"]: (string),
+			["indexFoundJson"]: (string),
+			["rewardTrackStartedAt"]: (number),
+			["rewardClaimedJson"]: (string),
+			["tutorialCompleted"]: (boolean),
+			["boostOfferEndsAt"]: (number),
+			["ownsLuckyX2"]: (boolean),
+			["ownsLuckyX4"]: (boolean),
+			["ownsMoneyX2"]: (boolean),
+			["pendingOfflineCoins"]: (number),
 		}))
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			local bool_22 = 0
+			local bool_22_pos_1 = alloc(1)
 			alloc(8)
 			buffer.writef64(outgoing_buff, outgoing_apos, Value["coins"])
 			alloc(4)
 			buffer.writeu32(outgoing_buff, outgoing_apos, Value["rebirths"])
 			alloc(4)
-			buffer.writeu32(outgoing_buff, outgoing_apos, Value["pickaxe"])
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["base"])
 			alloc(4)
-			buffer.writeu32(outgoing_buff, outgoing_apos, Value["backpack"])
-			local len_17 = #Value["handUid"]
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["pad"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["padTier"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["luck"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["cash"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["time"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["speed"])
+			local len_38 = #Value["handUid"]
 			assert(utf8.len(Value["handUid"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_17)
-			alloc(len_17)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["handUid"], len_17)
-			local len_18 = #Value["offersJson"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_38)
+			alloc(len_38)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["handUid"], len_38)
+			local len_39 = #Value["offersJson"]
 			assert(utf8.len(Value["offersJson"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_18)
-			alloc(len_18)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["offersJson"], len_18)
-			local len_19 = #Value["slotsJson"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_39)
+			alloc(len_39)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["offersJson"], len_39)
+			local len_40 = #Value["slotsJson"]
 			assert(utf8.len(Value["slotsJson"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_19)
-			alloc(len_19)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["slotsJson"], len_19)
-			local len_20 = #Value["inventoryJson"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_40)
+			alloc(len_40)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["slotsJson"], len_40)
+			local len_41 = #Value["inventoryJson"]
 			assert(utf8.len(Value["inventoryJson"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_20)
-			alloc(len_20)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["inventoryJson"], len_20)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_41)
+			alloc(len_41)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["inventoryJson"], len_41)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["sellBoxCoins"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["sellBoxDeposits"])
+			local len_42 = #Value["sellCratesJson"]
+			assert(utf8.len(Value["sellCratesJson"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_42)
+			alloc(len_42)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["sellCratesJson"], len_42)
+			local len_43 = #Value["indexFoundJson"]
+			assert(utf8.len(Value["indexFoundJson"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_43)
+			alloc(len_43)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["indexFoundJson"], len_43)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["rewardTrackStartedAt"])
+			local len_44 = #Value["rewardClaimedJson"]
+			assert(utf8.len(Value["rewardClaimedJson"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_44)
+			alloc(len_44)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["rewardClaimedJson"], len_44)
+			if Value["tutorialCompleted"] then
+				bool_22 = bit32.bor(bool_22, 0b0000000000000001)
+			end
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["boostOfferEndsAt"])
+			if Value["ownsLuckyX2"] then
+				bool_22 = bit32.bor(bool_22, 0b0000000000000010)
+			end
+			if Value["ownsLuckyX4"] then
+				bool_22 = bit32.bor(bool_22, 0b0000000000000100)
+			end
+			if Value["ownsMoneyX2"] then
+				bool_22 = bit32.bor(bool_22, 0b0000000000001000)
+			end
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["pendingOfflineCoins"])
+			buffer.writeu8(outgoing_buff, bool_22_pos_1, bool_22)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				load_player(player)
@@ -669,48 +1299,118 @@ local returns = {
 		FireExcept = function(Except: Player, Value: ({
 			["coins"]: (number),
 			["rebirths"]: (number),
-			["pickaxe"]: (number),
-			["backpack"]: (number),
+			["base"]: (number),
+			["pad"]: (number),
+			["padTier"]: (number),
+			["luck"]: (number),
+			["cash"]: (number),
+			["time"]: (number),
+			["speed"]: (number),
 			["handUid"]: (string),
 			["offersJson"]: (string),
 			["slotsJson"]: (string),
 			["inventoryJson"]: (string),
+			["sellBoxCoins"]: (number),
+			["sellBoxDeposits"]: (number),
+			["sellCratesJson"]: (string),
+			["indexFoundJson"]: (string),
+			["rewardTrackStartedAt"]: (number),
+			["rewardClaimedJson"]: (string),
+			["tutorialCompleted"]: (boolean),
+			["boostOfferEndsAt"]: (number),
+			["ownsLuckyX2"]: (boolean),
+			["ownsLuckyX4"]: (boolean),
+			["ownsMoneyX2"]: (boolean),
+			["pendingOfflineCoins"]: (number),
 		}))
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			local bool_23 = 0
+			local bool_23_pos_1 = alloc(1)
 			alloc(8)
 			buffer.writef64(outgoing_buff, outgoing_apos, Value["coins"])
 			alloc(4)
 			buffer.writeu32(outgoing_buff, outgoing_apos, Value["rebirths"])
 			alloc(4)
-			buffer.writeu32(outgoing_buff, outgoing_apos, Value["pickaxe"])
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["base"])
 			alloc(4)
-			buffer.writeu32(outgoing_buff, outgoing_apos, Value["backpack"])
-			local len_21 = #Value["handUid"]
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["pad"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["padTier"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["luck"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["cash"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["time"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["speed"])
+			local len_45 = #Value["handUid"]
 			assert(utf8.len(Value["handUid"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_21)
-			alloc(len_21)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["handUid"], len_21)
-			local len_22 = #Value["offersJson"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_45)
+			alloc(len_45)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["handUid"], len_45)
+			local len_46 = #Value["offersJson"]
 			assert(utf8.len(Value["offersJson"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_22)
-			alloc(len_22)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["offersJson"], len_22)
-			local len_23 = #Value["slotsJson"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_46)
+			alloc(len_46)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["offersJson"], len_46)
+			local len_47 = #Value["slotsJson"]
 			assert(utf8.len(Value["slotsJson"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_23)
-			alloc(len_23)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["slotsJson"], len_23)
-			local len_24 = #Value["inventoryJson"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_47)
+			alloc(len_47)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["slotsJson"], len_47)
+			local len_48 = #Value["inventoryJson"]
 			assert(utf8.len(Value["inventoryJson"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_24)
-			alloc(len_24)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["inventoryJson"], len_24)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_48)
+			alloc(len_48)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["inventoryJson"], len_48)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["sellBoxCoins"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["sellBoxDeposits"])
+			local len_49 = #Value["sellCratesJson"]
+			assert(utf8.len(Value["sellCratesJson"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_49)
+			alloc(len_49)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["sellCratesJson"], len_49)
+			local len_50 = #Value["indexFoundJson"]
+			assert(utf8.len(Value["indexFoundJson"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_50)
+			alloc(len_50)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["indexFoundJson"], len_50)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["rewardTrackStartedAt"])
+			local len_51 = #Value["rewardClaimedJson"]
+			assert(utf8.len(Value["rewardClaimedJson"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_51)
+			alloc(len_51)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["rewardClaimedJson"], len_51)
+			if Value["tutorialCompleted"] then
+				bool_23 = bit32.bor(bool_23, 0b0000000000000001)
+			end
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["boostOfferEndsAt"])
+			if Value["ownsLuckyX2"] then
+				bool_23 = bit32.bor(bool_23, 0b0000000000000010)
+			end
+			if Value["ownsLuckyX4"] then
+				bool_23 = bit32.bor(bool_23, 0b0000000000000100)
+			end
+			if Value["ownsMoneyX2"] then
+				bool_23 = bit32.bor(bool_23, 0b0000000000001000)
+			end
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["pendingOfflineCoins"])
+			buffer.writeu8(outgoing_buff, bool_23_pos_1, bool_23)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				if player ~= Except then
@@ -725,48 +1425,118 @@ local returns = {
 		FireList = function(List: { [unknown]: Player }, Value: ({
 			["coins"]: (number),
 			["rebirths"]: (number),
-			["pickaxe"]: (number),
-			["backpack"]: (number),
+			["base"]: (number),
+			["pad"]: (number),
+			["padTier"]: (number),
+			["luck"]: (number),
+			["cash"]: (number),
+			["time"]: (number),
+			["speed"]: (number),
 			["handUid"]: (string),
 			["offersJson"]: (string),
 			["slotsJson"]: (string),
 			["inventoryJson"]: (string),
+			["sellBoxCoins"]: (number),
+			["sellBoxDeposits"]: (number),
+			["sellCratesJson"]: (string),
+			["indexFoundJson"]: (string),
+			["rewardTrackStartedAt"]: (number),
+			["rewardClaimedJson"]: (string),
+			["tutorialCompleted"]: (boolean),
+			["boostOfferEndsAt"]: (number),
+			["ownsLuckyX2"]: (boolean),
+			["ownsLuckyX4"]: (boolean),
+			["ownsMoneyX2"]: (boolean),
+			["pendingOfflineCoins"]: (number),
 		}))
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			local bool_24 = 0
+			local bool_24_pos_1 = alloc(1)
 			alloc(8)
 			buffer.writef64(outgoing_buff, outgoing_apos, Value["coins"])
 			alloc(4)
 			buffer.writeu32(outgoing_buff, outgoing_apos, Value["rebirths"])
 			alloc(4)
-			buffer.writeu32(outgoing_buff, outgoing_apos, Value["pickaxe"])
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["base"])
 			alloc(4)
-			buffer.writeu32(outgoing_buff, outgoing_apos, Value["backpack"])
-			local len_25 = #Value["handUid"]
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["pad"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["padTier"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["luck"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["cash"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["time"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["speed"])
+			local len_52 = #Value["handUid"]
 			assert(utf8.len(Value["handUid"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_25)
-			alloc(len_25)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["handUid"], len_25)
-			local len_26 = #Value["offersJson"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_52)
+			alloc(len_52)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["handUid"], len_52)
+			local len_53 = #Value["offersJson"]
 			assert(utf8.len(Value["offersJson"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_26)
-			alloc(len_26)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["offersJson"], len_26)
-			local len_27 = #Value["slotsJson"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_53)
+			alloc(len_53)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["offersJson"], len_53)
+			local len_54 = #Value["slotsJson"]
 			assert(utf8.len(Value["slotsJson"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_27)
-			alloc(len_27)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["slotsJson"], len_27)
-			local len_28 = #Value["inventoryJson"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_54)
+			alloc(len_54)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["slotsJson"], len_54)
+			local len_55 = #Value["inventoryJson"]
 			assert(utf8.len(Value["inventoryJson"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_28)
-			alloc(len_28)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["inventoryJson"], len_28)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_55)
+			alloc(len_55)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["inventoryJson"], len_55)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["sellBoxCoins"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["sellBoxDeposits"])
+			local len_56 = #Value["sellCratesJson"]
+			assert(utf8.len(Value["sellCratesJson"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_56)
+			alloc(len_56)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["sellCratesJson"], len_56)
+			local len_57 = #Value["indexFoundJson"]
+			assert(utf8.len(Value["indexFoundJson"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_57)
+			alloc(len_57)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["indexFoundJson"], len_57)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["rewardTrackStartedAt"])
+			local len_58 = #Value["rewardClaimedJson"]
+			assert(utf8.len(Value["rewardClaimedJson"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_58)
+			alloc(len_58)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["rewardClaimedJson"], len_58)
+			if Value["tutorialCompleted"] then
+				bool_24 = bit32.bor(bool_24, 0b0000000000000001)
+			end
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["boostOfferEndsAt"])
+			if Value["ownsLuckyX2"] then
+				bool_24 = bit32.bor(bool_24, 0b0000000000000010)
+			end
+			if Value["ownsLuckyX4"] then
+				bool_24 = bit32.bor(bool_24, 0b0000000000000100)
+			end
+			if Value["ownsMoneyX2"] then
+				bool_24 = bit32.bor(bool_24, 0b0000000000001000)
+			end
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["pendingOfflineCoins"])
+			buffer.writeu8(outgoing_buff, bool_24_pos_1, bool_24)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in List do
 				load_player(player)
@@ -779,48 +1549,118 @@ local returns = {
 		FireSet = function(Set: { [Player]: any }, Value: ({
 			["coins"]: (number),
 			["rebirths"]: (number),
-			["pickaxe"]: (number),
-			["backpack"]: (number),
+			["base"]: (number),
+			["pad"]: (number),
+			["padTier"]: (number),
+			["luck"]: (number),
+			["cash"]: (number),
+			["time"]: (number),
+			["speed"]: (number),
 			["handUid"]: (string),
 			["offersJson"]: (string),
 			["slotsJson"]: (string),
 			["inventoryJson"]: (string),
+			["sellBoxCoins"]: (number),
+			["sellBoxDeposits"]: (number),
+			["sellCratesJson"]: (string),
+			["indexFoundJson"]: (string),
+			["rewardTrackStartedAt"]: (number),
+			["rewardClaimedJson"]: (string),
+			["tutorialCompleted"]: (boolean),
+			["boostOfferEndsAt"]: (number),
+			["ownsLuckyX2"]: (boolean),
+			["ownsLuckyX4"]: (boolean),
+			["ownsMoneyX2"]: (boolean),
+			["pendingOfflineCoins"]: (number),
 		}))
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			local bool_25 = 0
+			local bool_25_pos_1 = alloc(1)
 			alloc(8)
 			buffer.writef64(outgoing_buff, outgoing_apos, Value["coins"])
 			alloc(4)
 			buffer.writeu32(outgoing_buff, outgoing_apos, Value["rebirths"])
 			alloc(4)
-			buffer.writeu32(outgoing_buff, outgoing_apos, Value["pickaxe"])
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["base"])
 			alloc(4)
-			buffer.writeu32(outgoing_buff, outgoing_apos, Value["backpack"])
-			local len_29 = #Value["handUid"]
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["pad"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["padTier"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["luck"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["cash"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["time"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["speed"])
+			local len_59 = #Value["handUid"]
 			assert(utf8.len(Value["handUid"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_29)
-			alloc(len_29)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["handUid"], len_29)
-			local len_30 = #Value["offersJson"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_59)
+			alloc(len_59)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["handUid"], len_59)
+			local len_60 = #Value["offersJson"]
 			assert(utf8.len(Value["offersJson"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_30)
-			alloc(len_30)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["offersJson"], len_30)
-			local len_31 = #Value["slotsJson"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_60)
+			alloc(len_60)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["offersJson"], len_60)
+			local len_61 = #Value["slotsJson"]
 			assert(utf8.len(Value["slotsJson"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_31)
-			alloc(len_31)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["slotsJson"], len_31)
-			local len_32 = #Value["inventoryJson"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_61)
+			alloc(len_61)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["slotsJson"], len_61)
+			local len_62 = #Value["inventoryJson"]
 			assert(utf8.len(Value["inventoryJson"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_32)
-			alloc(len_32)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["inventoryJson"], len_32)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_62)
+			alloc(len_62)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["inventoryJson"], len_62)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["sellBoxCoins"])
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["sellBoxDeposits"])
+			local len_63 = #Value["sellCratesJson"]
+			assert(utf8.len(Value["sellCratesJson"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_63)
+			alloc(len_63)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["sellCratesJson"], len_63)
+			local len_64 = #Value["indexFoundJson"]
+			assert(utf8.len(Value["indexFoundJson"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_64)
+			alloc(len_64)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["indexFoundJson"], len_64)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["rewardTrackStartedAt"])
+			local len_65 = #Value["rewardClaimedJson"]
+			assert(utf8.len(Value["rewardClaimedJson"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_65)
+			alloc(len_65)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["rewardClaimedJson"], len_65)
+			if Value["tutorialCompleted"] then
+				bool_25 = bit32.bor(bool_25, 0b0000000000000001)
+			end
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value["boostOfferEndsAt"])
+			if Value["ownsLuckyX2"] then
+				bool_25 = bit32.bor(bool_25, 0b0000000000000010)
+			end
+			if Value["ownsLuckyX4"] then
+				bool_25 = bit32.bor(bool_25, 0b0000000000000100)
+			end
+			if Value["ownsMoneyX2"] then
+				bool_25 = bit32.bor(bool_25, 0b0000000000001000)
+			end
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["pendingOfflineCoins"])
+			buffer.writeu8(outgoing_buff, bool_25_pos_1, bool_25)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for player in Set do
 				load_player(player)
@@ -842,18 +1682,18 @@ local returns = {
 			load_player(Player)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
-			local bool_7 = 0
-			local bool_7_pos_1 = alloc(1)
-			local len_33 = #Value["effectId"]
+			local bool_26 = 0
+			local bool_26_pos_1 = alloc(1)
+			local len_66 = #Value["effectId"]
 			assert(utf8.len(Value["effectId"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_33)
-			alloc(len_33)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["effectId"], len_33)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_66)
+			alloc(len_66)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["effectId"], len_66)
 			alloc(4)
 			buffer.writef32(outgoing_buff, outgoing_apos, Value["intensity"])
 			if Value["pos"] ~= nil then
-				bool_7 = bit32.bor(bool_7, 0b0000000000000001)
+				bool_26 = bit32.bor(bool_26, 0b0000000000000001)
 				alloc(4)
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["pos"].X)
 				alloc(4)
@@ -862,7 +1702,7 @@ local returns = {
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["pos"].Z)
 			end
 			if Value["from"] ~= nil then
-				bool_7 = bit32.bor(bool_7, 0b0000000000000010)
+				bool_26 = bit32.bor(bool_26, 0b0000000000000010)
 				alloc(4)
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["from"].X)
 				alloc(4)
@@ -871,7 +1711,7 @@ local returns = {
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["from"].Z)
 			end
 			if Value["to"] ~= nil then
-				bool_7 = bit32.bor(bool_7, 0b0000000000000100)
+				bool_26 = bit32.bor(bool_26, 0b0000000000000100)
 				alloc(4)
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["to"].X)
 				alloc(4)
@@ -879,7 +1719,7 @@ local returns = {
 				alloc(4)
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["to"].Z)
 			end
-			buffer.writeu8(outgoing_buff, bool_7_pos_1, bool_7)
+			buffer.writeu8(outgoing_buff, bool_26_pos_1, bool_26)
 			player_map[Player] = save()
 		end,
 		FireAll = function(Value: ({
@@ -892,18 +1732,18 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
-			local bool_8 = 0
-			local bool_8_pos_1 = alloc(1)
-			local len_34 = #Value["effectId"]
+			local bool_27 = 0
+			local bool_27_pos_1 = alloc(1)
+			local len_67 = #Value["effectId"]
 			assert(utf8.len(Value["effectId"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_34)
-			alloc(len_34)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["effectId"], len_34)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_67)
+			alloc(len_67)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["effectId"], len_67)
 			alloc(4)
 			buffer.writef32(outgoing_buff, outgoing_apos, Value["intensity"])
 			if Value["pos"] ~= nil then
-				bool_8 = bit32.bor(bool_8, 0b0000000000000001)
+				bool_27 = bit32.bor(bool_27, 0b0000000000000001)
 				alloc(4)
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["pos"].X)
 				alloc(4)
@@ -912,7 +1752,7 @@ local returns = {
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["pos"].Z)
 			end
 			if Value["from"] ~= nil then
-				bool_8 = bit32.bor(bool_8, 0b0000000000000010)
+				bool_27 = bit32.bor(bool_27, 0b0000000000000010)
 				alloc(4)
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["from"].X)
 				alloc(4)
@@ -921,7 +1761,7 @@ local returns = {
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["from"].Z)
 			end
 			if Value["to"] ~= nil then
-				bool_8 = bit32.bor(bool_8, 0b0000000000000100)
+				bool_27 = bit32.bor(bool_27, 0b0000000000000100)
 				alloc(4)
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["to"].X)
 				alloc(4)
@@ -929,7 +1769,7 @@ local returns = {
 				alloc(4)
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["to"].Z)
 			end
-			buffer.writeu8(outgoing_buff, bool_8_pos_1, bool_8)
+			buffer.writeu8(outgoing_buff, bool_27_pos_1, bool_27)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				load_player(player)
@@ -949,18 +1789,18 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
-			local bool_9 = 0
-			local bool_9_pos_1 = alloc(1)
-			local len_35 = #Value["effectId"]
+			local bool_28 = 0
+			local bool_28_pos_1 = alloc(1)
+			local len_68 = #Value["effectId"]
 			assert(utf8.len(Value["effectId"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_35)
-			alloc(len_35)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["effectId"], len_35)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_68)
+			alloc(len_68)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["effectId"], len_68)
 			alloc(4)
 			buffer.writef32(outgoing_buff, outgoing_apos, Value["intensity"])
 			if Value["pos"] ~= nil then
-				bool_9 = bit32.bor(bool_9, 0b0000000000000001)
+				bool_28 = bit32.bor(bool_28, 0b0000000000000001)
 				alloc(4)
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["pos"].X)
 				alloc(4)
@@ -969,7 +1809,7 @@ local returns = {
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["pos"].Z)
 			end
 			if Value["from"] ~= nil then
-				bool_9 = bit32.bor(bool_9, 0b0000000000000010)
+				bool_28 = bit32.bor(bool_28, 0b0000000000000010)
 				alloc(4)
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["from"].X)
 				alloc(4)
@@ -978,7 +1818,7 @@ local returns = {
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["from"].Z)
 			end
 			if Value["to"] ~= nil then
-				bool_9 = bit32.bor(bool_9, 0b0000000000000100)
+				bool_28 = bit32.bor(bool_28, 0b0000000000000100)
 				alloc(4)
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["to"].X)
 				alloc(4)
@@ -986,7 +1826,7 @@ local returns = {
 				alloc(4)
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["to"].Z)
 			end
-			buffer.writeu8(outgoing_buff, bool_9_pos_1, bool_9)
+			buffer.writeu8(outgoing_buff, bool_28_pos_1, bool_28)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				if player ~= Except then
@@ -1008,18 +1848,18 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
-			local bool_10 = 0
-			local bool_10_pos_1 = alloc(1)
-			local len_36 = #Value["effectId"]
+			local bool_29 = 0
+			local bool_29_pos_1 = alloc(1)
+			local len_69 = #Value["effectId"]
 			assert(utf8.len(Value["effectId"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_36)
-			alloc(len_36)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["effectId"], len_36)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_69)
+			alloc(len_69)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["effectId"], len_69)
 			alloc(4)
 			buffer.writef32(outgoing_buff, outgoing_apos, Value["intensity"])
 			if Value["pos"] ~= nil then
-				bool_10 = bit32.bor(bool_10, 0b0000000000000001)
+				bool_29 = bit32.bor(bool_29, 0b0000000000000001)
 				alloc(4)
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["pos"].X)
 				alloc(4)
@@ -1028,7 +1868,7 @@ local returns = {
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["pos"].Z)
 			end
 			if Value["from"] ~= nil then
-				bool_10 = bit32.bor(bool_10, 0b0000000000000010)
+				bool_29 = bit32.bor(bool_29, 0b0000000000000010)
 				alloc(4)
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["from"].X)
 				alloc(4)
@@ -1037,7 +1877,7 @@ local returns = {
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["from"].Z)
 			end
 			if Value["to"] ~= nil then
-				bool_10 = bit32.bor(bool_10, 0b0000000000000100)
+				bool_29 = bit32.bor(bool_29, 0b0000000000000100)
 				alloc(4)
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["to"].X)
 				alloc(4)
@@ -1045,7 +1885,7 @@ local returns = {
 				alloc(4)
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["to"].Z)
 			end
-			buffer.writeu8(outgoing_buff, bool_10_pos_1, bool_10)
+			buffer.writeu8(outgoing_buff, bool_29_pos_1, bool_29)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in List do
 				load_player(player)
@@ -1065,18 +1905,18 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
-			local bool_11 = 0
-			local bool_11_pos_1 = alloc(1)
-			local len_37 = #Value["effectId"]
+			local bool_30 = 0
+			local bool_30_pos_1 = alloc(1)
+			local len_70 = #Value["effectId"]
 			assert(utf8.len(Value["effectId"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_37)
-			alloc(len_37)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["effectId"], len_37)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_70)
+			alloc(len_70)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["effectId"], len_70)
 			alloc(4)
 			buffer.writef32(outgoing_buff, outgoing_apos, Value["intensity"])
 			if Value["pos"] ~= nil then
-				bool_11 = bit32.bor(bool_11, 0b0000000000000001)
+				bool_30 = bit32.bor(bool_30, 0b0000000000000001)
 				alloc(4)
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["pos"].X)
 				alloc(4)
@@ -1085,7 +1925,7 @@ local returns = {
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["pos"].Z)
 			end
 			if Value["from"] ~= nil then
-				bool_11 = bit32.bor(bool_11, 0b0000000000000010)
+				bool_30 = bit32.bor(bool_30, 0b0000000000000010)
 				alloc(4)
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["from"].X)
 				alloc(4)
@@ -1094,7 +1934,7 @@ local returns = {
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["from"].Z)
 			end
 			if Value["to"] ~= nil then
-				bool_11 = bit32.bor(bool_11, 0b0000000000000100)
+				bool_30 = bit32.bor(bool_30, 0b0000000000000100)
 				alloc(4)
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["to"].X)
 				alloc(4)
@@ -1102,7 +1942,7 @@ local returns = {
 				alloc(4)
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["to"].Z)
 			end
-			buffer.writeu8(outgoing_buff, bool_11_pos_1, bool_11)
+			buffer.writeu8(outgoing_buff, bool_30_pos_1, bool_30)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for player in Set do
 				load_player(player)
@@ -1118,9 +1958,20 @@ local returns = {
 			["success"]: (boolean),
 			["error"]: ((string)?),
 		}))): () -> ()
-			reliable_events[3] = Callback
+			reliable_events[4] = Callback
 			return function()
-				reliable_events[3] = nil
+				reliable_events[4] = nil
+			end
+		end,
+	},
+	PickupContainer = {
+		SetCallback = function(Callback: (Player: Player, slotIndex: (number)) -> (({
+			["success"]: (boolean),
+			["error"]: ((string)?),
+		}))): () -> ()
+			reliable_events[7] = Callback
+			return function()
+				reliable_events[7] = nil
 			end
 		end,
 	},
@@ -1129,9 +1980,9 @@ local returns = {
 			["success"]: (boolean),
 			["error"]: ((string)?),
 		}))): () -> ()
-			reliable_events[4] = Callback
+			reliable_events[6] = Callback
 			return function()
-				reliable_events[4] = nil
+				reliable_events[6] = nil
 			end
 		end,
 	},
@@ -1143,18 +1994,18 @@ local returns = {
 			load_player(Player)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
-			local len_38 = #Value["kind"]
+			local len_71 = #Value["kind"]
 			assert(utf8.len(Value["kind"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_38)
-			alloc(len_38)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["kind"], len_38)
-			local len_39 = #Value["payload"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_71)
+			alloc(len_71)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["kind"], len_71)
+			local len_72 = #Value["payload"]
 			assert(utf8.len(Value["payload"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_39)
-			alloc(len_39)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["payload"], len_39)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_72)
+			alloc(len_72)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["payload"], len_72)
 			player_map[Player] = save()
 		end,
 		FireAll = function(Value: ({
@@ -1164,18 +2015,18 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
-			local len_40 = #Value["kind"]
+			local len_73 = #Value["kind"]
 			assert(utf8.len(Value["kind"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_40)
-			alloc(len_40)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["kind"], len_40)
-			local len_41 = #Value["payload"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_73)
+			alloc(len_73)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["kind"], len_73)
+			local len_74 = #Value["payload"]
 			assert(utf8.len(Value["payload"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_41)
-			alloc(len_41)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["payload"], len_41)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_74)
+			alloc(len_74)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["payload"], len_74)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				load_player(player)
@@ -1192,18 +2043,18 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
-			local len_42 = #Value["kind"]
+			local len_75 = #Value["kind"]
 			assert(utf8.len(Value["kind"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_42)
-			alloc(len_42)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["kind"], len_42)
-			local len_43 = #Value["payload"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_75)
+			alloc(len_75)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["kind"], len_75)
+			local len_76 = #Value["payload"]
 			assert(utf8.len(Value["payload"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_43)
-			alloc(len_43)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["payload"], len_43)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_76)
+			alloc(len_76)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["payload"], len_76)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				if player ~= Except then
@@ -1222,18 +2073,18 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
-			local len_44 = #Value["kind"]
+			local len_77 = #Value["kind"]
 			assert(utf8.len(Value["kind"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_44)
-			alloc(len_44)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["kind"], len_44)
-			local len_45 = #Value["payload"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_77)
+			alloc(len_77)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["kind"], len_77)
+			local len_78 = #Value["payload"]
 			assert(utf8.len(Value["payload"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_45)
-			alloc(len_45)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["payload"], len_45)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_78)
+			alloc(len_78)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["payload"], len_78)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in List do
 				load_player(player)
@@ -1250,18 +2101,18 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
-			local len_46 = #Value["kind"]
+			local len_79 = #Value["kind"]
 			assert(utf8.len(Value["kind"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_46)
-			alloc(len_46)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["kind"], len_46)
-			local len_47 = #Value["payload"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_79)
+			alloc(len_79)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["kind"], len_79)
+			local len_80 = #Value["payload"]
 			assert(utf8.len(Value["payload"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_47)
-			alloc(len_47)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["payload"], len_47)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_80)
+			alloc(len_80)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["payload"], len_80)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for player in Set do
 				load_player(player)
@@ -1283,16 +2134,16 @@ local returns = {
 			load_player(Player)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 4)
-			alloc(4)
-			buffer.writeu32(outgoing_buff, outgoing_apos, Value["ownerUserId"])
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["ownerUserId"])
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, Value["slotIndex"])
-			local len_48 = #Value["heroId"]
+			local len_81 = #Value["heroId"]
 			assert(utf8.len(Value["heroId"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_48)
-			alloc(len_48)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["heroId"], len_48)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_81)
+			alloc(len_81)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["heroId"], len_81)
 			alloc(8)
 			buffer.writef64(outgoing_buff, outgoing_apos, Value["payout"])
 			alloc(4)
@@ -1309,16 +2160,16 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 4)
-			alloc(4)
-			buffer.writeu32(outgoing_buff, outgoing_apos, Value["ownerUserId"])
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["ownerUserId"])
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, Value["slotIndex"])
-			local len_49 = #Value["heroId"]
+			local len_82 = #Value["heroId"]
 			assert(utf8.len(Value["heroId"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_49)
-			alloc(len_49)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["heroId"], len_49)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_82)
+			alloc(len_82)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["heroId"], len_82)
 			alloc(8)
 			buffer.writef64(outgoing_buff, outgoing_apos, Value["payout"])
 			alloc(4)
@@ -1342,16 +2193,16 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 4)
-			alloc(4)
-			buffer.writeu32(outgoing_buff, outgoing_apos, Value["ownerUserId"])
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["ownerUserId"])
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, Value["slotIndex"])
-			local len_50 = #Value["heroId"]
+			local len_83 = #Value["heroId"]
 			assert(utf8.len(Value["heroId"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_50)
-			alloc(len_50)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["heroId"], len_50)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_83)
+			alloc(len_83)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["heroId"], len_83)
 			alloc(8)
 			buffer.writef64(outgoing_buff, outgoing_apos, Value["payout"])
 			alloc(4)
@@ -1377,16 +2228,16 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 4)
-			alloc(4)
-			buffer.writeu32(outgoing_buff, outgoing_apos, Value["ownerUserId"])
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["ownerUserId"])
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, Value["slotIndex"])
-			local len_51 = #Value["heroId"]
+			local len_84 = #Value["heroId"]
 			assert(utf8.len(Value["heroId"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_51)
-			alloc(len_51)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["heroId"], len_51)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_84)
+			alloc(len_84)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["heroId"], len_84)
 			alloc(8)
 			buffer.writef64(outgoing_buff, outgoing_apos, Value["payout"])
 			alloc(4)
@@ -1410,16 +2261,16 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 4)
-			alloc(4)
-			buffer.writeu32(outgoing_buff, outgoing_apos, Value["ownerUserId"])
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["ownerUserId"])
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, Value["slotIndex"])
-			local len_52 = #Value["heroId"]
+			local len_85 = #Value["heroId"]
 			assert(utf8.len(Value["heroId"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_52)
-			alloc(len_52)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["heroId"], len_52)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_85)
+			alloc(len_85)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["heroId"], len_85)
 			alloc(8)
 			buffer.writef64(outgoing_buff, outgoing_apos, Value["payout"])
 			alloc(4)
@@ -1434,15 +2285,97 @@ local returns = {
 			end
 		end,
 	},
+	LevelHero = {
+		SetCallback = function(Callback: (Player: Player, slotIndex: (number)) -> (({
+			["success"]: (boolean),
+			["error"]: ((string)?),
+			["coins"]: ((number)?),
+			["level"]: ((number)?),
+		}))): () -> ()
+			reliable_events[10] = Callback
+			return function()
+				reliable_events[10] = nil
+			end
+		end,
+	},
+	CompleteTutorial = {
+		SetCallback = function(Callback: (Player: Player) -> (({
+			["success"]: (boolean),
+			["error"]: ((string)?),
+		}))): () -> ()
+			reliable_events[12] = Callback
+			return function()
+				reliable_events[12] = nil
+			end
+		end,
+	},
+	ClaimTimedReward = {
+		SetCallback = function(Callback: (Player: Player, rewardId: (string)) -> (({
+			["success"]: (boolean),
+			["error"]: ((string)?),
+			["coins"]: ((number)?),
+			["coinsGranted"]: ((number)?),
+		}))): () -> ()
+			reliable_events[11] = Callback
+			return function()
+				reliable_events[11] = nil
+			end
+		end,
+	},
+	ClaimOfflineEarnings = {
+		SetCallback = function(Callback: (Player: Player) -> (({
+			["success"]: (boolean),
+			["error"]: ((string)?),
+			["coinsGranted"]: ((number)?),
+		}))): () -> ()
+			reliable_events[15] = Callback
+			return function()
+				reliable_events[15] = nil
+			end
+		end,
+	},
+	BuyUpgradeRobux = {
+		SetCallback = function(Callback: (Player: Player, upgradeId: (string)) -> (({
+			["success"]: (boolean),
+			["error"]: ((string)?),
+		}))): () -> ()
+			reliable_events[9] = Callback
+			return function()
+				reliable_events[9] = nil
+			end
+		end,
+	},
 	BuyUpgrade = {
 		SetCallback = function(Callback: (Player: Player, upgradeId: (string)) -> (({
 			["success"]: (boolean),
 			["error"]: ((string)?),
 			["coins"]: ((number)?),
 		}))): () -> ()
-			reliable_events[5] = Callback
+			reliable_events[8] = Callback
 			return function()
-				reliable_events[5] = nil
+				reliable_events[8] = nil
+			end
+		end,
+	},
+	BuySkipAllRewards = {
+		SetCallback = function(Callback: (Player: Player) -> (({
+			["success"]: (boolean),
+			["error"]: ((string)?),
+		}))): () -> ()
+			reliable_events[18] = Callback
+			return function()
+				reliable_events[18] = nil
+			end
+		end,
+	},
+	BuyOfflineDouble = {
+		SetCallback = function(Callback: (Player: Player) -> (({
+			["success"]: (boolean),
+			["error"]: ((string)?),
+		}))): () -> ()
+			reliable_events[16] = Callback
+			return function()
+				reliable_events[16] = nil
 			end
 		end,
 	},
@@ -1451,9 +2384,50 @@ local returns = {
 			["success"]: (boolean),
 			["error"]: ((string)?),
 		}))): () -> ()
-			reliable_events[2] = Callback
+			reliable_events[3] = Callback
 			return function()
-				reliable_events[2] = nil
+				reliable_events[3] = nil
+			end
+		end,
+	},
+	BuyMegaPack = {
+		SetCallback = function(Callback: (Player: Player) -> (({
+			["success"]: (boolean),
+			["error"]: ((string)?),
+		}))): () -> ()
+			reliable_events[17] = Callback
+			return function()
+				reliable_events[17] = nil
+			end
+		end,
+	},
+	BuyCoinPack = {
+		SetCallback = function(Callback: (Player: Player, packId: (string)) -> (({
+			["success"]: (boolean),
+			["error"]: ((string)?),
+		}))): () -> ()
+			reliable_events[19] = Callback
+			return function()
+				reliable_events[19] = nil
+			end
+		end,
+	},
+	BuyBoostOffer = {
+		SetCallback = function(Callback: (Player: Player, offerId: (string)) -> (({
+			["success"]: (boolean),
+			["error"]: ((string)?),
+		}))): () -> ()
+			reliable_events[14] = Callback
+			return function()
+				reliable_events[14] = nil
+			end
+		end,
+	},
+	BoostOfferSeen = {
+		SetCallback = function(Callback: (Player: Player, Value: (boolean)) -> ()): () -> ()
+			reliable_events[0] = Callback
+			return function()
+				reliable_events[0] = nil
 			end
 		end,
 	},

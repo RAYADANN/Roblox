@@ -27,16 +27,18 @@ In Studio: Rojo plugin → Connect → `localhost:34874`, then Play.
 
 ## Петля
 
-1. **Roll** на `Stands.RollButton` → рулетка на Stand1–5  
+1. **Roll** на `Base.Stands.RollButton` → рулетка на Stand1–5  
 2. **Buy** контейнер (Box1–3, rarity + mutation)  
-3. Встать на `Ramp.HeroPlace` Button → place  
-4. Unpack → герой → мини по конвейеру → coins  
+3. Встать на `Base.Ramp.HeroPlace` Button → place  
+4. Unpack (billboard = remaining time; **первый купленный контейнер = 3s**, остальные = f(rarity); **Open now** R$ to skip) → Open → герой → мини → SellBox → Take → SellGuy → coins  
+5. **Level up** (клавиша F на открытом герое): уровень 1–50, +15% к монетам за уровень. Цена следующего уровня = прирост монет/с × окупаемость, которая тоже растёт на 15% за уровень. Прокачанный Common обгоняет свежий Mythic. Уровень едет вместе с героем при Pick up.  
 
 ## Структура
 
 | Путь | Роль |
 |------|------|
-| `src/shared/util/*Logic` | формулы + тесты |
+| `src/shared/util/TutorialLogic` | FTUE steps + advance (новички only; Studio **T** = full profile reset) |
+| `src/client/core/TutorialController` | beam + near spotlight + hint |
 | `src/server/core/StandManager` | офферы / buy |
 | `src/server/core/RampManager` | place / unpack / income |
 | `src/client/core/OfferRoulette` | рулетка |

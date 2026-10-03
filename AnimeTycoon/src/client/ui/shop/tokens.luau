@@ -25,6 +25,20 @@ local Tokens = {
     valueYellow = Color3.fromRGB(255, 220, 40),
     saleRed = Color3.fromRGB(255, 60, 60),
     badgeRed = Color3.fromRGB(255, 40, 40),
+
+    --- GamePass SpecialPack: warm amber → cream → coral (premium, not purple).
+    specialPackSheen = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 140, 40)),
+        ColorSequenceKeypoint.new(0.35, Color3.fromRGB(255, 220, 120)),
+        ColorSequenceKeypoint.new(0.55, Color3.fromRGB(255, 250, 230)),
+        ColorSequenceKeypoint.new(0.75, Color3.fromRGB(255, 170, 80)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 90, 55)),
+    }),
+    specialPackTitle = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 210, 90)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 250, 210)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 150, 60)),
+    }),
 }
 
 return Tokens

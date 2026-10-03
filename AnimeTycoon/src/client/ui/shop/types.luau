@@ -35,6 +35,8 @@ export type BoostOffer = {
     image: string?,
     iconImage: string?,
     buyVariant: string?,
+    --- Already owned (HUD Lucky/Money passes) → show Owned, no buy.
+    owned: boolean?,
     offer: RobuxOffer,
 }
 
@@ -52,13 +54,17 @@ export type GamepassPerk = {
     text: string,
 }
 
+--- Wide SpecialPack card (StarterGui GamePass) and legacy perk rows share this type.
 export type GamepassOffer = {
     id: string,
     title: string,
-    accent: Color3,
+    description: string?,
+    accent: Color3?,
     badge: string?,
     image: string?,
-    perks: { GamepassPerk },
+    icons: { string }?,
+    perks: { GamepassPerk }?,
+    buyVariant: string?,
     offer: RobuxOffer,
 }
 

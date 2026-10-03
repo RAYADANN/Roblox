@@ -1,7 +1,6 @@
 --!strict
--- Local Place/Open ProximityPrompt visibility for LocalPlayer ramp slots.
+-- Local Place/Open/Skip/Pickup ProximityPrompt visibility for LocalPlayer ramp slots.
 -- Slot indices follow shared HeroPlaceLayout (same as server + world renderer).
--- Server also syncs Enabled; this keeps Open gated to the local owner's Ready state.
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -9,6 +8,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(ReplicatedStorage.shared.data.Constants)
 local HeroPlaceLayout = require(ReplicatedStorage.shared.util.HeroPlaceLayout)
+local ProductIds = require(ReplicatedStorage.shared.data.ProductIds)
+local UpgradeLogic = require(ReplicatedStorage.shared.util.UpgradeLogic)
+local WorldBillboard = require(script.Parent.WorldBillboard)
 local Zap = require(script.Parent.Parent.net.NetClient)
 
 export type SlotRow = {
@@ -16,13 +18,26 @@ export type SlotRow = {
     slotIndex: number,
     unpackProgress: number,
     unpacked: boolean,
+    level: number?,
+    levelCost: number?,
 }
 
 local SlotPromptBinder = {}
 
-local _prompts: { [number]: { place: ProximityPrompt, open: ProximityPrompt, part: BasePart } } = {}
+local _prompts: {
+    [number]: {
+        place: ProximityPrompt,
+        open: ProximityPrompt,
+        skip: ProximityPrompt,
+        pickup: ProximityPrompt,
+        level: ProximityPrompt,
+        part: BasePart,
+    },
+} =
+    {}
 local _localSlots: { [number]: SlotRow } = {}
-local _openWired: { [ProximityPrompt]: boolean } = {}
+local _wired: { [ProximityPrompt]: boolean } = {}
+local _upgrades: { [string]: number } = {}
 
 local function findPrompt(placePart: Instance, name: string): ProximityPrompt?
     local p = placePart:FindFirstChild(name)
@@ -32,14 +47,44 @@ local function findPrompt(placePart: Instance, name: string): ProximityPrompt?
     return nil
 end
 
-local function wireOpen(openPrompt: ProximityPrompt, slotIndex: number)
-    if _openWired[openPrompt] then
+local function skipRobuxLabel(): string
+    local price = ProductIds.SkipUnpackRobuxPrice
+    if typeof(price) == "number" and price > 0 then
+        return `R${price}`
+    end
+    return "R$"
+end
+
+local function wireOnce(prompt: ProximityPrompt, fn: () -> ())
+    if _wired[prompt] then
         return
     end
-    _openWired[openPrompt] = true
-    openPrompt.Triggered:Connect(function()
-        Zap.OpenContainer.Call(slotIndex)
-    end)
+    _wired[prompt] = true
+    prompt.Triggered:Connect(fn)
+end
+
+local function ensurePrompt(
+    placePart: BasePart,
+    name: string,
+    action: string,
+    object: string,
+    kind: string,
+    slotIndex: number
+): ProximityPrompt
+    local prompt = findPrompt(placePart, name)
+    if not prompt then
+        prompt = Instance.new("ProximityPrompt")
+        prompt.Name = name
+        prompt.ActionText = action
+        prompt.ObjectText = object
+        prompt.RequiresLineOfSight = false
+        prompt.Enabled = false
+        prompt.MaxActivationDistance = 0
+        prompt:SetAttribute("PromptKind", kind)
+        prompt.Parent = placePart
+    end
+    prompt:SetAttribute("SlotIndex", slotIndex)
+    return prompt
 end
 
 local function cachePrompts()
@@ -47,31 +92,58 @@ local function cachePrompts()
     local placeParts = HeroPlaceLayout.getOrderedPlaceParts()
     for slotIndex, placePart in placeParts do
         local placePrompt = findPrompt(placePart, "PlacePrompt")
-        local openPrompt = findPrompt(placePart, "OpenPrompt")
         if not placePrompt then
             continue
         end
         placePart:SetAttribute("SlotIndex", slotIndex)
         placePrompt:SetAttribute("SlotIndex", slotIndex)
-        if not openPrompt then
-            openPrompt = Instance.new("ProximityPrompt")
-            openPrompt.Name = "OpenPrompt"
-            openPrompt.ActionText = "Open"
-            openPrompt.ObjectText = "Container"
-            openPrompt.RequiresLineOfSight = false
-            openPrompt.Enabled = false
-            openPrompt:SetAttribute("PromptKind", "open")
-            openPrompt.Parent = placePart
-        end
-        openPrompt:SetAttribute("SlotIndex", slotIndex)
-        wireOpen(openPrompt, slotIndex)
-        _prompts[slotIndex] = { place = placePrompt, open = openPrompt, part = placePart }
+
+        local openPrompt =
+            ensurePrompt(placePart, "OpenPrompt", "Open", "Container", "open", slotIndex)
+        wireOnce(openPrompt, function()
+            Zap.OpenContainer.Call(slotIndex)
+        end)
+
+        local skipPrompt = ensurePrompt(
+            placePart,
+            "SkipPrompt",
+            "Open now",
+            skipRobuxLabel(),
+            "skip_unpack",
+            slotIndex
+        )
+        skipPrompt.ObjectText = skipRobuxLabel()
+
+        local pickupPrompt =
+            ensurePrompt(placePart, "PickupPrompt", "Pick up", "Hero", "pickup", slotIndex)
+        wireOnce(pickupPrompt, function()
+            Zap.PickupContainer.Call(slotIndex)
+        end)
+
+        local levelPrompt =
+            ensurePrompt(placePart, "LevelPrompt", "Level up", "Hero", "level", slotIndex)
+        -- Above PickupPrompt so the two don't stack on the same pad.
+        levelPrompt.UIOffset = Vector2.new(0, 100)
+        levelPrompt.KeyboardKeyCode = Enum.KeyCode.F
+        levelPrompt.GamepadKeyCode = Enum.KeyCode.ButtonY
+        wireOnce(levelPrompt, function()
+            Zap.LevelHero.Call(slotIndex)
+        end)
+
+        _prompts[slotIndex] = {
+            place = placePrompt,
+            open = openPrompt,
+            skip = skipPrompt,
+            pickup = pickupPrompt,
+            level = levelPrompt,
+            part = placePart,
+        }
     end
 end
 
 local function refreshPrompts()
-    -- Always re-resolve refs: server remakes prompts on boot.
     cachePrompts()
+    local unlocked = UpgradeLogic.unlockedSlots(_upgrades)
     for slotIndex = 1, Constants.SLOT_COUNT do
         local pair = _prompts[slotIndex]
         if not pair then
@@ -79,18 +151,36 @@ local function refreshPrompts()
         end
         local row = _localSlots[slotIndex]
         local occupied = row ~= nil
-        local ready = occupied
-            and row.unpacked ~= true
-            and (tonumber(row.unpackProgress) or 0) >= 0.999
+        local locked = slotIndex > unlocked
+        local progress = if occupied then (tonumber(row.unpackProgress) or 0) else 0
+        local ready = occupied and row.unpacked ~= true and progress >= 0.999
+        local packing = occupied and row.unpacked ~= true and progress < 0.999
+        local holding = occupied and row.unpacked == true
 
-        -- Prefer hiding Place when occupied; Open only for local Ready.
-        -- Server also sets these — local tweak wins for this client's UX.
-        if occupied then
+        if locked or occupied then
             pair.place.Enabled = false
             pair.place.MaxActivationDistance = 0
+        else
+            pair.place.Enabled = true
+            pair.place.MaxActivationDistance = 12
         end
-        pair.open.Enabled = ready
-        pair.open.MaxActivationDistance = if ready then 12 else 0
+        pair.open.Enabled = ready and not locked
+        pair.open.MaxActivationDistance = if ready and not locked then 12 else 0
+        pair.skip.Enabled = packing and not locked
+        pair.skip.MaxActivationDistance = if packing and not locked then 12 else 0
+        pair.pickup.Enabled = holding and not locked
+        pair.pickup.MaxActivationDistance = if holding and not locked then 12 else 0
+        local levelCost = if row then (tonumber(row.levelCost) or 0) else 0
+        local canLevel = holding and not locked and levelCost > 0
+        pair.level.Enabled = canLevel
+        pair.level.MaxActivationDistance = if canLevel then 12 else 0
+        if canLevel and row then
+            local level = tonumber(row.level) or 1
+            pair.level.ObjectText = `Lv {level}  {WorldBillboard.shortMoney(levelCost)}`
+        end
+        if packing then
+            pair.skip.ObjectText = skipRobuxLabel()
+        end
     end
 end
 
@@ -117,6 +207,8 @@ local function ingestSlots(slots: { any }, requireOwner: number?)
             slotIndex = slotIndex,
             unpackProgress = tonumber(row.unpackProgress) or 0,
             unpacked = row.unpacked == true,
+            level = tonumber(row.level) or 1,
+            levelCost = tonumber(row.levelCost) or 0,
         }
     end
     refreshPrompts()
@@ -140,6 +232,11 @@ function SlotPromptBinder.applyHudSlotsJson(slotsJson: string)
         decoded = result
     end
     ingestSlots(decoded, nil)
+end
+
+function SlotPromptBinder.applyUpgrades(upgrades: { [string]: number }?)
+    _upgrades = upgrades or {}
+    refreshPrompts()
 end
 
 function SlotPromptBinder.start()

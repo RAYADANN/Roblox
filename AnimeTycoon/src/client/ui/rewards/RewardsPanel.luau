@@ -21,7 +21,7 @@ export type Props = {
     skipPrice: number?,
     onClose: () -> (),
     onSkipAll: (() -> ())?,
-    onClaim: ((id: string) -> ())?,
+    onClaim: ((id: string, from: Vector2) -> ())?,
 }
 
 local function nowSec(): number
@@ -33,6 +33,12 @@ local function RewardsPanel(props: Props): React.Node
     local items, setItems = React.useState(initial)
     local skipPrice = props.skipPrice or MockData.skipPrice()
     local cols = SG.grid.columns
+
+    React.useEffect(function()
+        if props.items ~= nil then
+            setItems(props.items)
+        end
+    end, { props.items })
 
     local now, setNow = React.useState(nowSec)
 
@@ -60,7 +66,7 @@ local function RewardsPanel(props: Props): React.Node
     end
     local claimableIndex = RewardTimerLogic.firstClaimableIndex(claimRows, now)
 
-    local function handleClaim(id: string)
+    local function handleClaim(id: string, from: Vector2)
         setItems(function(prev)
             local nextItems = table.clone(prev)
             for i, item in nextItems do
@@ -74,7 +80,7 @@ local function RewardsPanel(props: Props): React.Node
             return nextItems
         end)
         if props.onClaim then
-            props.onClaim(id)
+            props.onClaim(id, from)
         end
     end
 
