@@ -5,6 +5,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local EconomyConfig = require(ReplicatedStorage.shared.data.EconomyConfig)
+local FormatNumber = require(ReplicatedStorage.shared.util.FormatNumber)
 local GameplayConfig = require(ReplicatedStorage.shared.data.GameplayConfig)
 local Logger = require(ReplicatedStorage.shared.util.Logger)
 local PlotOwnership = require(ReplicatedStorage.shared.util.PlotOwnership)
@@ -159,7 +160,7 @@ function PlotService:_recalcIncome(plot: Plot)
         end
     end
     self._income[owner] = total
-    self:_setSign(plot, owner.DisplayName, `{total}/s`)
+    self:_setSign(plot, owner.DisplayName, `{FormatNumber.short(total)}/s`)
 end
 
 -- Вывеска: SignGui.OwnerName / SignGui.Income у моделлера, иначе свой BillboardGui.

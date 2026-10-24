@@ -59,6 +59,7 @@ local MODULES: { { name: string, tests: { [string]: TestFn } } } = {
     { name = "NoiseLogic", tests = require("./NoiseLogic.test") },
     { name = "GazeLogic", tests = require("./GazeLogic.test") },
     { name = "CarryLogic", tests = require("./CarryLogic.test") },
+    { name = "FormatNumber", tests = require("./FormatNumber.test") },
 }
 
 local passed, failed = 0, 0

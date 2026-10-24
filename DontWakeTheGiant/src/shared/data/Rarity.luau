@@ -22,11 +22,11 @@ Rarity.DEFS = {
     Epic = { order = 4, color = Color3.fromHex("#A259FF"), grabNoise = 12, lightRange = 12 },
     Legendary = { order = 5, color = Color3.fromHex("#FFC93C"), grabNoise = 18, lightRange = 16 },
     Mythic = { order = 6, color = Color3.fromHex("#FF3D7F"), grabNoise = 25, lightRange = 22 },
-    -- Secret: взятие сразу поднимает шум до максимума (см. GiantConfig.NOISE_MAX).
+    -- Secret: шум не считается, у мишки своя механика кражи (GDD 5.10).
     Secret = {
         order = 7,
         color = Color3.fromHex("#FFFFFF"),
-        grabNoise = math.huge,
+        grabNoise = 0,
         lightRange = 22,
     },
 } :: { [RarityId]: RarityDef }

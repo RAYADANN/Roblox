@@ -6,7 +6,7 @@ local React = require(ReplicatedStorage:WaitForChild("Packages").React)
 
 local Button = require(script.Parent.components.Button)
 local CarryCard = require(script.Parent.components.CarryCard)
-local Formatters = require(script.Parent.util.Formatters)
+local FormatNumber = require(ReplicatedStorage.shared.util.FormatNumber)
 local HudContext = require(script.Parent.context.HudContext)
 local NoiseBar = require(script.Parent.components.NoiseBar)
 local ResourceChip = require(script.Parent.components.ResourceChip)
@@ -55,7 +55,7 @@ local function App(): React.Node
                 LayoutOrder = 2,
                 Size = UDim2.new(1, 0, 0, layout.px(22)),
                 BackgroundTransparency = 1,
-                Text = `+{Formatters.shortNumber(ctx.hud.incomePerSec)}/s`,
+                Text = `+{FormatNumber.short(ctx.hud.incomePerSec)}/s`,
                 TextColor3 = theme.Colors.goldHi,
                 TextStrokeTransparency = 0.3,
                 Font = theme.Font.title,

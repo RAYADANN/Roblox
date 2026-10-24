@@ -48,11 +48,17 @@ function GiantService.new(deps: Deps)
         fxFolder = deps.scene.fxFolder,
         carry = deps.carry,
         movement = deps.movement,
+        coverParams = coverParams,
         isCurrent = function(token: number)
             return self._attackToken == token
         end,
     })
     return self
+end
+
+-- Teddy_Stir: пока вор держит кнопку у мишки.
+function GiantService:setStir(holding: boolean)
+    self._rig.stir = if holding then 1 else 0
 end
 
 function GiantService:phase(): NoiseLogic.Phase
@@ -91,7 +97,16 @@ function GiantService:wake(teddyThief: Player?)
     noise:takeMaxHit()
     self:_setPhase("Wake")
     self._rig.lidL, self._rig.lidR = 1, 1
-    self._deps.feedAll("wake", if teddyThief then "WHERE'S MY TEDDY?!" else "HE'S AWAKE!")
+    self._rig.stir = 0
+    if teddyThief then
+        -- Вору сначала 3 с форы; ярость объявляется после отсчёта (GDD 8.4).
+        self._deps.feedAll("feed", `{teddyThief.DisplayName} stole the TEDDY!`)
+        task.delay(GiantConfig.TEDDY_HEADSTART_SEC, function()
+            self._deps.feedAll("wake", "WHERE'S MY TEDDY?!")
+        end)
+    else
+        self._deps.feedAll("wake", "HE'S AWAKE!")
+    end
 
     task.spawn(function()
         self._attacks:wakeSequence(token, teddyThief)

@@ -25,6 +25,7 @@ export type PlayerState = {
 
 export type Deps = {
     giant: Model,
+    roots: { Instance },
     onLanded: (player: Player) -> (),
     onSpeedViolation: (player: Player) -> (),
 }
@@ -41,11 +42,13 @@ function MovementService.new(deps: Deps)
     self._rayParams.FilterType = Enum.RaycastFilterType.Exclude
     -- Вода без коллизий (русло глубже дна): луч из воды её не видит, проверяем перекрытие у ног.
     local liquids: { Instance } = {}
-    for _, inst in workspace:GetDescendants() do
-        if inst:IsA("BasePart") and not inst.CanCollide then
-            local surface = inst:GetAttribute("Surface")
-            if surface == "Water" or surface == "Milk" then
-                table.insert(liquids, inst)
+    for _, sceneRoot in deps.roots do
+        for _, inst in sceneRoot:GetDescendants() do
+            if inst:IsA("BasePart") and not inst.CanCollide then
+                local surface = inst:GetAttribute("Surface")
+                if surface == "Water" or surface == "Milk" then
+                    table.insert(liquids, inst)
+                end
             end
         end
     end

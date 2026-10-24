@@ -15,6 +15,7 @@ export type Deps = {
     fxFolder: Folder,
     carry: any,
     movement: any,
+    coverParams: RaycastParams,
     isCurrent: (token: number) -> boolean,
 }
 
@@ -164,17 +165,47 @@ function GiantAttacks:swat(token: number)
     self._busy = false
 end
 
--- Цель удара: несущий мишку → несущие предметы → остальные в зоне (GDD 2.3).
+local function rootOf(player: Player): BasePart?
+    local character = player.Character
+    return character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+end
+
+-- Teddy_Rage: удар по последней видимой позиции вора; за укрытием — рядом с укрытием (GDD 4.3).
+function GiantAttacks:_teddyTarget(thief: Player): Vector3?
+    local root = rootOf(thief)
+    if not root then
+        return nil
+    end
+    local eye = self._deps.rig:eyePosition()
+    local hit = workspace:Raycast(eye, root.Position - eye, self._deps.coverParams)
+    if not hit then
+        return root.Position
+    end
+    local angle = math.random() * math.pi * 2
+    local r = math.random() * GiantConfig.TEDDY_COVER_SCATTER
+    return Vector3.new(
+        hit.Position.X + math.cos(angle) * r,
+        root.Position.Y,
+        hit.Position.Z + math.sin(angle) * r
+    )
+end
+
+-- Цель удара: вор мишки → несущие предметы → остальные в зоне (GDD 2.3).
 function GiantAttacks:_pickSlamPoint(teddyThief: Player?): Vector3
+    if teddyThief then
+        local carried = self._deps.carry:carried(teddyThief)
+        if carried and carried.def.rarity == "Secret" then
+            local point = self:_teddyTarget(teddyThief)
+            if point then
+                return point
+            end
+        end
+    end
     local carriers, others = {}, {}
     for _, player in Players:GetPlayers() do
         local s = self._deps.movement:get(player)
-        local root = player.Character
-            and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+        local root = rootOf(player)
         if s and root and s.inZone and not s.ragdolled then
-            if player == teddyThief then
-                return root.Position
-            end
             table.insert(
                 if self._deps.carry:carried(player) then carriers else others,
                 root.Position
@@ -217,8 +248,7 @@ function GiantAttacks:_slam(point: Vector3)
     ):Play()
     task.wait(0.15)
     for _, player in Players:GetPlayers() do
-        local root = player.Character
-            and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+        local root = rootOf(player)
         if root then
             local d = root.Position - ground
             if Vector2.new(d.X, d.Z).Magnitude <= radius and math.abs(d.Y) <= 12 then
@@ -231,19 +261,65 @@ function GiantAttacks:_slam(point: Vector3)
     end)
 end
 
--- Rise → Slam → Yawn. Во время всего WAKE шум заморожен на 100.
+-- Игроки с тела великана съезжают на землю рядом с ним: без рэгдолла, предмет остаётся в руках.
+function GiantAttacks:_slideOffRiders()
+    local rig = self._deps.rig
+    local boxCf, boxSize = rig.model:GetBoundingBox()
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    local exclude: { Instance } = { rig.model, self._deps.fxFolder }
+    for _, player in Players:GetPlayers() do
+        if player.Character then
+            table.insert(exclude, player.Character)
+        end
+    end
+    params.FilterDescendantsInstances = exclude
+    for _, player in Players:GetPlayers() do
+        local s = self._deps.movement:get(player)
+        local root = rootOf(player)
+        if s and root and s.floorPart and s.floorPart:IsDescendantOf(rig.model) then
+            local offset = boxCf:PointToObjectSpace(root.Position)
+            -- Съезжаем вбок, через ближнюю длинную грань коробки великана (он лежит вдоль длинной оси).
+            local alongX = boxSize.X < boxSize.Z
+            local side = math.sign(if alongX then offset.X else offset.Z)
+            side = if side == 0 then 1 else side
+            local exitLocal = if alongX
+                then Vector3.new(side * (boxSize.X / 2 + GiantConfig.SLIDE_OFF_MARGIN), 0, offset.Z)
+                else Vector3.new(
+                    offset.X,
+                    0,
+                    side * (boxSize.Z / 2 + GiantConfig.SLIDE_OFF_MARGIN)
+                )
+            local exit = boxCf:PointToWorldSpace(exitLocal)
+            local hit =
+                workspace:Raycast(Vector3.new(exit.X, 200, exit.Z), Vector3.new(0, -400, 0), params)
+            local ground = if hit then hit.Position else Vector3.new(exit.X, 0, exit.Z)
+            self._deps.movement:exempt(player, 2)
+            player.Character:PivotTo(
+                CFrame.new(ground + Vector3.new(0, 3, 0)) * root.CFrame.Rotation
+            )
+        end
+    end
+end
+
+-- WAKE: тряска живота 1 с → подъём → удары → зевок. Teddy: фора 3 с без ударов → погоня 15 с.
+-- Во время всего WAKE шум заморожен на 100.
 function GiantAttacks:wakeSequence(token: number, teddyThief: Player?)
     local rig = self._deps.rig
     rig.armYaw = nil
     rig.armLift = 0
-    -- Все, кто стоит на теле великана, скатываются рэгдоллом.
-    for _, player in Players:GetPlayers() do
-        local s = self._deps.movement:get(player)
-        if s and s.floorPart and s.floorPart:IsDescendantOf(rig.model) then
-            self._deps.carry:catch(player, "The giant sat up!")
-        end
+
+    if not teddyThief then
+        rig.shake = GiantConfig.WAKE_SHAKE_AMPLITUDE
+        task.wait(GiantConfig.WAKE_SHAKE_SEC)
+        rig.shake = 0
     end
-    self:_animate(token, GiantConfig.WAKE_RISE_SEC, function(a)
+    self:_slideOffRiders()
+    -- Teddy_Wake: великан садится и трёт глаза всю фору вора, никого не ловит.
+    local riseSec = if teddyThief
+        then GiantConfig.TEDDY_HEADSTART_SEC
+        else GiantConfig.WAKE_RISE_SEC
+    self:_animate(token, riseSec, function(a)
         rig.riseDeg = GiantConfig.WAKE_RISE_DEG * a
     end)
 

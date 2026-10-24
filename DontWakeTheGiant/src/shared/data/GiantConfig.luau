@@ -52,19 +52,28 @@ GiantConfig.GAZE_RANGE = 160
 GiantConfig.GAZE_TURN_DEG_PER_SEC = 20
 -- Взгляд ходит туда-обратно вокруг +X (к ногам); за головой слепая зона.
 GiantConfig.GAZE_SWEEP_HALF_DEG = 135
-GiantConfig.GAZE_CATCH_SEC = 0.6
+-- Не меньше 1 с предупреждения перед поимкой (закон 14.4 библии): «!» над головой.
+GiantConfig.GAZE_CATCH_SEC = 1.0
 GiantConfig.GAZE_DECAY_MULT = 3
 GiantConfig.GAZE_HEAVY_WEIGHT = 4
 
 -- WAKE
+GiantConfig.WAKE_SHAKE_SEC = 1.0
+GiantConfig.WAKE_SHAKE_AMPLITUDE = 0.6
 GiantConfig.WAKE_RISE_SEC = 1.5
+-- Игроки с тела великана съезжают на землю на это расстояние от его края.
+GiantConfig.SLIDE_OFF_MARGIN = 8
 GiantConfig.WAKE_SLAM_SEC = 10
 GiantConfig.WAKE_YAWN_SEC = 3.5
+-- Кража мишки (GDD 5.10): удержание, фора вору, погоня.
+GiantConfig.TEDDY_HOLD_SEC = 2
+GiantConfig.TEDDY_HEADSTART_SEC = 3
 GiantConfig.TEDDY_RAGE_SEC = 15
+GiantConfig.TEDDY_COVER_SCATTER = 10
 GiantConfig.WAKE_RISE_DEG = 60
 GiantConfig.SLAM_INTERVAL_SEC = 1.8
-GiantConfig.SLAM_WARN_SEC = 1.0
-GiantConfig.SLAM_RADIUS = 18
+GiantConfig.SLAM_WARN_SEC = 1.2
+GiantConfig.SLAM_RADIUS = 9
 GiantConfig.AFTER_WAKE_NOISE = 25
 GiantConfig.AFTER_WAKE_CALM_SEC = 20
 GiantConfig.AFTER_WAKE_NOISE_MULT = 0.5

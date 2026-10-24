@@ -49,6 +49,7 @@ local giant: any
 
 local movement = MovementService.new({
     giant = scene.giant,
+    roots = scene.roots,
     onLanded = function(player)
         local root = player.Character
             and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -100,8 +101,11 @@ giant = GiantService.new({
 })
 carry._deps.plots = plots
 carry._deps.hoard = hoard
+carry._deps.onTeddyStir = function(holding: boolean)
+    giant:setStir(holding)
+end
 carry._deps.onTeddyGrabbed = function(player: Player)
-    feed(`{player.DisplayName} grabbed Grumble's Teddy!`)
+    notify(player, "teddy_run", "RUN!")
     giant:wake(player)
 end
 

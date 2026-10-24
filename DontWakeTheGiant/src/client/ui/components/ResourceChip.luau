@@ -3,7 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage:WaitForChild("Packages").React)
 
-local Formatters = require(script.Parent.Parent.util.Formatters)
+local FormatNumber = require(ReplicatedStorage.shared.util.FormatNumber)
 local MotionPresets = require(script.Parent.Parent.motion.MotionPresets)
 local theme = require(script.Parent.Parent.theme)
 local useFlipperSpring = require(script.Parent.Parent.hooks.useFlipperSpring)
@@ -42,7 +42,7 @@ local function ResourceChip(props: Props): React.Node
             Size = UDim2.new(1, -layout.px(48), 1, 0),
             Position = UDim2.new(0, layout.px(48), 0, 0),
             BackgroundTransparency = 1,
-            Text = Formatters.shortNumber(math.floor(display + 0.5)),
+            Text = FormatNumber.short(math.floor(display + 0.5)),
             TextSize = layout.text(16),
             Font = theme.Font.title,
             TextColor3 = theme.Colors.gold,

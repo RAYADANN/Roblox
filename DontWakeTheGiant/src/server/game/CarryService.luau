@@ -48,6 +48,7 @@ export type Deps = {
     plots: any?,
     hoard: any?,
     onTeddyGrabbed: ((player: Player) -> ())?,
+    onTeddyStir: ((holding: boolean) -> ())?,
 }
 
 local CarryService = {}
@@ -88,6 +89,8 @@ function CarryService:_setPrompt(item: Item, kind: "Grab" | "Steal" | nil, owner
         item.prompt:Destroy()
         item.prompt = nil
     end
+    local isTeddyAtHome = kind ~= nil and item.def.rarity == "Secret" and item.state == "Spawn"
+    self:_setTeddySign(item, isTeddyAtHome)
     if not kind then
         return
     end
@@ -109,7 +112,26 @@ function CarryService:_setPrompt(item: Item, kind: "Grab" | "Steal" | nil, owner
     prompt.Triggered:Connect(function(player)
         self:tryGrab(player, item)
     end)
-    if kind == "Steal" then
+    if isTeddyAtHome then
+        -- Кража мишки (GDD 5.10): долгое удержание, всё это время великан ворочается.
+        prompt.HoldDuration = GiantConfig.TEDDY_HOLD_SEC
+        prompt.ActionText = "Steal Teddy"
+        prompt.PromptButtonHoldBegan:Connect(function(player)
+            if self._deps.noise:get() >= HoardConfig.TEDDY_MAX_NOISE then
+                self._deps.notify(player, "hint", "Too loud — wait!")
+            else
+                self._deps.notify(player, "hint", "...teddy?..")
+                if self._deps.onTeddyStir then
+                    self._deps.onTeddyStir(true)
+                end
+            end
+        end)
+        prompt.PromptButtonHoldEnded:Connect(function()
+            if self._deps.onTeddyStir then
+                self._deps.onTeddyStir(false)
+            end
+        end)
+    elseif kind == "Steal" then
         prompt.PromptButtonHoldBegan:Connect(function(player)
             if self._deps.plots then
                 self._deps.plots:onStealBegin(player, item)
@@ -123,6 +145,31 @@ function CarryService:_setPrompt(item: Item, kind: "Grab" | "Steal" | nil, owner
     end
     prompt.Parent = item.root
     item.prompt = prompt
+end
+
+-- Табличка над мишкой в руке великана: игрок заранее знает, что будет (GDD 5.10, шаг 1).
+function CarryService:_setTeddySign(item: Item, shown: boolean)
+    local sign = item.root:FindFirstChild("TeddySign")
+    if shown and not sign then
+        local gui = Instance.new("BillboardGui")
+        gui.Name = "TeddySign"
+        gui.Size = UDim2.fromOffset(240, 50)
+        gui.StudsOffset = Vector3.new(0, 10, 0)
+        gui.MaxDistance = 120
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.fromScale(1, 1)
+        label.BackgroundTransparency = 1
+        label.Text = "😠 He WILL wake up!"
+        label.Font = Enum.Font.FredokaOne
+        label.TextScaled = true
+        label.TextColor3 = Color3.fromHex("#C4281C")
+        label.TextStrokeTransparency = 0
+        label.TextStrokeColor3 = Color3.new(1, 1, 1)
+        label.Parent = gui
+        gui.Parent = item.root
+    elseif not shown and sign then
+        sign:Destroy()
+    end
 end
 
 local function addRarityLight(item: Item)
@@ -333,7 +380,7 @@ function CarryService:tryGrab(player: Player, item: Item): boolean
         and fromState == "Spawn"
         and self._deps.noise:get() >= HoardConfig.TEDDY_MAX_NOISE
     then
-        self._deps.notify(player, "hint", "Too loud! He is holding Teddy tight.")
+        self._deps.notify(player, "hint", "Too loud — wait!")
         return false
     end
 

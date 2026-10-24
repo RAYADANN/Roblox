@@ -22,6 +22,7 @@ export type Scene = {
     giant: Model,
     plots: { Model },
     coverParts: { BasePart },
+    roots: { Instance },
     fxFolder: Folder,
     itemsFolder: Folder,
     itemTemplate: (itemId: string) -> Model,
@@ -101,10 +102,17 @@ function Scene.resolve(): Scene
         GreyboxMap.buildSpawns(root, HoardConfig.RINGS :: any)
     end
 
+    -- Только живая сцена: варианты карт (MapVariant_*) и превью великана не участвуют.
+    local roots: { Instance } = { root, giant :: Model }
+    if level then
+        table.insert(roots, level)
+    end
     local coverParts: { BasePart } = {}
-    for _, inst in workspace:GetDescendants() do
-        if inst:IsA("BasePart") and inst:GetAttribute("Cover") == true then
-            table.insert(coverParts, inst)
+    for _, sceneRoot in roots do
+        for _, inst in sceneRoot:GetDescendants() do
+            if inst:IsA("BasePart") and inst:GetAttribute("Cover") == true then
+                table.insert(coverParts, inst)
+            end
         end
     end
 
@@ -135,6 +143,7 @@ function Scene.resolve(): Scene
         giant = giant :: Model,
         plots = plots,
         coverParts = coverParts,
+        roots = roots,
         fxFolder = Build.folder(workspace, "Fx"),
         itemsFolder = Build.folder(workspace, "Items"),
         itemTemplate = itemTemplate,

@@ -92,6 +92,18 @@ local function GameRoot(): React.Node
                         color = theme.Colors.error,
                         duration = 2,
                     })
+                elseif payload.kind == "teddy_run" then
+                    -- Фора вора мишки (GDD 8.4): «RUN!» и отсчёт 3-2-1, камеру не трогаем.
+                    task.spawn(function()
+                        for _, text in { "RUN!", "3", "2", "1" } do
+                            Notification.show({
+                                text = text,
+                                color = theme.Colors.error,
+                                duration = 0.75,
+                            })
+                            task.wait(0.75)
+                        end
+                    end)
                 elseif payload.kind == "delivered" then
                     Notification.show({
                         text = `{payload.payload} is yours!`,

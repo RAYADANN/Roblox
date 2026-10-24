@@ -78,6 +78,8 @@ function GiantRig.new(model: Model)
         lidR = 0,
         gazeYaw = 0,
         gazeVisible = false,
+        shake = 0,
+        stir = 0,
     }, GiantRig)
 end
 
@@ -138,6 +140,17 @@ function GiantRig:step(dt: number)
         if name == "Belly" then
             local breath = (1 - math.cos(2 * math.pi * self._t / GiantConfig.BREATH_PERIOD_SEC)) / 2
             cf = cf + Vector3.new(0, breath * GiantConfig.BREATH_HEIGHT, 0)
+            if self.shake > 0 then
+                -- Предупреждение перед WAKE: живот трясётся.
+                cf = cf + Vector3.new(0, (math.random() * 2 - 1) * self.shake, 0)
+            end
+        elseif name == "Head" and self.stir > 0 then
+            -- Teddy_Stir: голова беспокойно ворочается, пока вор тянет мишку.
+            local neck = cf.Position
+            cf = CFrame.new(neck)
+                * CFrame.Angles(math.rad(math.sin(self._t * 6) * 6 * self.stir), 0, 0)
+                * CFrame.new(-neck)
+                * cf
         elseif name == "ArmR" and self.armYaw then
             local s = self._shoulder
             local swing = CFrame.new(s)
