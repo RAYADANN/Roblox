@@ -30,6 +30,7 @@ local function GameRoot(): React.Node
     local hud, setHud = React.useState({ coins = 0, incomePerSec = 0 })
     local giant, setGiant = React.useState({ noise = 0, phase = "Deep" })
     local sneaking, setSneaking = React.useState(false)
+    local strength, setStrength = React.useState(0)
     local carrying, setCarrying = React.useState(nil :: string?)
     local feed, setFeed = React.useState({} :: { HudContext.FeedEntry })
 
@@ -68,6 +69,7 @@ local function GameRoot(): React.Node
         readGiant()
         local function readPlayer()
             setSneaking(player:GetAttribute("Sneaking") == true)
+            setStrength((player:GetAttribute("Strength") :: number?) or 0)
             setCarrying(player:GetAttribute("CarryingItemId") :: string?)
         end
         readPlayer()
@@ -76,6 +78,7 @@ local function GameRoot(): React.Node
             giantState:GetAttributeChangedSignal("Noise"):Connect(readGiant),
             giantState:GetAttributeChangedSignal("Phase"):Connect(readGiant),
             player:GetAttributeChangedSignal("Sneaking"):Connect(readPlayer),
+            player:GetAttributeChangedSignal("Strength"):Connect(readPlayer),
             player:GetAttributeChangedSignal("CarryingItemId"):Connect(readPlayer),
         }
         local cleanups = {
@@ -132,12 +135,13 @@ local function GameRoot(): React.Node
             hud = hud,
             giant = giant,
             sneaking = sneaking,
+            strength = strength,
             carryingItemId = carrying,
             feed = feed,
             toggleSneak = InputController.toggleSneak,
             drop = InputController.drop,
         }
-    end, { hud, giant, sneaking, carrying, feed } :: { any })
+    end, { hud, giant, sneaking, strength, carrying, feed } :: { any })
 
     return React.createElement(HudContext.Provider, { value = value }, {
         App = React.createElement(App),

@@ -4,9 +4,18 @@ local CarryLogic = require("../src/shared/util/CarryLogic")
 local ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" }
 
 return {
-    ["speedMult: вес 5 → 0.68"] = function(expect)
-        expect(CarryLogic.speedMult(5, 0.08)).toBeCloseTo(0.68)
-        expect(CarryLogic.speedMult(1, 0.08)).toEqual(1)
+    ["canLift: сила не меньше Need"] = function(expect)
+        expect(CarryLogic.canLift(100, 50)).toBeTruthy()
+        expect(CarryLogic.canLift(100, 100)).toBeTruthy()
+        expect(CarryLogic.canLift(100, 2000)).toBeFalsy()
+    end,
+    ["speedMult: ступени по отношению Strength / Need"] = function(expect)
+        local steps =
+            { { ratio = 2, mult = 0.6 }, { ratio = 5, mult = 0.75 }, { ratio = 10, mult = 0.9 } }
+        expect(CarryLogic.speedMult(100, 100, steps)).toEqual(0.6)
+        expect(CarryLogic.speedMult(200, 100, steps)).toEqual(0.75)
+        expect(CarryLogic.speedMult(500, 100, steps)).toEqual(0.9)
+        expect(CarryLogic.speedMult(1000, 100, steps)).toEqual(1)
     end,
     ["launchVelocity: высота дуги = height"] = function(expect)
         local _, vy, _ = CarryLogic.launchVelocity(1, 0, 140, 60, 196.2)

@@ -5,13 +5,13 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local CarryLogic = require(ReplicatedStorage.shared.util.CarryLogic)
 local GameplayConfig = require(ReplicatedStorage.shared.data.GameplayConfig)
 local GiantConfig = require(ReplicatedStorage.shared.data.GiantConfig)
 
 export type PlayerState = {
     sneaking: boolean,
     carryWeight: number,
+    carrySpeedMult: number,
     surface: string?,
     floorPart: BasePart?,
     horizontalSpeed: number,
@@ -71,10 +71,12 @@ function MovementService:setSneak(player: Player, enabled: boolean)
     end
 end
 
-function MovementService:setCarryWeight(player: Player, weight: number)
+-- weight — класс веса для шума и взгляда; speedMult — множитель скорости по силе (Strength / Need).
+function MovementService:setCarryWeight(player: Player, weight: number, speedMult: number?)
     local state = self._states[player]
     if state then
         state.carryWeight = weight
+        state.carrySpeedMult = speedMult or 1
     end
 end
 
@@ -138,9 +140,7 @@ function MovementService:_update(player: Player, state: PlayerState, dt: number)
     local surfaceMult = if state.surface
         then GameplayConfig.SURFACE_SPEED_MULT[state.surface] or 1
         else 1
-    local allowed = base
-        * CarryLogic.speedMult(state.carryWeight, GameplayConfig.WEIGHT_SPEED_PENALTY)
-        * surfaceMult
+    local allowed = base * state.carrySpeedMult * surfaceMult
     if not state.ragdolled then
         humanoid.WalkSpeed = allowed
     end
@@ -173,6 +173,7 @@ function MovementService:_bindCharacter(player: Player, character: Model)
     if state then
         state.sneaking = false
         state.carryWeight = 0
+        state.carrySpeedMult = 1
         state.ragdolled = false
         state.lastSafeCFrame = nil
         player:SetAttribute("Sneaking", false)
@@ -190,6 +191,7 @@ function MovementService:start()
         self._states[player] = {
             sneaking = false,
             carryWeight = 0,
+            carrySpeedMult = 1,
             surface = nil,
             floorPart = nil,
             horizontalSpeed = 0,

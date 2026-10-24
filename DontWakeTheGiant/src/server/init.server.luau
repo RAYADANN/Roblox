@@ -20,6 +20,7 @@ local PillowService = require(script.game.PillowService)
 local PlotService = require(script.game.PlotService)
 local Scene = require(script.game.Scene)
 
+local GameplayConfig = require(ReplicatedStorage.shared.data.GameplayConfig)
 local GiantConfig = require(ReplicatedStorage.shared.data.GiantConfig)
 
 Logger.setMinLevel(if RunService:IsStudio() then "debug" else "warn")
@@ -128,6 +129,15 @@ Zap.DropItem.SetCallback(function(player, _)
     end
 end)
 
+-- Сила: на этапе 1 у всех стартовая; этап 2 берёт её из профиля (уровень силы, GDD 9.1).
+local function initStrength(player: Player)
+    player:SetAttribute("Strength", GameplayConfig.START_STRENGTH)
+end
+Players.PlayerAdded:Connect(initStrength)
+for _, player in Players:GetPlayers() do
+    initStrength(player)
+end
+
 Players.PlayerRemoving:Connect(function(player)
     sneakLimiter:clear(player)
     dropLimiter:clear(player)
@@ -145,6 +155,9 @@ DevCommands.start({
     end,
     setNoise = function(value)
         noise:set(value)
+    end,
+    setStrength = function(player, value)
+        player:SetAttribute("Strength", value)
     end,
 })
 

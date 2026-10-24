@@ -6,7 +6,23 @@ local GameplayConfig = {}
 -- Движение
 GameplayConfig.WALK_SPEED = 16
 GameplayConfig.SNEAK_SPEED = 8
-GameplayConfig.WEIGHT_SPEED_PENALTY = 0.08
+-- Сила (GDD 2.1, 5.3, 9.1). Вес предмета влияет только на шум и взгляд, скорость — отношение Strength / Need.
+GameplayConfig.START_STRENGTH = 100
+GameplayConfig.NEED_BY_RARITY = {
+    Common = 10,
+    Uncommon = 50,
+    Rare = 2e3,
+    Epic = 1e5,
+    Legendary = 5e6,
+    Mythic = 5e8,
+    Secret = 1e9,
+} :: { [string]: number }
+-- Скорость с предметом: отношение меньше ratio → mult; не меньше последнего ratio → ×1.
+GameplayConfig.CARRY_SPEED_BY_RATIO = {
+    { ratio = 2, mult = 0.6 },
+    { ratio = 5, mult = 0.75 },
+    { ratio = 10, mult = 0.9 },
+}
 GameplayConfig.SURFACE_SPEED_MULT = {
     Water = 0.6,
     Milk = 0.8,

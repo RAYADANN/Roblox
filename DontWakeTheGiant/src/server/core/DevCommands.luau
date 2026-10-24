@@ -1,5 +1,5 @@
 --!strict
--- Studio-only команды для теста: /coins N, /noise N.
+-- Studio-only команды для теста: /coins N, /noise N, /strength N.
 -- Для MCP-плейтеста: атрибут DebugSetNoise на ReplicatedStorage.GiantState (ставится на сервере).
 
 local Players = game:GetService("Players")
@@ -12,6 +12,7 @@ local Logger = require(ReplicatedStorage.shared.util.Logger)
 export type Deps = {
     mutateCoins: (player: Player, delta: number) -> boolean,
     setNoise: (value: number) -> (),
+    setStrength: (player: Player, value: number) -> (),
 }
 
 local DevCommands = {}
@@ -39,6 +40,9 @@ function DevCommands.start(deps: Deps)
             if deps.mutateCoins(player, amount or 1000) then
                 Logger.info("DevCommands", `+{amount or 1000} coins → {player.Name}`)
             end
+        end)
+        command("DevStrength", "/strength", function(player, value)
+            deps.setStrength(player, value or 100)
         end)
         command("DevNoise", "/noise", function(_, value)
             deps.setNoise(value or 0)

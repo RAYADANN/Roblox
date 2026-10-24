@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local CarryLogic = require(ReplicatedStorage.shared.util.CarryLogic)
+local FormatNumber = require(ReplicatedStorage.shared.util.FormatNumber)
 local GameplayConfig = require(ReplicatedStorage.shared.data.GameplayConfig)
 local GiantConfig = require(ReplicatedStorage.shared.data.GiantConfig)
 local HoardConfig = require(ReplicatedStorage.shared.data.HoardConfig)
@@ -63,6 +64,17 @@ function CarryService.new(deps: Deps)
         _insidePlot = {} :: { [Player]: number? },
         _groundParams = RaycastParams.new(),
     }, CarryService)
+end
+
+-- Сила игрока: атрибут Strength ставит сервер (этап 2 — из профиля и тренажёра).
+function CarryService.strengthOf(player: Player): number
+    local value = player:GetAttribute("Strength")
+    return if typeof(value) == "number" then value else GameplayConfig.START_STRENGTH
+end
+
+-- Требуемая сила задаётся редкостью (GDD 5.3); множитель размера — этап 2.
+function CarryService.needOf(item: Item): number
+    return GameplayConfig.NEED_BY_RARITY[item.def.rarity] or 0
 end
 
 function CarryService:carried(player: Player): Item?
@@ -230,6 +242,7 @@ function CarryService:spawnAt(itemId: string, marker: BasePart): Item
     }
     model:SetAttribute("ItemId", itemId)
     model:SetAttribute("Rarity", def.rarity)
+    model:SetAttribute("Need", GameplayConfig.NEED_BY_RARITY[def.rarity] or 0)
     model:SetAttribute("Uid", item.uid)
     setPhysics(model, false)
     root.Anchored = true
@@ -343,7 +356,16 @@ function CarryService:_attach(player: Player, item: Item): boolean
     weld.Parent = item.root
     item.weld = weld
     self._carrying[player] = item
-    self._deps.movement:setCarryWeight(player, item.def.weight)
+    local need = CarryService.needOf(item)
+    self._deps.movement:setCarryWeight(
+        player,
+        item.def.weight,
+        CarryLogic.speedMult(
+            CarryService.strengthOf(player),
+            need,
+            GameplayConfig.CARRY_SPEED_BY_RATIO
+        )
+    )
     player:SetAttribute("CarryingItemId", item.def.id)
     player:SetAttribute("CarryingUid", item.uid)
     -- Нести можно из своего участка: доставка срабатывает только при входе снаружи.
@@ -363,6 +385,14 @@ function CarryService:tryGrab(player: Player, item: Item): boolean
         return false
     end
     if (root.Position - item.root.Position).Magnitude > GameplayConfig.GRAB_MAX_DIST then
+        return false
+    end
+    if not CarryLogic.canLift(CarryService.strengthOf(player), CarryService.needOf(item)) then
+        self._deps.notify(
+            player,
+            "hint",
+            `Need {FormatNumber.short(CarryService.needOf(item))} Strength`
+        )
         return false
     end
     if not self._grabLimiter:allow(player) then

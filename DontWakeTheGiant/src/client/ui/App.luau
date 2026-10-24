@@ -9,6 +9,7 @@ local CarryCard = require(script.Parent.components.CarryCard)
 local FormatNumber = require(ReplicatedStorage.shared.util.FormatNumber)
 local HudContext = require(script.Parent.context.HudContext)
 local NoiseBar = require(script.Parent.components.NoiseBar)
+local PhaseBanner = require(script.Parent.components.PhaseBanner)
 local ResourceChip = require(script.Parent.components.ResourceChip)
 local theme = require(script.Parent.theme)
 local useLayout = require(script.Parent.hooks.useLayout)
@@ -39,7 +40,7 @@ local function App(): React.Node
         BorderSizePixel = 0,
     }, {
         Coins = React.createElement("Frame", {
-            Size = UDim2.fromOffset(layout.px(220), layout.px(70)),
+            Size = UDim2.fromOffset(layout.px(220), layout.px(96)),
             Position = UDim2.fromOffset(
                 layout.safeLeft + layout.gap(12),
                 layout.safeTop + layout.gap(12)
@@ -62,8 +63,20 @@ local function App(): React.Node
                 TextSize = layout.text(18, 18),
                 TextXAlignment = Enum.TextXAlignment.Left,
             }),
+            Strength = React.createElement("TextLabel", {
+                LayoutOrder = 3,
+                Size = UDim2.new(1, 0, 0, layout.px(22)),
+                BackgroundTransparency = 1,
+                Text = `💪 {FormatNumber.short(ctx.strength)}`,
+                TextColor3 = theme.Colors.textMain,
+                TextStrokeTransparency = 0.3,
+                Font = theme.Font.title,
+                TextSize = layout.text(18, 18),
+                TextXAlignment = Enum.TextXAlignment.Left,
+            }),
         }),
         Noise = React.createElement(NoiseBar, { noise = ctx.giant.noise, phase = ctx.giant.phase }),
+        PhaseBanner = React.createElement(PhaseBanner, { phase = ctx.giant.phase }),
         Feed = React.createElement("Frame", {
             Size = UDim2.fromOffset(layout.px(360), layout.px(110)),
             Position = UDim2.new(0, layout.safeLeft + layout.gap(12), 0.5, 0),

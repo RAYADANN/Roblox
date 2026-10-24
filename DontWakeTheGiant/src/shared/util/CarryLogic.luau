@@ -3,12 +3,27 @@
 
 local CarryLogic = {}
 
--- GDD 2.1: ×(1 − штраф × (Вес − 1)); вес 5 при штрафе 0.08 → 0.68.
-function CarryLogic.speedMult(weight: number, penalty: number): number
-    if weight <= 1 then
+-- Можно ли поднять: сила не меньше требуемой (GDD 2.1).
+function CarryLogic.canLift(strength: number, need: number): boolean
+    return strength >= need
+end
+
+-- Скорость с предметом по отношению Strength / Need (GDD 2.1).
+function CarryLogic.speedMult(
+    strength: number,
+    need: number,
+    table_: { { ratio: number, mult: number } }
+): number
+    if need <= 0 then
         return 1
     end
-    return math.max(0.1, 1 - penalty * (weight - 1))
+    local ratio = strength / need
+    for _, step in table_ do
+        if ratio < step.ratio then
+            return step.mult
+        end
+    end
+    return 1
 end
 
 -- Начальная скорость для дуги заданной высоты, приземление на той же высоте через dist.
