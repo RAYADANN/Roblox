@@ -22,8 +22,8 @@
 | Все фазы сна (Deep / Restless / Eye Open / WAKE) | ✅ проверено в Play |
 | Взгляд (конус, «!», укрытия) | ✅ идущий в конусе ловится через 1,0 с (было 0,6, поднято по правилу «≥ 1 с предупреждения»); замерший не ловится; укрытия перекрывают луч |
 | Взмахи рукой (Restless) | ✅ проверено в Play (дуга, мах, возврат) |
-| WAKE (удары ладонью, ударная волна) | 🟡 по новому GDD: тряска живота 1 с, игроки с тела съезжают без рэгдолла, круг 1,2 с, радиус 9 — тряска и удары проверены, съезд с тела перепроверить в Play |
-| Кража мишки (GDD 5.10, новая версия) | 🟡 код готов: удержание 2 с с Teddy_Stir, табличка «He WILL wake up!», фора 3 с «RUN!», погоня 15 с по последней видимой позиции; ждёт Play |
+| WAKE (удары ладонью, ударная волна) | ✅ по новому GDD: тряска живота 1 с, игрок с живота съехал на землю рядом с торсом без рэгдолла, круг за 1,2 с, радиус 9 |
+| Кража мишки (GDD 5.10, новая версия) | ✅ табличка, фора 3 с (первый круг ровно через 3 с), погоня 15 с по позиции вора, пойманный роняет мишку на месте. Удержание 2 с и Teddy_Stir — проверить руками (MCP-клавиатура не удерживает подсказку) |
 | Доходы предметов (таблица 5.3, новая) и сокращение чисел K/M/B/T (9.6) | ✅ `FormatNumber` с тестами, HUD и вывеска |
 | Поимка с рэгдоллом и полётом | ✅ пойманный улетел к своему участку, встал через 2.5 с |
 | Перенос предметов (вес, скорость) | ✅ взять (E), бросить (Q), через 20 с предмет вернулся в точку |
@@ -97,7 +97,8 @@
 | Что | Где / как | Кто читает |
 | --- | --- | --- |
 | Великан | `Workspace.Giant` (Model), подмодели `Head, Torso, ArmL, ArmR, LegL, LegR, Lids, Belly, Gaze`, у каждой `PrimaryPart` в суставе. Центр (0, 0, 0), голова на западе | `GiantRig` |
-| Кисть-хитбокс | `Giant.ArmR.Hand` (BasePart); правая рука в покое смотрит на юг (+Z) | `GiantAttacks` |
+| Кисть-хитбокс | любая деталь `Hand` внутри `Giant.ArmR` (сейчас `ArmR.Lower.Hand`), поиск рекурсивный; правая рука в покое смотрит на юг (+Z). Вложенные `Lower` (локоть, колено) двигаются вместе с верхней подмоделью | `GiantAttacks` |
+| Мишка и пальцы | точка `Ring = Teddy` в `Giant.ArmL.Lower` (на земле); `ArmL.Lower.Fingers` со своим pivot — для Teddy_Stir на этапе 3 | `HoardService` |
 | Глаз | `Giant.Head.EyeL` (точка взгляда), `EyeL_Iris` / `EyeR_Iris` (показываются при открытом глазе), `Lids.LidL` / `LidR` (поднимаются) | `GiantRig` |
 | Веер взгляда | `Giant.Gaze`: детали `Fan*` (видимость из атрибута `VisibleTransparency`), `GazeOrigin` со `SpotLight`. В покое смотрит на север (−Z), код крутит pivot вокруг Y | `GiantRig` |
 | Подъём торса | вокруг pivot `Torso`, ось Z, 60° | `GiantRig` |
@@ -109,7 +110,7 @@
 
 Что код создаёт сам в рантайме (не в зоне моделлера): `ReplicatedStorage.GiantState` (атрибуты `Noise`, `Phase`, `GazeYaw`, `EyePosition`, `CalmUntil`), `Workspace.Items` (предметы в мире), `Workspace.Fx` (красные дуги и круги ударов), инструмент `Pillow` в Backpack, ProximityPrompt на предметах и кнопке замка. Атрибуты игрока: `PlotIndex`, `Sneaking`, `CarryingItemId`, `Ragdolled`, `Spotted` (0..1), `StealingFrom`. Атрибуты участка: `OwnerUserId`, `OwnerName`, `Locked`, `LockedUntil`.
 
-Отладка в Studio: чат `/noise N`, `/coins N`; с сервера через MCP — атрибут `DebugSetNoise` на `GiantState`.
+Отладка в Studio: чат `/noise N`, `/coins N`; с сервера через MCP — атрибут `DebugSetNoise` на `GiantState` и `ServerStorage.DWTG_Debug:Invoke("grab" | "knockout" | "lock", player, item?)` (только Studio).
 
 ## Решения и отступления (код)
 
@@ -145,9 +146,10 @@ _Раздел ведёт models-агент. Зона: `Workspace.Giant`, `Worksp
 
 ### Что где лежит (для кода)
 
-- **Великан.** Подмодели `Head, Torso, ArmL, ArmR, LegL, LegR, Lids, Belly, Gaze`. У каждой `PrimaryPart` = невидимая деталь `Joint` в суставе: Head — шея (−30, 13.6, 0); Torso — бёдра (10, 10.6, 0), Wake_Rise крутит вокруг Z; ArmL/ArmR — плечи (−26, 9.6, ∓17); LegL/LegR — бёдра (10, 10.6, ∓8); Belly — низ платформы (0, 21.6, 0); Lids — над глазами (−44, 24, 0); Gaze — вершина веера на земле (−44, 1.4, −4.5), смотрит на север (−Z).
+- **Великан.** Подмодели `Head, Torso, ArmL, ArmR, LegL, LegR, Lids, Belly, Gaze`. У каждой `PrimaryPart` = невидимая деталь `Joint` в суставе: Head — шея (−30, 13.6, 0); Torso — бёдра (10, 10.6, 0), Wake_Rise крутит вокруг Z; ArmL/ArmR — плечи (−26, 9.6, ∓17); LegL/LegR — бёдра (10, 10.6, ∓8); внутри каждой конечности вложенная подмодель `Lower` со своим `Joint` в локте или колене (ArmL.Lower — (−16, 6.5, −32), ArmR.Lower — (−26, 9.6, 32), LegL/LegR.Lower — (31, 10.6, ∓8)), нужна для лунатизма; Belly — низ платформы (0, 21.6, 0); Lids — над глазами (−44, 24, 0); Gaze — вершина веера на земле (−44, 1.4, −4.5), смотрит на север (−Z).
 - `Head`: детали `EyeL`, `EyeR` (белки), `EyeL_Iris`/`EyeR_Iris` (Neon, Transparency 1, показать в Eye Open), `EyeL_Pupil`/`EyeR_Pupil`, `Jaw` (для зевка), `Pompom` и колпак `Cap1..5`. `Lids`: `LidL`, `LidR`.
-- `ArmR.Hand` — ладонь, хитбокс взмаха; на ней точка `Hand`. `ArmR.Cuff` — ступенька, чтобы залезть с ладони на руку. `LegR.BigToe` — палец для шевеления. `Belly.BellyTop` — дышащая платформа (верх Y 23.6).
+- `ArmR.Lower.Hand` — ладонь, хитбокс взмаха; на ней точка `Hand`. `ArmR.Lower.Cuff` — ступенька, чтобы залезть с ладони на руку. `LegR.Lower.BigToe` — палец для шевеления. Детали ищите рекурсивно: `FindFirstChild(name, true)`.
+- Левая рука (GDD от 24.10) опущена вдоль северного бока, ладонь `ArmL.Lower.HandL` лежит на земле в (−1, 2.2, −47), в ней точка `Teddy` (берётся с земли). `ArmL.Lower.Fingers` — подмодель пальцев с `Joint` в костяшках (для Teddy_Stir и Teddy_Wake). Нос для чиха — отдельная деталь `Head.Nose`. `Belly.BellyTop` — дышащая платформа (верх Y 23.6).
 - `Gaze.GazeOrigin` — точка глаза, внутри `SpotLight` (Angle 70, Range 160, Enabled = false). `Gaze.Fan*` — веер 70°/160 из Neon-клиньев, Transparency 1; видимое значение в атрибуте `VisibleTransparency` (0.75). Крутить pivot `Gaze` вокруг Y.
 - Все детали тела великана: атрибут `Surface = "Body"`. Залезть на живот: ступени `Torso.BeardStep1..11` (север) или ладонь → `Cuff` → рука → грудь (юг).
 - **Точки появления**: Part с тегом `HoardSpawn` и атрибутом `Ring`. На земле — `Workspace.Level.HoardSpawns`; на теле (Inner ×4, Hand, Teddy) — внутри подмоделей великана (Torso, Belly, ArmR, LegR, ArmL), двигаются вместе с ними. Маркеры видимые (Neon, Transparency 0.5, без коллизий), в рантайме их стоит скрыть.
@@ -157,6 +159,18 @@ _Раздел ведёт models-агент. Зона: `Workspace.Giant`, `Worksp
 - **Участки** `Plot1..8` (атрибуты `PlotIndex`, `PlotColor`), центры на r 200, углы 0°…315°, пол Y 18.4, вход (−Z модели) смотрит на великана. Внутри: `Floor` (PrimaryPart), `Spawn` (невидимый), `Pedestals/P1..P6` (Part 4×2.4×4, атрибут `Slot`; внутри `Rim` — Neon-ободок, Transparency 1), `LockButton` (красная кнопка) на `LockStand`, `Barrier` (4 стены ForceField, Transparency 1, CanCollide = false), `Sign` с `SignGui.OwnerName` и `SignGui.Income`, `Fence`. Заготовки этапа 2: `SellBox`, `UpgradeBoard`, `IndexBook`.
 - **Предметы**: Model `<ItemId>`, `PrimaryPart = Root` (невидимый 1×1×1, низ на 0), `Cube` приварен WeldConstraint, всё unanchored, CanCollide = false, Massless. Атрибуты `Rarity`, `Weight`, `DisplayName`, `Placeholder = true`. Размер по весу: 2.5 / 3.5 / 4.5 / 5.5 / 7.
 - Вне моей зоны поменял две вещи: `Workspace.Baseplate` опущен на Y −40 (он закрывал русло ручья), `SpawnLocation` перенесён с (0, 0.5, 0) (внутри великана) на `Plot1.Spawn`.
+
+### Варианты карты для сравнения (2026-10-24, по просьбе Данила)
+
+Это превью, а не рабочая карта: код их не читает (нет тегов `HoardSpawn`, великан внутри называется `GiantPreview`). После выбора лишние варианты удалю.
+
+| Вариант | Где | Идея | Скрипт |
+| --- | --- | --- | --- |
+| A «Арена» | `Workspace.Level` (рабочая) | Каменные террасы кольцом, участки на плато | `02_level.luau` |
+| B «Лесная поляна» | `Workspace.MapVariant_B_Forest`, X +1600 | Участки на ступенчатых травяных холмах, между ними огромные блочные деревья, грибы, кусты; лес вместо стен | `06_variant_forest.luau` |
+| C «Остров в облаках» | `Workspace.MapVariant_C_Sky`, X −1600 | Великан спит на летающем острове над морем облаков (пришёл по бобовому стеблю), участки — маленькие острова, к ним ведут дощатые мосты (узкие места для драк подушками), водопад срывается с края | `07_variant_sky.luau` |
+
+Решения Данила: Colossal на участке ставится в полном масштабе ×4.
 
 ### Открытые вопросы
 

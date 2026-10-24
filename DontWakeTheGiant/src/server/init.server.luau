@@ -159,4 +159,25 @@ giant:start()
 pillow:start()
 profiles:start()
 
+-- Только Studio: хук для MCP-плейтестов (кража мишки, подушка, кража без второго игрока).
+-- ServerStorage.DWTG_Debug:Invoke("grab", player, itemModel) и т. п.
+if RunService:IsStudio() then
+    local debugHook = Instance.new("BindableFunction")
+    debugHook.Name = "DWTG_Debug"
+    debugHook.OnInvoke = function(command: string, player: Player, target: Instance?)
+        if command == "grab" and target then
+            local item = carry:all()[target:GetAttribute("Uid") :: string]
+            return item ~= nil and carry:tryGrab(player, item)
+        elseif command == "knockout" then
+            carry:knockOut(player)
+            return true
+        elseif command == "lock" then
+            plots:tryLock(player)
+            return true
+        end
+        return false
+    end
+    debugHook.Parent = game:GetService("ServerStorage")
+end
+
 Logger.info("server", "boot complete")

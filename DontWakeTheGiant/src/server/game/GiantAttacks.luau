@@ -264,10 +264,13 @@ end
 -- Игроки с тела великана съезжают на землю рядом с ним: без рэгдолла, предмет остаётся в руках.
 function GiantAttacks:_slideOffRiders()
     local rig = self._deps.rig
-    local boxCf, boxSize = rig.model:GetBoundingBox()
+    -- Коробка торса, а не всего великана: руки и ноги раскинуты, по ним съезжать далеко.
+    local torso = rig.model:FindFirstChild("Torso")
+    local boxCf, boxSize = (if torso and torso:IsA("Model") then torso else rig.model):GetBoundingBox()
     local params = RaycastParams.new()
     params.FilterType = Enum.RaycastFilterType.Exclude
-    local exclude: { Instance } = { rig.model, self._deps.fxFolder }
+    -- Великана не исключаем: если сбоку лежит рука, встаём на неё, а не внутрь неё.
+    local exclude: { Instance } = { self._deps.fxFolder }
     for _, player in Players:GetPlayers() do
         if player.Character then
             table.insert(exclude, player.Character)
