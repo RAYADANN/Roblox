@@ -1,0 +1,31 @@
+---
+description: Доступность — reduce motion, громкость, haptics
+globs: src/client/**/*.luau
+alwaysApply: false
+---
+
+# Доступность и настройки
+
+Профи-игры дают игроку контроль. `client/core/SettingsManager.luau` + панель в UI.
+
+## Обязательные toggles
+
+| Настройка | Эффект |
+|-----------|--------|
+| SFX volume | `SoundManager.setVolume("sfx", v)` |
+| Music volume | `SoundManager.setVolume("music", v)` |
+| Reduce motion | Отключает: camera shake, coin rain, iris wipe, screen flash |
+| Haptics | Mobile vibration on/off |
+
+## Правила
+
+- Настройки в `PlayerSettings` (DataStore или профиль) — persist между сессиями.
+- Каждый FX-модуль проверяет `SettingsManager.isReduceMotion()` перед shake/rain.
+- Reduce motion **не** отключает hover/press на кнопках (это usability, не decoration).
+- Touch targets ≥ 44px на phone (`layout.touch()`).
+
+## Антипаттерны
+
+- Shake без проверки reduce motion
+- Нет способа выключить звук
+- Мелкие кнопки на phone (< 44px)

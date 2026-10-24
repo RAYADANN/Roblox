@@ -1,0 +1,38 @@
+---
+description: What must be tested and how (Lune-in-CI first)
+alwaysApply: true
+---
+
+# Тесты
+
+Прошлый проект: **0 тестов**. Здесь тесты — часть Definition of Done.
+
+## Что обязательно тестировать
+
+- **Вся чистая логика** в `src/shared/` (`*Logic`, формулы, баланс, валидация, ролл-функции). Это дёшево и ловит регрессии баланса, которые вручную не отследить.
+- Каждый публичный чистый модуль → соседний `*.test.luau` в `tests/` (или рядом), запускается Lune.
+
+## Что НЕ тестируем юнитами
+
+- Roblox-coupled код (рендер, инстансы, RemoteEvents) — юнит-тестами не покрываем; вместо этого держим его тонким (см. `architecture.mdc`) и проверяем в Studio (человек).
+
+## Как
+
+- Дефолт CI — **Lune** + лёгкий harness (см. `tests/`): pure-Luau, без Studio, гоняется на каждый push.
+- Тест — детерминированный: для рандома прокидывай `rng` параметром и подавай сид.
+- Опционально для Roblox-coupled — **Jest-Lua** через run-in-roblox (локально).
+
+```luau
+-- tests/RebirthLogic.test.luau
+local RebirthLogic = require("@shared/util/RebirthLogic")
+return {
+    ["cost растёт экспоненциально"] = function(expect)
+        expect(RebirthLogic.cost(0)).toEqual(50000)
+        expect(RebirthLogic.cost(1)).toEqual(250000)
+    end,
+}
+```
+
+## Правило при фиксе бага
+
+- Нашёл баг в чистой логике → сначала **тест, воспроизводящий баг**, потом фикс. Тест остаётся навсегда.

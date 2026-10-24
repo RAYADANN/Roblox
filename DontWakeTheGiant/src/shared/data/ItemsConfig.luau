@@ -1,0 +1,267 @@
+--!strict
+-- 26 предметов MVP (GDD 5.3). Модель: ReplicatedStorage.Assets.Items.<Id>.
+
+export type ItemDef = {
+    id: string,
+    name: string,
+    rarity: string,
+    weight: number,
+    income: number,
+    rings: { string },
+    lore: string,
+}
+
+local O, M, I, H, T = "Outer", "Middle", "Inner", "Hand", "Teddy"
+
+local LIST: { ItemDef } = {
+    {
+        id = "GiantButton",
+        name = "Giant Button",
+        rarity = "Common",
+        weight = 1,
+        income = 1,
+        rings = { O },
+        lore = "Fell off his overalls. He didn't notice.",
+    },
+    {
+        id = "BreadCrust",
+        name = "Bread Crust",
+        rarity = "Common",
+        weight = 1,
+        income = 1,
+        rings = { O },
+        lore = "A midnight snack. Already bitten.",
+    },
+    {
+        id = "Thimble",
+        name = "Thimble",
+        rarity = "Common",
+        weight = 1,
+        income = 2,
+        rings = { O },
+        lore = "A thimble. For you, a helmet.",
+    },
+    {
+        id = "StripedSock",
+        name = "Striped Sock",
+        rarity = "Common",
+        weight = 1,
+        income = 2,
+        rings = { O },
+        lore = "The other one is in the boot. It smells.",
+    },
+    {
+        id = "GlassMarble",
+        name = "Glass Marble",
+        rarity = "Common",
+        weight = 1,
+        income = 3,
+        rings = { O },
+        lore = "His toy. Your bowling ball.",
+    },
+    {
+        id = "RustyKey",
+        name = "Rusty Key",
+        rarity = "Common",
+        weight = 2,
+        income = 3,
+        rings = { O },
+        lore = "Which chest does it open? Go find out.",
+    },
+    {
+        id = "PocketWatch",
+        name = "Pocket Watch",
+        rarity = "Uncommon",
+        weight = 2,
+        income = 6,
+        rings = { O, M },
+        lore = "He always oversleeps. Now it's yours.",
+    },
+    {
+        id = "CandleStub",
+        name = "Candle Stub",
+        rarity = "Uncommon",
+        weight = 2,
+        income = 7,
+        rings = { O, M },
+        lore = "His night light. He's scared of the dark.",
+    },
+    {
+        id = "ToySoldier",
+        name = "Toy Soldier",
+        rarity = "Uncommon",
+        weight = 2,
+        income = 9,
+        rings = { O, M },
+        lore = "Little Grumble's favorite toy.",
+    },
+    {
+        id = "HoneyPot",
+        name = "Honey Pot",
+        rarity = "Uncommon",
+        weight = 2,
+        income = 10,
+        rings = { O, M },
+        lore = "A sticky treasure.",
+    },
+    {
+        id = "GoldenSpoon",
+        name = "Golden Spoon",
+        rarity = "Uncommon",
+        weight = 2,
+        income = 12,
+        rings = { O, M },
+        lore = "Like the spoon bridge, but real gold.",
+    },
+    {
+        id = "SnowGlobe",
+        name = "Snow Globe",
+        rarity = "Rare",
+        weight = 3,
+        income = 25,
+        rings = { M, I },
+        lore = "Inside is the village he came from.",
+    },
+    {
+        id = "MusicBox",
+        name = "Music Box",
+        rarity = "Rare",
+        weight = 3,
+        income = 30,
+        rings = { M, I },
+        lore = "Plays a lullaby. That's why he sleeps.",
+    },
+    {
+        id = "FireflyJar",
+        name = "Firefly Jar",
+        rarity = "Rare",
+        weight = 3,
+        income = 35,
+        rings = { M, I },
+        lore = "He caught them all night long.",
+    },
+    {
+        id = "BabyTooth",
+        name = "Giant's Baby Tooth",
+        rarity = "Rare",
+        weight = 3,
+        income = 40,
+        rings = { M, I },
+        lore = "Lost at seven. The fairy never came.",
+    },
+    {
+        id = "TreasureMap",
+        name = "Treasure Map",
+        rarity = "Rare",
+        weight = 2,
+        income = 45,
+        rings = { M, I },
+        lore = "Leads to another giant's gold...",
+    },
+    {
+        id = "ThunderEgg",
+        name = "Thunder Egg",
+        rarity = "Epic",
+        weight = 4,
+        income = 90,
+        rings = { M, I },
+        lore = "Someone is inside. And they're grumpy.",
+    },
+    {
+        id = "RoyalGoblet",
+        name = "Royal Goblet",
+        rarity = "Epic",
+        weight = 3,
+        income = 110,
+        rings = { M, I },
+        lore = "Stolen from a human king. A shot glass.",
+    },
+    {
+        id = "ClockworkBird",
+        name = "Clockwork Bird",
+        rarity = "Epic",
+        weight = 3,
+        income = 130,
+        rings = { M, I },
+        lore = "Sings better than a real one.",
+    },
+    {
+        id = "DragonLantern",
+        name = "Dragon Lantern",
+        rarity = "Epic",
+        weight = 4,
+        income = 150,
+        rings = { M, I },
+        lore = "A tiny dragon keeps the fire for free.",
+    },
+    {
+        id = "SelfPlayingHarp",
+        name = "Self-Playing Harp",
+        rarity = "Legendary",
+        weight = 4,
+        income = 400,
+        rings = { I, H },
+        lore = "Plays itself. Complains when carried.",
+    },
+    {
+        id = "GoldenGoose",
+        name = "Golden Goose",
+        rarity = "Legendary",
+        weight = 5,
+        income = 500,
+        rings = { I, H },
+        lore = "Lays golden eggs. Honks very loudly.",
+    },
+    {
+        id = "LostCrown",
+        name = "Lost Crown",
+        rarity = "Legendary",
+        weight = 3,
+        income = 600,
+        rings = { I, H },
+        lore = "The giant king's crown. He tries it on.",
+    },
+    {
+        id = "HeartOfMountain",
+        name = "Heart of the Mountain",
+        rarity = "Mythic",
+        weight = 5,
+        income = 2500,
+        rings = { I, H },
+        lore = "The stone that keeps mountains alive.",
+    },
+    {
+        id = "JarOfDreams",
+        name = "Jar of Dreams",
+        rarity = "Mythic",
+        weight = 4,
+        income = 2000,
+        rings = { I, H },
+        lore = "His dreams. Sometimes you're in them.",
+    },
+    {
+        id = "Teddy",
+        name = "Grumble's Teddy",
+        rarity = "Secret",
+        weight = 5,
+        income = 8000,
+        rings = { T },
+        lore = "The one thing he loves more than gold.",
+    },
+}
+
+local ItemsConfig = {}
+
+ItemsConfig.LIST = LIST
+ItemsConfig.BY_ID = {} :: { [string]: ItemDef }
+for _, def in LIST do
+    ItemsConfig.BY_ID[def.id] = def
+end
+
+-- Шум шага при переноске (GDD 2.2): индекс = вес.
+ItemsConfig.CARRY_NOISE_MULT = { 1, 1.5, 2, 2.5, 3 }
+
+-- Размер серой заглушки по весу (GDD 5.1: вес 1 ≈ 2–3, 3 ≈ 4–5, 5 ≈ 6–8 stud).
+ItemsConfig.GREYBOX_SIZE = { 2.5, 3.5, 4.5, 5.5, 6.5 }
+
+return ItemsConfig
