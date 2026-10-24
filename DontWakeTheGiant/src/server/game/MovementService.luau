@@ -124,7 +124,8 @@ function MovementService:_update(player: Player, state: PlayerState, dt: number)
     state.floorPart = if hit then hit.Instance :: BasePart else nil
     state.surface = if hit then surfaceOf(hit.Instance :: BasePart, self._deps.giant) else nil
     if self._hasLiquids then
-        local wet = workspace:GetPartBoundsInRadius(pos - Vector3.new(0, 2.5, 0), 1.5, self._liquidParams)
+        local wet =
+            workspace:GetPartBoundsInRadius(pos - Vector3.new(0, 2.5, 0), 1.5, self._liquidParams)
         if wet[1] then
             state.surface = wet[1]:GetAttribute("Surface") :: string
         end

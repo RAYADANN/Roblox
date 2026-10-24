@@ -86,8 +86,9 @@ function GiantService:wake(teddyThief: Player?)
     self._attackToken += 1
     local token = self._attackToken
     local noise = self._deps.noise
-    noise:set(GiantConfig.NOISE_MAX)
     noise:setFrozen(true)
+    noise:set(GiantConfig.NOISE_MAX)
+    noise:takeMaxHit()
     self:_setPhase("Wake")
     self._rig.lidL, self._rig.lidR = 1, 1
     self._deps.feedAll("wake", if teddyThief then "WHERE'S MY TEDDY?!" else "HE'S AWAKE!")
@@ -145,7 +146,7 @@ end
 function GiantService:_tick(dt: number)
     if not self._waking then
         local noise = self._deps.noise:get()
-        if noise >= GiantConfig.NOISE_MAX then
+        if self._deps.noise:takeMaxHit() or noise >= GiantConfig.NOISE_MAX then
             self:wake(nil)
         else
             self:_setPhase(NoiseLogic.phaseFor(noise, self._phase, GiantConfig :: any))

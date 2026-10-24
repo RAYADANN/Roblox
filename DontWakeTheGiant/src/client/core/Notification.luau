@@ -4,8 +4,8 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local UiScreen = require(script.Parent.ui.util.UiScreen)
-local theme = require(script.Parent.ui.theme)
+local UiScreen = require(script.Parent.Parent.ui.util.UiScreen)
+local theme = require(script.Parent.Parent.ui.theme)
 
 export type ToastOptions = {
     text: string,

@@ -73,7 +73,17 @@ function NoiseService:afterWake()
     )
 end
 
+-- Шум мог коснуться 100 между тиками великана и тут же затухнуть: WAKE всё равно должен случиться.
+function NoiseService:takeMaxHit(): boolean
+    local hit = self._hitMax == true
+    self._hitMax = false
+    return hit
+end
+
 function NoiseService:_publish(force: boolean)
+    if self._noise >= GiantConfig.NOISE_MAX and not self._frozen then
+        self._hitMax = true
+    end
     if
         force
         or math.abs(self._noise - self._published) >= GiantConfig.NOISE_REPLICATE_STEP

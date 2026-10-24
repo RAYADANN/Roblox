@@ -3,8 +3,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage:WaitForChild("Packages").React)
 
-local theme = require(script.Parent.theme)
-local useLayout = require(script.Parent.hooks.useLayout)
+local theme = require(script.Parent.Parent.theme)
+local useLayout = require(script.Parent.Parent.hooks.useLayout)
 
 export type Props = {
     progress: number,

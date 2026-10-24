@@ -2,10 +2,10 @@
 -- UI FX primitives. Copy/skin per game — not a second VfxEngine.
 -- See docs/VFX_ENGINE.md «UI FX» and .cursor/rules/fx.mdc.
 
-local CoinRain = require(script.CoinRain)
-local FloatText = require(script.FloatText)
-local FlyBurst = require(script.FlyBurst)
-local FxOverlay = require(script.FxOverlay)
+local CoinRain = require(script.Parent.CoinRain)
+local FloatText = require(script.Parent.FloatText)
+local FlyBurst = require(script.Parent.FlyBurst)
+local FxOverlay = require(script.Parent.FxOverlay)
 
 local Debris = game:GetService("Debris")
 local TweenService = game:GetService("TweenService")

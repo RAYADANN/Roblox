@@ -3,11 +3,11 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage:WaitForChild("Packages").React)
 
-local Formatters = require(script.Parent.util.Formatters)
-local MotionPresets = require(script.Parent.motion.MotionPresets)
-local theme = require(script.Parent.theme)
-local useFlipperSpring = require(script.Parent.hooks.useFlipperSpring)
-local useLayout = require(script.Parent.hooks.useLayout)
+local Formatters = require(script.Parent.Parent.util.Formatters)
+local MotionPresets = require(script.Parent.Parent.motion.MotionPresets)
+local theme = require(script.Parent.Parent.theme)
+local useFlipperSpring = require(script.Parent.Parent.hooks.useFlipperSpring)
+local useLayout = require(script.Parent.Parent.hooks.useLayout)
 
 export type Props = {
     amount: number,
